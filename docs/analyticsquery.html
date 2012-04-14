@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>analyticsquery.coffee</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="resources/base.css" />
+  <link rel="stylesheet" media="all" href="resources/module.css" />
+</head>
+<body>
+  <header>
+    <h1>analyticsquery.coffee</h1>
+  </header>
+  <div id="content">
+    <div id="sidebar">
+      
+      <h4>Classes</h4>
+      <ul class="classlist">
+        
+        <li><a href="#AnalyticsQuery">AnalyticsQuery</a></li>
+        
+        <li><a href="#GuidedAnalyticsQuery">GuidedAnalyticsQuery</a></li>
+        
+        <li><a href="#AtAnalyticsQuery">AtAnalyticsQuery</a></li>
+        
+        <li><a href="#AtArrayAnalyticsQuery">AtArrayAnalyticsQuery</a></li>
+        
+        <li><a href="#BetweenAnalyticsQuery">BetweenAnalyticsQuery</a></li>
+        
+        <li><a href="#TimeInStateAnalyticsQuery">TimeInStateAnalyticsQuery</a></li>
+        
+        <li><a href="#TransitionsAnalyticsQuery">TransitionsAnalyticsQuery</a></li>
+        
+      </ul>
+      
+      
+    </div>
+    <div id="main">
+      
+      
+      <div id="classes">
+        <h2>Classes</h2>
+        
+        <div class="class">
+          <div class="header">
+            <a id="AnalyticsQuery"><h3>AnalyticsQuery</h3></a>
+            
+          </div>
+          <div class="class_content">
+            <p>This is the base class for all analytics query classes. For the most part, you are better off using
+one of the sub-classes but if you want more direct access, you can use this class as follows.</p>
+
+<h2>Usage</h2>
+
+<p>First, you need to "require" the desired analytics query class(es). In these examples, we're going to require a mock
+for the XMLHttpResponse Object but you will simply pass in the browser's XMHttpRequest Object (or 
+the equivalent from node-XMLHttpRequest if running on node.js)</p>
+
+<pre><code>{XHRMock} = require('../../mock/XHRMock')
+rally_analytics = require('../')      
+</code></pre>
+
+<p>Then, you need to set the config Object.</p>
+
+<pre><code>config =
+  'X-RallyIntegrationName': 'My Chart'
+  'X-RallyIntegrationVendor': 'My Company'
+  'X-RallyIntegrationVersion': '0.1.0'
+  username: null  # if running in browser, will prompt
+  password: null  # if running in Node.js will look for RALLY_USER/RALLY_PASSWORD environment variables
+  workspaceOID: 12345
+  additionalHeaders: [ 
+    someHeader: 'Some Value'
+  ]
+</code></pre>
+
+<p>Which you can then use when instantiating a query.</p>
+
+<pre><code>query = new rally_analytics.AnalyticsQuery(config)
+query.XHRClass = XHRMock  # Not required to hit actual Rally Analytics API
+</code></pre>
+
+<p>Then you must set the query. <code>find</code> is required but you can also specify sort, fields, etc. Notice how you can chain these calls.</p>
+
+<pre><code>query.find({Project: 1234, Tag: 'Expedited', _At: '2012-01-01'}).sort({_ValidFrom:1}).fields(['ScheduleState'])
+</code></pre>
+
+<p>Of course you need to have a callback.</p>
+
+<pre><code>callback = () -&gt;
+  console.log(this.allResults.length)  # will spit back 5 from our XHRMock
+# 5
+</code></pre>
+
+<p>Finally, call getAll()</p>
+
+<pre><code>query.getAll(callback)
+</code></pre>
+
+<h2>Properties you can inspect or set</h2>
+
+<ul>
+<li><strong>username</strong> default null</li>
+<li><strong>password</strong> default null</li>
+<li><strong>protocol</strong> default "https"</li>
+<li><strong>server</strong> default "rally1.rallydev.com"</li>
+<li><strong>service</strong> default "analytics"</li>
+<li><strong>version</strong> defaults to latest current version</li>
+<li><strong>endpoint</strong> defaults to "artifact/snapshot/query.js"</li>
+<li><strong>XHRClass</strong> defaults to the local context XMLHttpResquest. Set to mock for testing.</li>
+</ul>
+
+<h2>Properties you should only inspect</h2>
+
+<p>Note, the context for the callback you provide to the <code>getAll()</code> method is set to the AnalyticsQuery instance
+so you can inspect these properties by simply prepending them with <code>this.</code> from inside of your callback.</p>
+
+<ul>
+<li><strong>ETLDate</strong> the ETLDate of the response in the first page</li>
+<li><strong>lastResponseText</strong> the string containing the most recent response/page</li>
+<li><strong>lastResponse</strong> the parsed JSON Object of the most recent response/page</li>
+<li><strong>lastMeta</strong> the meta data included at the top of the most recent response/page</li>
+<li><strong>allResults</strong> the Results from all pages concatenated together</li>
+<li><strong>allMeta</strong> the meta data from all pages concatentated together</li>
+<li><strong>allErrors</strong> NOT YET IMPLEMENTED</li>
+<li><strong>allWarnings</strong> NOT YET IMPLEMENTED</li>
+</ul>
+            <div class="methods">
+              
+              
+              <div class="instancemethods">
+                <h3>Instance Methods</h3>
+                
+                <div class="method">
+                  <h4>constructor(config)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>resetFind()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>find(@_find)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>sort(@_sort)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>fields(@_fields)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>start(@_startIndex)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>startIndex(@_startIndex)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>pagesize(@_pageSize)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>pageSize(@_pageSize)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>auth(@username, @password)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>debug()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>getBaseURL()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>getQueryString()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>getURL()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>getAll(@_callback)</h4>
+                  
+                </div>
+                
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <div class="class">
+          <div class="header">
+            <a id="GuidedAnalyticsQuery"><h3>GuidedAnalyticsQuery</h3></a>
+            
+            
+            <a class="parent" href="#AnalyticsQuery"><h3>extends AnalyticsQuery</h3></a>
+            
+            
+          </div>
+          <div class="class_content">
+            <p>To help you write performant queries against the non-traditional data model of Rally's Analytics engine, we provide a guided mode 
+for composing queries. Like the raw AnalyticsQuery, you start by creating a GuidedAnalyticsQuery Object. </p>
+
+<pre><code>query = new rally_analytics.GuidedAnalyticsQuery(config)
+query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+</code></pre>
+
+<p><strong>Scope</strong></p>
+
+<p>Then you must specify at least one highly selective criteria using the scope method:</p>
+
+<pre><code>query.scope('Project', 1234) # or [1234, 5678]
+query.scope('_ProjectHierarchy', 1234) # or [1234, 5678], also accepts 'ProjectHierarchy'
+query.scope('Iteration', 1234) # or [1234, 5678]
+query.scope('Release', 1234) # or [1234, 5678]
+query.scope('_ItemHierarchy', 1234) # also accepts 'ItemHierarchy'
+query.scope('Tags', 'Top 10') # or ['Top 10', 'Expedite'], also accepts Tag
+</code></pre>
+
+<p>The 'ProjectHierarchy' scope is not necessarily highly selective. So you should make sure that you
+either have some other criteria or that you don't have too many Projects in scope beneith the specified Project(s).</p>
+
+<p>Alternatively, you can specify your scope in one big object:</p>
+
+<pre><code>query.scope({
+  _ProjectHierarchy: 1234,
+  Iteration: [1234, 5678], 
+})
+</code></pre>
+
+<p><strong>Type</strong></p>
+
+<p>You can optionally limit your query to one or more work item types. Defaults to all types.</p>
+
+<pre><code>query.type('Defect') # alteratively ['Defect', 'HierarchicalRequirement']
+</code></pre>
+
+<p>Note, a change is expected to be made such that the Analytics API will require ObjectIDs of the types.
+When that happens, we may update this REST toolkit to hide that from you but you'll need to update
+to the latest version.</p>
+
+<p><strong>Leaf Nodes Only</strong>  </p>
+
+<p>You can also specify that you only want leaf nodes to be returned by the query.</p>
+
+<pre><code>query.leafOnly()
+</code></pre>
+
+<p>It will expand to a clause like: </p>
+
+<pre><code>{
+  '$or': [
+    {_Type: "HierarchicalRequirement", Children: null},
+    {_Type:"PortfolioItem", Children: null, UserStories: null}
+  ]
+}
+</code></pre>
+
+<p><strong>Additional Criteria</strong></p>
+
+<p>You can also specify additional critaria. This can be useful for defining "sub-classes" of work items.</p>
+
+<pre><code>query.additionalCriteria({Environment: 'Production'})
+</code></pre>
+
+<p><strong>Chaining</strong></p>
+
+<p>Chaining is supported, so you could say:</p>
+
+<pre><code>query = new rally_analytics.GuidedAnalyticsQuery(config)
+query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+query.scope('_ProjectHierarchy', 1234)
+     .type('HierarchicalRequirement')
+     .leafOnly()
+     .additionalCriteria({Blocked: true})
+
+query.find()
+console.log(JSON.stringify(query._find, undefined, 2))
+# {
+#   "$and": [
+#     {
+#       "_ProjectHierarchy": 1234
+#     },
+#     {
+#       "_Type": "HierarchicalRequirement"
+#     },
+#     {
+#       "$or": [
+#         {
+#           "_Type": "HierarchicalRequirement",
+#           "Children": null
+#         },
+#         {
+#           "_Type": "PortfolioItem",
+#           "Children": null,
+#           "UserStories": null
+#         }
+#       ]
+#     },
+#     {
+#       "Blocked": true
+#     }
+#   ]
+# }
+</code></pre>
+            <div class="methods">
+              
+              
+              <div class="instancemethods">
+                <h3>Instance Methods</h3>
+                
+                <div class="method">
+                  <h4>constructor(config)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>generateFind()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>find()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>resetScope()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>scope(key, value)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>resetType()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>type(type)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>resetAdditionalCriteria()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>additionalCriteria(criteria)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>leafOnly()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>getAll(callback)</h4>
+                  
+                </div>
+                
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <div class="class">
+          <div class="header">
+            <a id="AtAnalyticsQuery"><h3>AtAnalyticsQuery</h3></a>
+            
+            
+            <a class="parent" href="#GuidedAnalyticsQuery"><h3>extends GuidedAnalyticsQuery</h3></a>
+            
+            
+          </div>
+          <div class="class_content">
+            <p>This pattern will tell you what a set of Artfacts looked like at particular moments in time</p>
+
+<pre><code>query = new rally_analytics.AtAnalyticsQuery(config, '2012-01-01T12:34:56.789Z')
+query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+</code></pre>
+
+<p>It will expand to a query like this:</p>
+
+<pre><code>query.scope('_ProjectHierarchy', 1234)
+query.find()
+console.log(JSON.stringify(query._find, undefined, 2))
+# {
+#   "$and": [
+#     {
+#       "_ProjectHierarchy": 1234
+#     },
+#     {
+#       "_At": "2012-01-01T12:34:56.789Z"
+#     }
+#   ]
+# }
+</code></pre>
+            <div class="methods">
+              
+              
+              <div class="instancemethods">
+                <h3>Instance Methods</h3>
+                
+                <div class="method">
+                  <h4>constructor(config, zuluDateString)</h4>
+                  
+                </div>
+                
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <div class="class">
+          <div class="header">
+            <a id="AtArrayAnalyticsQuery"><h3>AtArrayAnalyticsQuery</h3></a>
+            
+            
+            <a class="parent" href="#GuidedAnalyticsQuery"><h3>extends GuidedAnalyticsQuery</h3></a>
+            
+            
+          </div>
+          <div class="class_content">
+            <p>This pattern is not implemented at this time but the intention is for it to tell you what a 
+set of Artfacts looked like at particular moments in time. In the mean time, use the "Between"
+pattern defined above combined with the Lumenize <code>snapshotArray_To_AtArray</code> function. 
+Eventually, this will be the ideal pattern to use for Burn charts, CFD charts, and most time-series charts
+It's the same as the 'At' pattern except that the second parameter can be a list of timestamps.</p>
+
+<p><code>query = new rally_analytics.AtArrayAnalyticsQuery(config, ['2012-01-01T12:34:56.789Z', '2012-01-02T12:34:56.789Z', ...])</code></p>
+
+<p>Altneratively, we may make it possible to submit a ChartTimeIterator spec.</p>
+
+<p>The way to implement this in the short term is to use the Between pattern and wrap in the Lumenize 
+<code>snapshotArray_To_AtArray</code> transformation.</p>
+
+<p>Note: it's tempting to try to make this more efficient by just looking for snapshots where the fields of interest change. 
+However, that approach would not pick up on the deletions/restores nor the changing of the work item so it no longer meets 
+the other criteria.</p>
+
+<p>Note: when/if there is server-side support for finding the results at these points in time, this query pattern will be updated
+to take advantage of it.</p>
+            <div class="methods">
+              
+              
+              <div class="instancemethods">
+                <h3>Instance Methods</h3>
+                
+                <div class="method">
+                  <h4>constructor(config, arrayOfZuluDates)</h4>
+                  
+                </div>
+                
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <div class="class">
+          <div class="header">
+            <a id="BetweenAnalyticsQuery"><h3>BetweenAnalyticsQuery</h3></a>
+            
+            
+            <a class="parent" href="#GuidedAnalyticsQuery"><h3>extends GuidedAnalyticsQuery</h3></a>
+            
+            
+          </div>
+          <div class="class_content">
+            <p>This pattern will return all of the snapshots related to a particular timebox. The results are in the form expected by the 
+Lumenize function <code>snapshotArray_To_AtArray</code>, which will tell you what each work item looked like at a provided list of
+datetimes. This is the current recommended approach for most time-series charts. The burncalculator and cfdcalculator
+use this approach. Note: the 'AtArray' approach will supercede this for time-series charts at some point in the future.</p>
+
+<pre><code>query = new rally_analytics.BetweenAnalyticsQuery(config, '2012-01-01T12:34:56.789Z', '2012-01-10T12:34:56.789Z')
+query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+</code></pre>
+
+<p>It will expand to a query like this:</p>
+
+<pre><code>query.scope('_ProjectHierarchy', 1234)
+query.find()
+console.log(JSON.stringify(query._find, undefined, 2))
+# {
+#   "$and": [
+#     {
+#       "_ProjectHierarchy": 1234
+#     },
+#     {
+#       "$or": [
+#         {
+#           "_ValidFrom": {
+#             "$lte": "2012-01-01T12:34:56.789Z"
+#           },
+#           "_ValidTo": {
+#             "$gt": "2012-01-01T12:34:56.789Z"
+#           }
+#         },
+#         {
+#           "_ValidFrom": {
+#             "$gte": "2012-01-01T12:34:56.789Z",
+#             "$lt": "2012-01-10T12:34:56.789Z"
+#           }
+#         }
+#       ]
+#     }
+#   ]
+# }
+</code></pre>
+            <div class="methods">
+              
+              
+              <div class="instancemethods">
+                <h3>Instance Methods</h3>
+                
+                <div class="method">
+                  <h4>constructor(config, zuluDateString1, zuluDateString2)</h4>
+                  
+                </div>
+                
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <div class="class">
+          <div class="header">
+            <a id="TimeInStateAnalyticsQuery"><h3>TimeInStateAnalyticsQuery</h3></a>
+            
+            
+            <a class="parent" href="#GuidedAnalyticsQuery"><h3>extends GuidedAnalyticsQuery</h3></a>
+            
+            
+          </div>
+          <div class="class_content">
+            <p>This pattern will only return snapshots where the specified clause is true.
+This is useful for Cycle Time calculations as well as calculating Flow Efficiency or Blocked Time.</p>
+
+<pre><code>query = new rally_analytics.TimeInStateAnalyticsQuery(config, {KanbanState: {$gte: 'In Dev', $lt: 'Accepted'}})
+query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+</code></pre>
+            <div class="methods">
+              
+              
+              <div class="instancemethods">
+                <h3>Instance Methods</h3>
+                
+                <div class="method">
+                  <h4>constructor(config, predicate)</h4>
+                  
+                </div>
+                
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        
+        <div class="class">
+          <div class="header">
+            <a id="TransitionsAnalyticsQuery"><h3>TransitionsAnalyticsQuery</h3></a>
+            
+            
+            <a class="parent" href="#GuidedAnalyticsQuery"><h3>extends GuidedAnalyticsQuery</h3></a>
+            
+            
+          </div>
+          <div class="class_content">
+            <p>This pattern will return the snapshots where the _PreviousValue matches the first query clause parameter and the "current"
+value matches the second query clause parameter. In other words, it finds particular transitions. It is useful for 
+Throughput/Velocity calculations. </p>
+
+<p>!TODO: Indent below to make sure it works and add example
+query = new TransitionsAnalyticsQuery(config,
+  {ScheduleState: {$lt: 'Accepted'}}, 
+  {ScheduleState: {$gte: 'Accepted'}}
+)
+query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API</p>
+
+<p>The first predicate is actually converted such that any non-operator key is prepended with "<em>PreviousValues.". In the example
+above, "{ScheduleState: {$lt: 'Accepted'}}" becomes "{'</em>PreviousValues.ScheduleState': {$lt: 'Accepted'}}". So this will return
+the snapshots that made this particular transition from before state to after state.</p>
+
+<p>Note, you should also run the query swapping the two predicates and subtract the two calculations before reporting a Thoughput or 
+Velocity result. Without doing so, any story that crosses the boudary multiple times would get double, triple, etc. counted.</p>
+
+<p>In a future version, you may be able to specify aggregation functions ($count, $sum, $push, etc.) on a particular field when 
+making this query, because when you use this pattern, you are usually interested in the sum or count and not the actual snapshots.
+In the mean time, if you are only interested in the count, simply specify pagesize of 1 and inspect the TotalResultCount in the top
+section of the response.</p>
+
+<p>There is a good reason that Throughput and Velocity are defined with two predicates rather than just specifying the line to the left
+of "Accepted". Let's say, work is not really "Accepted" until the Ready flag is checked. You could write that query like so:</p>
+
+<p>!TODO: Indent below to make sure it works and add example
+query = new rally_analytics.TransitionsAnalyticsQuery(config,
+  {$or: [{KanbanState: {$lt: 'Accepted'}}, {KanbanState: 'Accepted', Ready: false}]}, 
+  {$or: [{KanbanState: 'Accepted', Ready: true}, {KanbanState: {$gt: 'Accepted'}}]}
+)
+query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API</p>
+
+<p>It will expand to a query like this:</p>
+
+<p>!TODO: Indent below to make sure it works and add example
+query.scope('<em>ProjectHierarchy', 1234)
+query.find()
+console.log(JSON.stringify(query.</em>find, undefined, 2))</p>
+
+<h1> </h1>
+            <div class="methods">
+              
+              
+              <div class="instancemethods">
+                <h3>Instance Methods</h3>
+                
+                <div class="method">
+                  <h4>constructor(config, arrayOfZuluDates)</h4>
+                  
+                </div>
+                
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      
+      
+    </div>
+  </div>
+</body>
+</html>

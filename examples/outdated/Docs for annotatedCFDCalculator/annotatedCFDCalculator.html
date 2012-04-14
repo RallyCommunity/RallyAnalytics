@@ -1,0 +1,233 @@
+<!DOCTYPE html>  <html> <head>   <title>annotatedCFDCalculator.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               annotatedCFDCalculator.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>               <h1>rallycharttime</h1>
+
+<p>Copyright (c), 2012 Rally Software</p>
+
+<p>The purpose of this project is to demonstrate how you would use ChartTime with Rally Software's APIs to 
+calculate metrics with precision and render useful charts.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">charttime = </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;../../charttime&#39;</span><span class="p">)</span>
+<span class="p">{</span><span class="nx">ChartTime</span><span class="p">,</span> <span class="nx">ChartTimeIterator</span><span class="p">,</span> <span class="nx">ChartTimeRange</span><span class="p">}</span> <span class="o">=</span> <span class="nx">charttime</span>
+<span class="p">{</span><span class="nx">clone</span><span class="p">}</span> <span class="o">=</span> <span class="nx">charttime</span><span class="p">.</span><span class="nx">utils</span>
+
+<span class="nx">ChartTime</span><span class="p">.</span><span class="nx">setTZPath</span><span class="p">(</span><span class="s2">&quot;../../charttime/vendor/tz&quot;</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>Let's say you have this data. I've put it in this CSV-style format for easy entry and comprehension.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">resultsCSVStyle = </span><span class="p">[</span>
+    <span class="p">[</span><span class="s2">&quot;ObjectID&quot;</span><span class="p">,</span> <span class="s2">&quot;_ValidFrom&quot;</span><span class="p">,</span>           <span class="s2">&quot;KanbanState&quot;</span>  <span class="p">,</span> <span class="s2">&quot;PlanEstimate&quot;</span><span class="p">,</span> <span class="s2">&quot;TaskRemainingTotal&quot;</span><span class="p">],</span>
+                                                        
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span>          <span class="s2">&quot;2010-10-10T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Ready to pull&quot;</span><span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">15</span>                   <span class="p">],</span>  <span class="c1"># Shouldn&#39;t show up, 2010 not yet &quot;In progress&quot;</span>
+
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span>          <span class="s2">&quot;2011-01-02T13:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Ready to pull&quot;</span><span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">15</span>                   <span class="p">],</span>  <span class="c1"># !TODO: Should get the same results even without this line</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span>          <span class="s2">&quot;2011-01-02T15:10:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;In progress&quot;</span>  <span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">20</span>                   <span class="p">],</span>  <span class="c1"># Testing it starting at one state and switching later to another</span>
+    <span class="p">[</span><span class="mi">2</span><span class="p">,</span>          <span class="s2">&quot;2011-01-02T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Ready to pull&quot;</span><span class="p">,</span> <span class="mi">3</span>            <span class="p">,</span> <span class="mi">5</span>                    <span class="p">],</span>                
+    <span class="p">[</span><span class="mi">3</span><span class="p">,</span>          <span class="s2">&quot;2011-01-02T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Ready to pull&quot;</span><span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">12</span>                   <span class="p">],</span> 
+
+    <span class="p">[</span><span class="mi">2</span><span class="p">,</span>          <span class="s2">&quot;2011-01-03T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;In progress&quot;</span>  <span class="p">,</span> <span class="mi">3</span>            <span class="p">,</span> <span class="mi">5</span>                    <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">3</span><span class="p">,</span>          <span class="s2">&quot;2011-01-03T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Ready to pull&quot;</span><span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">12</span>                   <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">4</span><span class="p">,</span>          <span class="s2">&quot;2011-01-03T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Ready to pull&quot;</span><span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">15</span>                   <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span>          <span class="s2">&quot;2011-01-03T15:10:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;In progress&quot;</span>  <span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">12</span>                   <span class="p">],</span>  <span class="c1"># Testing later change</span>
+
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span>          <span class="s2">&quot;2011-01-04T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Accepted&quot;</span>     <span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">0</span>                    <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">2</span><span class="p">,</span>          <span class="s2">&quot;2011-01-04T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;In test&quot;</span>      <span class="p">,</span> <span class="mi">3</span>            <span class="p">,</span> <span class="mi">1</span>                    <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">3</span><span class="p">,</span>          <span class="s2">&quot;2011-01-04T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;In progress&quot;</span>  <span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">10</span>                   <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">4</span><span class="p">,</span>          <span class="s2">&quot;2011-01-04T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Ready to pull&quot;</span><span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">15</span>                   <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">5</span><span class="p">,</span>          <span class="s2">&quot;2011-01-04T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Ready to pull&quot;</span><span class="p">,</span> <span class="mi">2</span>            <span class="p">,</span> <span class="mi">4</span>                    <span class="p">],</span> 
+
+    <span class="p">[</span><span class="mi">3</span><span class="p">,</span>          <span class="s2">&quot;2011-01-05T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;In test&quot;</span>      <span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">5</span>                    <span class="p">],</span>
+
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span>          <span class="s2">&quot;2011-01-06T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Released&quot;</span>     <span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">0</span>                    <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">2</span><span class="p">,</span>          <span class="s2">&quot;2011-01-06T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Accepted&quot;</span>     <span class="p">,</span> <span class="mi">3</span>            <span class="p">,</span> <span class="mi">0</span>                    <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">4</span><span class="p">,</span>          <span class="s2">&quot;2011-01-06T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;In progress&quot;</span>  <span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">7</span>                    <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">5</span><span class="p">,</span>          <span class="s2">&quot;2011-01-06T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Ready to pull&quot;</span><span class="p">,</span> <span class="mi">2</span>            <span class="p">,</span> <span class="mi">4</span>                    <span class="p">],</span> 
+
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span>          <span class="s2">&quot;2011-01-07T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Released&quot;</span>     <span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">0</span>                    <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">2</span><span class="p">,</span>          <span class="s2">&quot;2011-01-07T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Released&quot;</span>     <span class="p">,</span> <span class="mi">3</span>            <span class="p">,</span> <span class="mi">0</span>                    <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">3</span><span class="p">,</span>          <span class="s2">&quot;2011-01-07T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;Accepted&quot;</span>     <span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">0</span>                    <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">4</span><span class="p">,</span>          <span class="s2">&quot;2011-01-07T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;In test&quot;</span>      <span class="p">,</span> <span class="mi">5</span>            <span class="p">,</span> <span class="mi">3</span>                    <span class="p">],</span> 
+    <span class="p">[</span><span class="mi">5</span><span class="p">,</span>          <span class="s2">&quot;2011-01-07T15:00:00Z&quot;</span><span class="p">,</span> <span class="s2">&quot;In progress&quot;</span>  <span class="p">,</span> <span class="mi">2</span>            <span class="p">,</span> <span class="mi">4</span>                    <span class="p">]</span>
+<span class="p">]</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>The CSV-style table is not what it would look like from the Rally API so let's fix that.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">results = </span><span class="nx">charttime</span><span class="p">.</span><span class="nx">csvStyleArray_To_ArrayOfMaps</span><span class="p">(</span><span class="nx">resultsCSVStyle</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-4">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-4">&#182;</a>               </div>               <p>It now looks something like what we'd see from the Rally API...</p>
+
+<pre><code>results = [
+  {ObjectID: 1, _ValidFrom: "2010-01-01T15:00:00Z", KanbanState: "Ready to pull"},
+  {ObjectID: 1, _ValidFrom: "2011-01-01T15:10:00Z", KanbanState: "In progress"},
+  ...
+]
+</code></pre>
+
+<p>The response from a Rally Analytics API query would be embedded in a top level JSON wrapper with a <code>Results</code> Array, but let's
+just proceed as if we've pulled it out of there into a local <code>results</code> variable.</p>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-5">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-5">&#182;</a>               </div>               <p>Everything above this point was just to simulate a response from a Rally Analytics API query. Now, let's show you what to do with it.
+Let's assume we have a UI that lets us configure the CFD chart. This UI puts its settings in a config Object like this...</p>
+
+<p>Note, the timezone and workDays values could come directly from Rally's WorkspaceConfiguration.
+!TODO: Add request to typeDef endpoint (or the Kanban preferences for this project) to get the list and order for config.stateFieldValues.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">config =</span>
+  <span class="nv">stateField: </span><span class="s2">&quot;KanbanState&quot;</span>
+  <span class="nv">stateFieldValues: </span><span class="p">[</span><span class="s1">&#39;Ready to pull&#39;</span><span class="p">,</span> <span class="s1">&#39;In progress&#39;</span><span class="p">,</span> <span class="s1">&#39;Accepted&#39;</span><span class="p">,</span> <span class="s1">&#39;Released&#39;</span><span class="p">]</span> <span class="c1"># &#39;In test&#39; intentionally missing</span>
+  <span class="nv">useAllStateFieldValues: </span><span class="kc">false</span>
+  <span class="nv">startTrackingState: </span><span class="s2">&quot;In progress&quot;</span>
+  <span class="nv">aggregationField: </span><span class="s2">&quot;PlanEstimate&quot;</span>
+  <span class="nv">aggregationFunction: </span><span class="s2">&quot;$sum&quot;</span>
+  <span class="nv">workDays: </span><span class="s1">&#39;Sunday, Monday, Tuesday, Wednesday, Thursday, Friday&#39;</span> <span class="c1"># They work on Sundays</span>
+  <span class="nv">timezone: </span><span class="s1">&#39;America/New_York&#39;</span>
+  <span class="nv">holidays: </span><span class="p">[</span>
+    <span class="p">{</span><span class="nv">month: </span><span class="mi">12</span><span class="p">,</span> <span class="nv">day: </span><span class="mi">25</span><span class="p">},</span>
+    <span class="p">{</span><span class="nv">year: </span><span class="mi">2011</span><span class="p">,</span> <span class="nv">month: </span><span class="mi">11</span><span class="p">,</span> <span class="nv">day: </span><span class="mi">26</span><span class="p">},</span>
+    <span class="p">{</span><span class="nv">year: </span><span class="mi">2011</span><span class="p">,</span> <span class="nv">month: </span><span class="mi">1</span><span class="p">,</span> <span class="nv">day: </span><span class="mi">5</span><span class="p">}</span>  <span class="c1"># Made up holiday to demo holiday knockout</span>
+  <span class="p">]</span></pre></div>             </td>           </tr>                               <tr id="section-6">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-6">&#182;</a>               </div>               <p>We're going to assume the data is sorted by _ValidFrom but if it wasn't, we shold do that now.
+Next, we're going to find the first record where something moves into the <code>startTrackingState</code>.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">firstTrackingDate = </span><span class="s1">&#39;&#39;</span>
+<span class="k">for</span> <span class="nx">row</span><span class="p">,</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">results</span>
+  <span class="k">if</span> <span class="nx">row</span><span class="p">[</span><span class="nx">config</span><span class="p">.</span><span class="nx">stateField</span><span class="p">]</span> <span class="o">==</span> <span class="nx">config</span><span class="p">.</span><span class="nx">startTrackingState</span>
+    <span class="nv">firstTrackingDate = </span><span class="nx">row</span><span class="p">.</span><span class="nx">_ValidFrom</span>
+    <span class="k">break</span>
+<span class="k">if</span> <span class="nx">firstTrackingDate</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span>
+  <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find any data whose #{stateField} transititioned into state #{startTrackingState}&quot;</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-7">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-7">&#182;</a>               </div>               <p>and the last day for this CFD</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">lastTrackingDate = </span><span class="nx">results</span><span class="p">[</span><span class="nx">results</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">].</span><span class="nx">_ValidFrom</span></pre></div>             </td>           </tr>                               <tr id="section-8">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-8">&#182;</a>               </div>               <p>Now is where it starts to get a bit tricky. We're now going to identify the values for the x-axis of our CFD.
+We're going to first create a ChartTimeRange that will emit an iterator of sub-ranges for each day that we are interested
+in.</p>
+
+<p>We now have a ChartTimeRange with the appropriate start and pastEnd values.
+Notice how we passed in the timezone of interest when creating the start and pastEnd ChartTimes.
+The firstTrackingDate and lastTrackingDate are strings in GMT. 2am GMT on January 2nd is actually on January 1st
+in New York. Since, we want the analysis to be in New York's perspective even if we are rendering
+this chart from a computer in Denver, LA, or Bangalore, we need to tell ChartTime the timezone context 
+for any GMT date/time stamps.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">rangeSpec =</span>
+  <span class="nv">workDays: </span><span class="nx">config</span><span class="p">.</span><span class="nx">workDays</span>
+  <span class="nv">holidays: </span><span class="nx">config</span><span class="p">.</span><span class="nx">holidays</span>
+  <span class="nv">start: </span><span class="k">new</span> <span class="nx">ChartTime</span><span class="p">(</span><span class="nx">firstTrackingDate</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span><span class="p">,</span> <span class="nx">config</span><span class="p">.</span><span class="nx">timezone</span><span class="p">)</span>
+  <span class="nv">pastEnd: </span><span class="k">new</span> <span class="nx">ChartTime</span><span class="p">(</span><span class="nx">lastTrackingDate</span><span class="p">,</span> <span class="s1">&#39;day&#39;</span><span class="p">,</span> <span class="nx">config</span><span class="p">.</span><span class="nx">timezone</span><span class="p">).</span><span class="nx">add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="nv">range = </span><span class="k">new</span> <span class="nx">ChartTimeRange</span><span class="p">(</span><span class="nx">rangeSpec</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-9">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-9">&#182;</a>               </div>               <p>Now let's use ChartTime's ability to iterate over a range to find the sub ranges, one for each day
+Let's take a look at what's in subRanges at this point.
+This code will print out...</p>
+
+<pre><code>[ '2011-01-02 to 2011-01-03',
+  '2011-01-03 to 2011-01-04',
+  '2011-01-04 to 2011-01-06',
+  '2011-01-06 to 2011-01-07',
+  '2011-01-07 to 2011-01-08' ]
+</code></pre>
+
+<p>Q: What happened to 2011-01-05?</p>
+
+<blockquote>
+  <p>A: Well, it was a holiday.</p>
+</blockquote>
+
+<p>Q: Why did the sub range that would have included 2011-01-05 expand to two days?</p>
+
+<blockquote>
+  <p>A: ChartTimeRanges work hard to make sure there are never any gaps.
+  In theory, there <em>shouldn't</em> be any real work on that day.
+  So, you don't want days on your chart where your metric trends flatline.
+  But what if someone did a little work on a holiday or a weekend. You wouldn't want to 
+  miss those events. In this example, someone moved ObjectID #3 into "In test" on our January 5 holiday.</p>
+</blockquote>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">subRanges = </span><span class="nx">range</span><span class="p">.</span><span class="nx">getIterator</span><span class="p">(</span><span class="s1">&#39;ChartTimeRange&#39;</span><span class="p">).</span><span class="nx">getAll</span><span class="p">()</span>
+<span class="nv">subRangeStrings = </span><span class="p">(</span><span class="s2">&quot;#{r.start.toString()} to #{r.pastEnd.toString()}&quot;</span> <span class="k">for</span> <span class="nx">r</span> <span class="k">in</span> <span class="nx">subRanges</span><span class="p">)</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">subRangeStrings</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-10">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-10">&#182;</a>               </div>               <p>The pastEnd values are the ones we are most interested in so let's take a look at those.
+Note, these represent the moments just past the end of the days where the activity happens. So, if there is 
+activity on 2011-01-02, we'll want to look at the value at midnight at the end of that day, which is
+2011-01-03T00:00:00.000 or 2011-01-03 for short.</p>
+
+<pre><code>[ '2011-01-03', '2011-01-04', '2011-01-06', '2011-01-07', '2011-01-08' ]
+</code></pre>
+
+<p>These are the points we want on our x-axis. </p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">pastEnds = </span><span class="p">(</span><span class="nx">r</span><span class="p">.</span><span class="nx">pastEnd</span> <span class="k">for</span> <span class="nx">r</span> <span class="k">in</span> <span class="nx">subRanges</span><span class="p">)</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">((</span><span class="s2">&quot;#{r.toString()}&quot;</span> <span class="k">for</span> <span class="nx">r</span> <span class="k">in</span> <span class="nx">pastEnds</span><span class="p">))</span></pre></div>             </td>           </tr>                               <tr id="section-11">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-11">&#182;</a>               </div>               <p>Now we need to know the state of each work item <strong>AT</strong> each of these points.
+The ChartTime <code>snapshotArray_To_AtArray</code> helper function will give us what we need:</p>
+
+<pre><code>[ [ {ObjectID: 1,  KanbanState: 'In progress', PlanEstimate: 5, TaskRemainingTotal: 20 },
+    {ObjectID: 2,  KanbanState: 'Ready to pull', PlanEstimate: 3, TaskRemainingTotal: 5 },
+    {ObjectID: 3,  KanbanState: 'Ready to pull', PlanEstimate: 5, TaskRemainingTotal: 12 } ],
+  [ {ObjectID: 1,  KanbanState: 'In progress', PlanEstimate: 5, TaskRemainingTotal: 12 },
+    {ObjectID: 2,  KanbanState: 'In progress', PlanEstimate: 3, TaskRemainingTotal: 5 },
+    {ObjectID: 3,  KanbanState: 'Ready to pull', PlanEstimate: 5, TaskRemainingTotal: 12 },
+    {ObjectID: 4,  KanbanState: 'Ready to pull', PlanEstimate: 5, TaskRemainingTotal: 15 } ],
+  [ {ObjectID: 1,  KanbanState: 'Accepted', PlanEstimate: 5, TaskRemainingTotal: 0 },
+    {ObjectID: 2,  KanbanState: 'In test', PlanEstimate: 3, TaskRemainingTotal: 1 },
+    {ObjectID: 3,  KanbanState: 'In test', PlanEstimate: 5, TaskRemainingTotal: 5 },
+    {ObjectID: 4,  KanbanState: 'Ready to pull', PlanEstimate: 5, TaskRemainingTotal: 15 },
+    {ObjectID: 5,  KanbanState: 'Ready to pull', PlanEstimate: 2, TaskRemainingTotal: 4 } ],
+  [ {ObjectID: 1,  KanbanState: 'Released', PlanEstimate: 5, TaskRemainingTotal: 0 },
+    {ObjectID: 2,  KanbanState: 'Accepted', PlanEstimate: 3, TaskRemainingTotal: 0 },
+    {ObjectID: 3,  KanbanState: 'In test', PlanEstimate: 5, TaskRemainingTotal: 5 },
+    {ObjectID: 4,  KanbanState: 'In progress', PlanEstimate: 5, TaskRemainingTotal: 7 },
+    {ObjectID: 5,  KanbanState: 'Ready to pull', PlanEstimate: 2, TaskRemainingTotal: 4 } ],
+  [ {ObjectID: 1,  KanbanState: 'Released', PlanEstimate: 5, TaskRemainingTotal: 0 },
+    {ObjectID: 2,  KanbanState: 'Released', PlanEstimate: 3, TaskRemainingTotal: 0 },
+    {ObjectID: 3,  KanbanState: 'Accepted', PlanEstimate: 5, TaskRemainingTotal: 0 },
+    {ObjectID: 4,  KanbanState: 'In test', PlanEstimate: 5, TaskRemainingTotal: 3 },
+    {ObjectID: 5,  KanbanState: 'In progress', PlanEstimate: 2, TaskRemainingTotal: 4 } ] ]
+</code></pre>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">atArray = </span><span class="nx">charttime</span><span class="p">.</span><span class="nx">snapshotArray_To_AtArray</span><span class="p">(</span><span class="nx">results</span><span class="p">,</span> <span class="nx">pastEnds</span><span class="p">,</span> <span class="s1">&#39;_ValidFrom&#39;</span><span class="p">,</span> <span class="s1">&#39;ObjectID&#39;</span><span class="p">,</span> <span class="nx">config</span><span class="p">.</span><span class="nx">timezone</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-12">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-12">&#182;</a>               </div>               <p>console.log('atArray = ', atArray)</p>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-13">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-13">&#182;</a>               </div>               <p>Next, we need to aggregate the sums and counts in each KanbanState for each day. CharTime includes
+some tools to help us with this as well. You need to provide a specification for the aggregation.
+The first element of this specification is the <code>groupBy</code> field. This is analagous to
+the <code>GROUP BY</code> column in an SQL express.</p>
+
+<p>Then you need to say what aggregations you want. For each aggregation, you must provide a <code>field</code> and <code>f</code>
+(function) value. You can optionally provide an alias for the aggregation with the 'as` field. There
+are a number of built in functions including:</p>
+
+<ul>
+<li>$count</li>
+<li>$sum</li>
+<li>$sumSquares</li>
+<li>$average</li>
+<li>$variance</li>
+<li>$stdDev</li>
+<li>$min</li>
+<li>$max</li>
+<li>$push. An Array of all values (allows duplicates). This is ideal for drill down.</li>
+<li>$addToSet. An Array of unique values. This is good for generating an OLAP dimension.</li>
+<li>$p<n> <n>th percentile where <n> is some number in the form of ##[.##]. (e.g. $p40, $p99, $p99.9)</li>
+<li>$median. alias for $p50</li>
+</ul>
+
+<p>Alternatively, you can provide your own function (it takes one parameter, which is an
+Array of values) like the <code>mySum</code> example here.</p>
+
+<p>Below are examples are alternative example <code>aggregations</code> specs:</p>
+
+<pre><code>{field: 'ObjectID', f: '$count'}  
+
+{as: 'mySum', field: 'PlanEstimate', f: (values) -&gt;
+  temp = 0
+  for v in values
+    temp += v
+  return temp
+}
+</code></pre>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">spec =</span>
+  <span class="nv">groupBy: </span><span class="nx">config</span><span class="p">.</span><span class="nx">stateField</span>
+  <span class="nv">uniqueValues: </span><span class="nx">clone</span><span class="p">(</span><span class="nx">config</span><span class="p">.</span><span class="nx">stateFieldValues</span><span class="p">)</span>
+  <span class="nv">aggregations: </span><span class="p">[</span>
+    <span class="p">{</span><span class="nv">as: </span><span class="s1">&#39;CFDField&#39;</span><span class="p">,</span> <span class="nv">field: </span><span class="nx">config</span><span class="p">.</span><span class="nx">aggregationField</span><span class="p">,</span> <span class="nv">f: </span><span class="nx">config</span><span class="p">.</span><span class="nx">aggregationFunction</span><span class="p">}</span>
+    <span class="p">{</span><span class="nv">as: </span><span class="s1">&#39;Drill-down&#39;</span><span class="p">,</span> <span class="nx">field</span><span class="o">:</span><span class="s1">&#39;ObjectID&#39;</span><span class="p">,</span> <span class="nx">f</span><span class="o">:</span><span class="s1">&#39;$push&#39;</span><span class="p">}</span>
+  <span class="p">]</span>
+  
+<span class="nv">aggregationArray = </span><span class="nx">charttime</span><span class="p">.</span><span class="nx">groupByAt</span><span class="p">(</span><span class="nx">atArray</span><span class="p">,</span> <span class="nx">spec</span><span class="p">)</span>  </pre></div>             </td>           </tr>                               <tr id="section-14">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-14">&#182;</a>               </div>               <p>At this point the first row of our <code>allSeries</code> array looks like this:</p>
+
+<pre><code>[ { 'CFDField': 8, KanbanState: 'Ready to pull' },
+  { 'CFDField': 5, KanbanState: 'In progress' },
+  { 'CFDField': 0, KanbanState: 'Accepted' },
+  { 'CFDField': 0, KanbanState: 'Released' },
+  { 'CFDField': 0, KanbanState: 'In test' } ]
+</code></pre>
+
+<p>Notice how the order that we specified in spec.uniqueValues was honored.
+Also, notice that we neglected to specify 'In test' in our spec.uniqueValues but it didn't get lost. 
+'In test' is tacked onto the end of every row in the allSeries Array. This way, you get the best of
+both worlds. The ability to specify order but no risk of missing anything.
+Even if you had not specified anything in spec.uniqueValues, the order of all rows in
+allSeries would be exactly (albeit random) the same and cover all possible values.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">aggregationArray</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></pre></div>             </td>           </tr>                               <tr id="section-15">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-15">&#182;</a>               </div>               <p>Note: groupByAt has the side-effect that spec.uniqueValues are upgraded with the missing values.
+"In test" was mising from the original config. You can use this if you want to calculate other 
+metrics for each of the groupBy values or just to confirm that you aren't missing some data.</p>
+
+<pre><code>WARNING: Data found for values that are not in config.stateFieldValues. Data found for values:
+    In test
+</code></pre>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">if</span> <span class="nx">config</span><span class="p">.</span><span class="nx">stateFieldValues</span><span class="o">?</span> <span class="o">and</span> <span class="nx">config</span><span class="p">.</span><span class="nx">stateFieldValues</span><span class="p">.</span><span class="nx">length</span> <span class="o">&lt;</span> <span class="nx">spec</span><span class="p">.</span><span class="nx">uniqueValues</span><span class="p">.</span><span class="nx">length</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;\nWARNING: Data found for values that are not in config.stateFieldValues. Data found for values:&#39;</span><span class="p">)</span>
+  <span class="k">for</span> <span class="nx">v</span> <span class="k">in</span> <span class="nx">spec</span><span class="p">.</span><span class="nx">uniqueValues</span>
+    <span class="nx">unless</span> <span class="nx">v</span> <span class="k">in</span> <span class="nx">config</span><span class="p">.</span><span class="nx">stateFieldValues</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;    &#39;</span> <span class="o">+</span> <span class="nx">v</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-16">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-16">&#182;</a>               </div>               <p>for HighCharts, we need to get it into this form</p>
+
+<pre><code>[ { name: 'Ready to pull', data: [ 8, 10, 7, 2, 0 ] },
+  { name: 'In progress', data: [ 5, 8, 0, 5, 2 ] },
+  { name: 'Accepted', data: [ 0, 0, 5, 3, 5 ] },
+  { name: 'Released', data: [ 0, 0, 0, 5, 8 ] } ]
+</code></pre>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">if</span> <span class="nx">config</span><span class="p">.</span><span class="nx">useAllStateFieldValues</span>
+  <span class="nv">cfdSeries = </span><span class="nx">charttime</span><span class="p">.</span><span class="nx">aggregationArray_To_HighChartsSeries</span><span class="p">(</span><span class="nx">aggregationArray</span><span class="p">,</span> <span class="nx">config</span><span class="p">.</span><span class="nx">stateField</span><span class="p">,</span> <span class="s1">&#39;CFDField&#39;</span><span class="p">)</span>
+<span class="k">else</span>
+  <span class="nv">cfdSeries = </span><span class="nx">charttime</span><span class="p">.</span><span class="nx">aggregationArray_To_HighChartsSeries</span><span class="p">(</span><span class="nx">aggregationArray</span><span class="p">,</span> <span class="nx">config</span><span class="p">.</span><span class="nx">stateField</span><span class="p">,</span> <span class="s1">&#39;CFDField&#39;</span><span class="p">,</span> <span class="nx">config</span><span class="p">.</span><span class="nx">stateFieldValues</span><span class="p">)</span>  
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">cfdSeries</span><span class="p">)</span>
+
+</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 

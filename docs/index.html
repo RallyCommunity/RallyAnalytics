@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title></title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="resources/base.css" />
+  <link rel="stylesheet" media="all" href="resources/index.css" />
+</head>
+<body>
+  <header>
+    <h1> ()</h1>
+    <h2></h2>
+  </header>
+  <div id="content">
+    <div id="sidebar">
+      <ul id="modulelist">
+        
+        <li><a href="rally_analytics.html">rally_analytics.coffee</a></li>
+        
+        <li><a href="analyticsquery.html">analyticsquery.coffee</a></li>
+        
+        <li><a href="burncalculator.html">burncalculator.coffee</a></li>
+        
+        <li><a href="cfdcalculator.html">cfdcalculator.coffee</a></li>
+        
+        <li><a href="rallyquery.html">rallyquery.coffee</a></li>
+        
+      </ul>
+    </div>
+    <div id="main">
+      <h1>Module index</h1>
+      
+      <div class="module">
+        <div class="header">
+          <a href="rally_analytics.html"><h3>rally_analytics.coffee</h3></a>
+        </div>
+        <div class="module_content">
+          <h1>Rally Analytics</h1>
+
+<p>This project makes it easier to get data from Rally's Analytics web services endpoints. Due to the magic of server/desktop-side 
+JavaScript provided by Node.js, it serves as both a REST Toolkit for script-based access, as well as a data access library for 
+running inside of a browser.</p>
+
+<p>Useful links:</p>
+
+<ul>
+<li><a href="http://rally.lumenize.com/rally_analytics/Lookback_API_Getting_Started_Guide.pdf">Getting Started Guide for Lookback API users</a></li>
+<li><a href="http://rally.lumenize.com/rally_analytics/docs/index.html">API Documentation for this data access library/REST toolkit</a></li>
+<li><a href="https://github.com/RallySoftware/rally_analytics">GitHub repository</a></li>
+<li><a href="http://rally.lumenize.com/rally_analytics/User_Documentation.pdf">Full user documentation for the Analytics API</a></li>
+</ul>
+
+<h2>Concepts</h2>
+
+<p>In order for you to be productive using the Rally Analytics API, there are two things you'll need to wrap your head around:</p>
+
+<ol>
+<li>The MVCC-like snapshot data model</li>
+<li>The MongoDB-like query language</li>
+</ol>
+
+<p><strong>Snapshot Data Model</strong></p>
+
+<p>The data model for the repository that sits under this API has been carefully crafted for efficient analytics. It is particularly 
+well suited to seeing how your data changes over time which is the focus of most reports (burn charts, defect trend, cumulative flow, etc.). 
+The data is stored in a snapshot schema which means that every time there is a change, an entirely new snapshot of the effected entity is 
+saved with the new values (as well as the previous ones). The older snapshot is not removed. It is only updated to adjust its _ValidTo timestamp. </p>
+
+<p>Let's say you have this:</p>
+
+<pre><code>{
+  _id: 'B2E...',  # GUID just for analytics engine
+  ObjectID: 777,  # objectID (OID) from Rally
+  Name: "Footer disappears when using new menu",
+  State: "Submitted",
+  _ValidFrom: "2011-01-01T12:34:56Z",
+  _ValidTo: "9999-01-01T00:00:00Z",  # "current" snapshot
+  OtherField: 'Other Value'  # ... Other fields not shown
+}
+</code></pre>
+
+<p>Then on January 2, 2011, at noon GMT, the analytics engine receives a notice that Rally object 777 had its "State" field changed from "Submitted" 
+to "Open". The latest record for rally object 777 is read. Its _ValidTo is updated but nothing else is changed in that record. Rather, a new record 
+is created showing the new value as well as the previous values for the field(s) that changed. So, the repository would now contain the updated 
+original plus the new snapshot like so:</p>
+
+<pre><code>{
+  _id: 'B2E...',  # GUID just for analytics engine
+  ObjectID: 777,  # objectID (OID) from Rally
+  Name: "Footer disappears when using new menu",
+  State: "Submitted",
+  _ValidFrom: "2011-01-01T12:34:56Z",  
+  _ValidTo: "2011-01-02T12:00:00Z",  # updated
+  OtherField: 'Other Value'  # ... Other fields not shown
+}
+
+{
+  _id: 'A37...',  # a new analytics "document" so it gets a new _id
+  ObjectID: 777,  # same Rally OID
+  Name: "Footer disappears when using new menu",
+  State: "Open",
+  _ValidFrom: "2011-01-02:12:00:00Z",  # equals B2E’s _ValidTo
+  _ValidTo: "9999-01-01T00:00:00Z",    
+  _PreviousValues: {
+    State: "Submitted"
+  },
+  OtherField: 'Other Value'  # ... Other fields not shown
+}
+</code></pre>
+
+<p>Things to note:</p>
+
+<ul>
+<li>Every time there is a change, an entirely new snapshot of the effected entity is saved with the new values (as well as the unchanged ones).  </li>
+<li>The _PreviousValues field stores the values that were replaced when this particular snapshot was added.</li>
+<li>The way _ValidFrom and _ValidTo are manipulated, you can rely upon the property that for a given Rally ObjectID, only one version of the object 
+will be active for any moment in time.</li>
+<li>Null ("No Entry") values are not stored except...</li>
+<li>There is a special case where a value is changed from null to a non-null value. In this case, the _PreviousValues field will explicitly say 
+that it was null before the change.</li>
+</ul>
+
+<p><strong>The Query Language</strong></p>
+
+<p>The query language understood by Rally's Analytics API, is based upon the <a href="http://www.mongodb.org/display/DOCS/Advanced+Queries">MongoDB query language</a>.
+You string together a number of clauses to pull back the "documents" of interest. This API supports the following operators.</p>
+
+<ul>
+<li><code>{a: 10}</code> - docs where a is 10 or an array containing the value 10</li>
+<li><code>{a: 10, b: "hello"}</code> - docs where a is 10 and b is "hello"</li>
+<li><code>{a: {$gt: 10}}</code> - docs where a > 10, also $lt, $gte, and $lte   </li>
+<li><code>{a: {$ne: 10}}</code> - docs where a != 10 </li>
+<li><code>{a: {$in: [10, "hello"]}}</code> - docs where a is either 10 or "hello"</li>
+<li><code>{a: {$exists: true}}</code> - docs containing an "a" field</li>
+<li><code>{a: {$exists: false}}</code> - docs not containing an "a" field</li>
+<li><code>{a: {$type: 2}}</code> - docs where a is a string (see bsonspec.org for more types)</li>
+<li><code>{a: /foo.*bar/}</code> - docs where a matches the regular expression "foo.*bar"</li>
+<li><code>{"a.b": 10}</code> - docs where a is an embedded document where b is 10</li>
+<li><code>{$or: [{a: 1}, {b: 2}]}</code> - docs where a is 1 or b is 2</li>
+<li><code>{$and: [{a: 1}, {b: 2}]}</code> - docs where a is 1 and b is 2</li>
+</ul>
+
+<h2>Usage</h2>
+
+<p>More usage examples are provided in the API Documentation for each Class/Method but here is a quick walkthrough of a common usage.</p>
+
+<p>First, you need to "require" the desired analytics query class(es). We're also going to require a mock
+for the XMLHttpResponse Object but you can simply omit it for your own use.</p>
+
+<pre><code>rally_analytics = require('../')
+{GuidedAnalyticsQuery} = rally_analytics
+{XHRMock} = rally_analytics  # Not required for normal use. Only for "testing"
+</code></pre>
+
+<p>Then, you need to set the config Object.</p>
+
+<pre><code>config =
+  'X-RallyIntegrationName': 'My Chart'
+  'X-RallyIntegrationVendor': 'My Company'
+  'X-RallyIntegrationVersion': '0.1.0'
+  workspaceOID: 12345  # if running in Node.js will look for RALLY_WORKSPACE environment variable
+</code></pre>
+
+<p>Now you are ready to instantiate your analytics query.</p>
+
+<pre><code>query = new GuidedAnalyticsQuery(config)  # You would use XMLHttpRequest
+query.XHRClass = XHRMock  # Omit to hit real Rally Analytics API
+</code></pre>
+
+<p>And, specify query clauses.</p>
+
+<pre><code>query.type('HierarchicalRequirement')
+     .scope('_ProjectHierarchy', 1234)
+     .leafOnly()
+     .additionalCriteria({Blocked: true})
+</code></pre>
+
+<p>Next, specify a callback.</p>
+
+<pre><code>callback = () -&gt;
+  console.log(this.allResults.length)  # will spit back 5 from our XHRMock
+# 5
+</code></pre>
+
+<p>Finally, call getAll()</p>
+
+<pre><code>query.getAll(callback)
+</code></pre>
+
+<h2>Development</h2>
+
+<p>To use the test and build tools for this library, you are going to need a few things.</p>
+
+<ol>
+<li><a href="http://nodejs.org/#download">Install Node.js</a>. Contrary to popular impression, Node.js is not only a server 
+technology. We use it to run JavaScript/CoffeeScript on the desktop just like you can run Ruby or Java
+on the desktop.</li>
+<li><p>Once Node.js is installed, you should be able to run a few node package manager (npm) commands.</p>
+
+<pre><code>sudo npm -g install coffee-script
+sudo npm -g install coffeedoc-lm
+sudo npm -g install coffeedoctest
+sudo npm -g install nodeunit
+sudo npm -g install jitter (optional if you want auto compilation)
+</code></pre></li>
+<li><p>Add the following to your ~/.profile (or equivalent) file</p>
+
+<pre><code>NODE_PATH=/usr/local/lib/node_modules; export NODE_PATH
+RALLY_SERVER=rally1.rallydev.com; export RALLY_SERVER
+RALLY_USER=mylogin@mycompany.com; export RALLY_USER
+RALLY_PASSWORD=xxxxx; export RALLY_PASSWORD
+RALLY_WORKSPACE=12345; export RALLY_WORKSPACE
+RALLY_PROJECT=67890; export RALLY_PROJECT
+</code></pre>
+
+<p>After edit, restart your session or use command <code>source ~/.profile</code> to activate the changes immediately.</p></li>
+</ol>
+
+<h2>Evolving this data access library and these examples</h2>
+
+<p>To upgrade the capabilities of the data access tools, you should do the following:</p>
+
+<ol>
+<li>Fork this repository.</li>
+<li>Make your code changes.</li>
+<li>Write tests and confirm their successful operation with <code>cake test</code>.</li>
+<li>Upgrade the documentation and make sure the examples in it are accurate by running <code>cake docs</code>,
+which depends upon <a href="https://github.com/lmaccherone/coffeedoctest">CoffeeDocTest</a>. Note, this will
+generate documentation from the here-comments in the source code.
+If you want to publish the documentation to your own account, you can also run <code>cake pub-docs</code>.</li>
+<li>Submit a pull request which will tell us about your changes.</li>
+</ol>
+
+<p>If you want to build upon one of the examples to make your own App, then we recommend that you
+follow the process above, except that you should rename the repository after you fork it. Alternatively,
+you could add the data access code from this repository to a larger project repository and go from there.
+In either case, send us an email at <a href="mailto:app-submission@rallydev.com">app-submission@rallydev.com</a>
+telling us about your new App.</p>
+
+<p>A detailed description of this process along with simplified git tools and instructions can be found here:</p>
+
+<ul>
+<li><a href="http://rally.lumenize.com/rally_analytics/Using_GitHub_for_Rally_Apps_Mac.pdf">Mac</a></li>
+<li><a href="http://rally.lumenize.com/rally_analytics/Using_GitHub_for_Rally_Apps_Windows.pdf">Windows</a></li>
+</ul>
+          
+          
+        </div>
+      </div>
+      
+      <div class="module">
+        <div class="header">
+          <a href="analyticsquery.html"><h3>analyticsquery.coffee</h3></a>
+        </div>
+        <div class="module_content">
+          
+          
+          <h4>Classes</h4>
+          <ul class="classlist">
+            
+            <li><a href="analyticsquery.html#AnalyticsQuery">AnalyticsQuery</a></li>
+            
+            <li><a href="analyticsquery.html#GuidedAnalyticsQuery">GuidedAnalyticsQuery</a></li>
+            
+            <li><a href="analyticsquery.html#AtAnalyticsQuery">AtAnalyticsQuery</a></li>
+            
+            <li><a href="analyticsquery.html#AtArrayAnalyticsQuery">AtArrayAnalyticsQuery</a></li>
+            
+            <li><a href="analyticsquery.html#BetweenAnalyticsQuery">BetweenAnalyticsQuery</a></li>
+            
+            <li><a href="analyticsquery.html#TimeInStateAnalyticsQuery">TimeInStateAnalyticsQuery</a></li>
+            
+            <li><a href="analyticsquery.html#TransitionsAnalyticsQuery">TransitionsAnalyticsQuery</a></li>
+            
+          </ul>
+          
+          
+        </div>
+      </div>
+      
+      <div class="module">
+        <div class="header">
+          <a href="burncalculator.html"><h3>burncalculator.coffee</h3></a>
+        </div>
+        <div class="module_content">
+          
+          
+          
+          <h4>Functions</h4>
+          <ul class="functionlist">
+            
+            <li><a href="burncalculator.html#burnCalculator">burnCalculator(results, config)</a></li>
+            
+          </ul>
+          
+        </div>
+      </div>
+      
+      <div class="module">
+        <div class="header">
+          <a href="cfdcalculator.html"><h3>cfdcalculator.coffee</h3></a>
+        </div>
+        <div class="module_content">
+          
+          
+          
+          <h4>Functions</h4>
+          <ul class="functionlist">
+            
+            <li><a href="cfdcalculator.html#cfdCalculator">cfdCalculator(results, config)</a></li>
+            
+          </ul>
+          
+        </div>
+      </div>
+      
+      <div class="module">
+        <div class="header">
+          <a href="rallyquery.html"><h3>rallyquery.coffee</h3></a>
+        </div>
+        <div class="module_content">
+          
+          
+          <h4>Classes</h4>
+          <ul class="classlist">
+            
+            <li><a href="rallyquery.html#RallyQuery">RallyQuery</a></li>
+            
+          </ul>
+          
+          
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</body>
+</html>

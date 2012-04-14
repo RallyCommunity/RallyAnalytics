@@ -1,0 +1,45 @@
+{
+  "name": "rally_analytics",
+  "main": "./src/rally_analytics.coffee",
+  "description": "REST toolkit for Rally's Analytics API(s) in CoffeeScript/JavaScript.",
+  "keywords": [
+    "charting",
+    "chart",
+    "infographics",
+    "Rally",
+    "Rally Software",
+    "Agile",
+    "Cumulative Flow",
+    "Burn Charts",
+    "Burn up",
+    "Burn down",
+    "Cycle Time",
+    "Histogram",
+    "REST"
+  ],
+  "author": {
+    "name": "Larry Maccherone",
+    "url": "http://rallydev.com"
+  },
+  "version": "0.1.0",
+  "homepage": "https://github.com/RallySoftware/rally_analytics",
+  "engines": {
+    "node": ">=0.4.10"
+  },
+  "repository": {
+    "type" : "git",
+    "url" : "http://github.com/RallySoftware/rally_analytics.git"
+  },
+  "preferGlobal": false,
+  "dependencies": {
+    "coffee-script": ">=1.1.1"
+  },
+  "devDependencies": {
+    "coffeedoctest": ">=0.2.0",
+    "jitter": ">=1.1.1",
+    "uglify-js": ">=1.2.5"
+  },
+  "scripts":{
+    "test":"cake test"
+  }
+}
