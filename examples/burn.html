@@ -30,38 +30,38 @@
                             
                 // Let's say you have this data. I've put it in this CSV-style format for easy entry and comprehension.
                 resultsCSVStyle = [
-                    ["ObjectID", "_ValidFrom",           "ScheduleState"  , "PlanEstimate", "TaskRemainingTotal", "TaskEstimateTotal"],
+                    ["ObjectID", "_ValidFrom",           "_ValidTo",             "ScheduleState"  , "PlanEstimate", "TaskRemainingTotal", "TaskEstimateTotal"],
                                                                         
-                    [1,          "2010-10-10T15:00:00Z", "Ready to pull", 5            , 15                     , 15],  // Shouldn't show up, 2010 before start
+                    [1,          "2010-10-10T15:00:00Z", "2011-01-02T13:00:00Z", "Ready to pull", 5            , 15                     , 15],  // Shouldn't show up, 2010 before start
                     
-                    [1,          "2011-01-02T13:00:00Z", "Ready to pull", 5            , 15                     , 15],  // !TODO: Should get the same results even without this line
-                    [1,          "2011-01-02T15:10:00Z", "In progress"  , 5            , 20                     , 15],  // Testing it starting at one state and switching later to another
-                    [2,          "2011-01-02T15:00:00Z", "Ready to pull", 3            , 5                      , 5],                
-                    [3,          "2011-01-02T15:00:00Z", "Ready to pull", 5            , 12                     , 12], 
+                    [1,          "2011-01-02T13:00:00Z", "2011-01-02T15:10:00Z", "Ready to pull", 5            , 15                     , 15],  // !TODO: Should get the same results even without this line
+                    [1,          "2011-01-02T15:10:00Z", "2011-01-04T15:00:00Z", "In progress"  , 5            , 20                     , 15],  // Testing it starting at one state and switching later to another
+                    [2,          "2011-01-02T15:00:00Z", "2011-01-03T15:00:00Z", "Ready to pull", 3            , 5                      , 5],                
+                    [3,          "2011-01-02T15:00:00Z", "2011-01-03T15:00:00Z", "Ready to pull", 5            , 12                     , 12], 
                     
-                    [2,          "2011-01-03T15:00:00Z", "In progress"  , 3            , 5                      , 5], 
-                    [3,          "2011-01-03T15:00:00Z", "Ready to pull", 5            , 12                     , 12], 
-                    [4,          "2011-01-03T15:00:00Z", "Ready to pull", 5            , 15                     , 15], 
-                    [1,          "2011-01-03T15:10:00Z", "In progress"  , 5            , 12                     , 15],  // Testing later change
+                    [2,          "2011-01-03T15:00:00Z", "2011-01-04T15:00:00Z", "In progress"  , 3            , 5                      , 5], 
+                    [3,          "2011-01-03T15:00:00Z", "2011-01-04T15:00:00Z", "Ready to pull", 5            , 12                     , 12], 
+                    [4,          "2011-01-03T15:00:00Z", "2011-01-04T15:00:00Z", "Ready to pull", 5            , 15                     , 15], 
+                    [1,          "2011-01-03T15:10:00Z", "2011-01-04T15:00:00Z", "In progress"  , 5            , 12                     , 15],  // Testing later change
                     
-                    [1,          "2011-01-04T15:00:00Z", "Accepted"     , 5            , 0                      , 15], 
-                    [2,          "2011-01-04T15:00:00Z", "In test"      , 3            , 1                      , 5], 
-                    [3,          "2011-01-04T15:00:00Z", "In progress"  , 5            , 10                     , 12], 
-                    [4,          "2011-01-04T15:00:00Z", "Ready to pull", 5            , 15                     , 15], 
-                    [5,          "2011-01-04T15:00:00Z", "Ready to pull", 2            , 4                      , 4], 
+                    [1,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "Accepted"     , 5            , 0                      , 15], 
+                    [2,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "In test"      , 3            , 1                      , 5], 
+                    [3,          "2011-01-04T15:00:00Z", "2011-01-05T15:00:00Z", "In progress"  , 5            , 10                     , 12], 
+                    [4,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "Ready to pull", 5            , 15                     , 15], 
+                    [5,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "Ready to pull", 2            , 4                      , 4], 
                     
-                    [3,          "2011-01-05T15:00:00Z", "In test"      , 5            , 5                      , 12],
+                    [3,          "2011-01-05T15:00:00Z", "2011-01-07T15:00:00Z", "In test"      , 5            , 5                      , 12],
                     
-                    [1,          "2011-01-06T15:00:00Z", "Released"     , 5            , 0                      , 15], 
-                    [2,          "2011-01-06T15:00:00Z", "Accepted"     , 3            , 0                      , 5], 
-                    [4,          "2011-01-06T15:00:00Z", "In progress"  , 5            , 7                      , 15], 
-                    [5,          "2011-01-06T15:00:00Z", "Ready to pull", 2            , 4                      , 4], 
+                    [1,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "Released"     , 5            , 0                      , 15], 
+                    [2,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "Accepted"     , 3            , 0                      , 5], 
+                    [4,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "In progress"  , 5            , 7                      , 15], 
+                    [5,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "Ready to pull", 2            , 4                      , 4], 
                     
-                    [1,          "2011-01-07T15:00:00Z", "Released"     , 5            , 0                      , 15], 
-                    [2,          "2011-01-07T15:00:00Z", "Released"     , 3            , 0                      , 5], 
-                    [3,          "2011-01-07T15:00:00Z", "Accepted"     , 5            , 0                      , 12], 
-                    [4,          "2011-01-07T15:00:00Z", "In test"      , 5            , 3                      , 15], 
-                    [5,          "2011-01-07T15:00:00Z", "In progress"  , 2            , 4                      , 4]
+                    [1,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "Released"     , 5            , 0                      , 15], 
+                    [2,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "Released"     , 3            , 0                      , 5], 
+                    [3,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "Accepted"     , 5            , 0                      , 12], 
+                    [4,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "In test"      , 5            , 3                      , 15], 
+                    [5,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "In progress"  , 2            , 4                      , 4]
                 ];
                 
                 // The CSV-style table is not what it would look like from the Rally Analytics API so let's fix that.
@@ -83,13 +83,15 @@
                 
                 var config = {
                   workspaceConfiguration: workspaceConfiguration,
-                  upSeriesType: 'Points', // 'Points' or 'Story Count'
+                  upSeriesType: 'Story Count', // 'Points' or 'Story Count'
                   series: [
-                    'down',
+/*                     'down', */
                     'up',
+/*
                     'projectionToCurrentScope',
                     'projectionToProjectedScope',
                     'ideal',
+*/
                     'scope'
                   ],
                   acceptedStates: ['Accepted', 'Released'],
@@ -123,7 +125,7 @@
                     xAxis: {
                         categories: categories,
                         tickmarkPlacement: 'on',
-                        // tickInterval: 2, // set as a function of the length of categories
+                        tickInterval: Math.floor(categories.length / 13) + 1,
                         title: {
                             enabled: false
                         }

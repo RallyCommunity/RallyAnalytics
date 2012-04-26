@@ -162,7 +162,7 @@ The general structure of the visualization examples in this repository follows t
                   .type('HierarchicalRequirement')
                   .leafOnly();
 
-                query.fields(['ObjectID', '_ValidFrom', kanbanStateFieldName, 'PlanEstimate']);
+                query.fields(['ObjectID', '_ValidFrom', '_ValidTo', kanbanStateFieldName, 'PlanEstimate']);
 
                 // TODO: Should we filter on presence of fieldName as a property? Not everything has a Kanban state set.
 

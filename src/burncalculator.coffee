@@ -102,6 +102,7 @@ burnCalculator = (results, config) ->
     aggregations: aggregations
     timezone: config.workspaceConfiguration.TimeZone
     snapshotValidFromField: '_ValidFrom'
+    snapshotValidToField: '_ValidTo'
     snapshotUniqueID: 'ObjectID'
   
   # See https://github.com/lmaccherone/Lumenize for information about Lumenize
@@ -112,15 +113,16 @@ burnCalculator = (results, config) ->
   originalPointCount = categories.length
   
   # Create the ideal line
-  i = 0
-  while series[i].name.indexOf("Ideal") < 0
-    i++
-  idealData = series[i].data
-  maxTaskEstimateTotal = lumenize.functions.$max(idealData)
-  idealStep = maxTaskEstimateTotal / (originalPointCount - 1)
-  for i in [0..originalPointCount - 2]
-    idealData[i] = (originalPointCount - 1 - i) * idealStep
-  idealData[originalPointCount - 1] = 0
+  if "Ideal" in config.series
+    i = 0
+    while series[i].name.indexOf("Ideal") < 0
+      i++
+    idealData = series[i].data
+    maxTaskEstimateTotal = lumenize.functions.$max(idealData)
+    idealStep = maxTaskEstimateTotal / (originalPointCount - 1)
+    for i in [0..originalPointCount - 2]
+      idealData[i] = (originalPointCount - 1 - i) * idealStep
+    idealData[originalPointCount - 1] = 0
   
   # Experiment
 #   categories.push('projection')

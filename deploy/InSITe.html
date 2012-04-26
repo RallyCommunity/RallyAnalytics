@@ -319,7 +319,11 @@ The general structure of the visualization examples in this repository follows t
           return _this._callback.call(_this);
         };
         this.lastResponseText = this._xhr.responseText;
-        if (this._debug) console.log('\nlastResponse\n' + this.lastResponseText);
+        if (this._debug) {
+          console.log('headers: ' + this._xhr.getAllResponseHeaders());
+          console.log('status: ' + this._xhr.status);
+          console.log('lastResponse: ' + this.lastResponseText);
+        }
         this.lastResponse = JSON.parse(this.lastResponseText);
         if (this.lastResponse.Errors.length > 0) {
           console.log('Errors\n' + JSON.stringify(this.lastResponse.Errors));
@@ -937,6 +941,8 @@ The general structure of the visualization examples in this repository follows t
                   query.scope('Project', projectOID)
                 };
               };
+              
+              query.debug();
             
               query
                 .type('HierarchicalRequirement')

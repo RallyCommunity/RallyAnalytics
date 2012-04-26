@@ -6,7 +6,7 @@ running inside of a browser.
 
 Useful links:
 
-* [Getting Started Guide for Lookback API users](http://rally.lumenize.com/rally_analytics/Lookback_API_Getting_Started_Guide.pdf)
+* [Getting Started Guide for Lookback API users](http://rally.lumenize.com/rally_analytics/Analytics2.0LookbackAPIUserManual.html)
 * [API Documentation for this data access library/REST toolkit](http://rally.lumenize.com/rally_analytics/docs/index.html)
 * [GitHub repository](https://github.com/RallySoftware/rally_analytics)
 * [Full user documentation for the Analytics API](http://rally.lumenize.com/rally_analytics/User_Documentation.pdf)
@@ -149,7 +149,7 @@ To use the test and build tools for this library, you are going to need a few th
         sudo npm -g install nodeunit
         sudo npm -g install jitter (optional if you want auto compilation)
         
-3. Add the following to your ~/.profile (or equivalent) file
+3. Add the following to your ~/.profile (or equivalent) file. Note, nodeunit will not work without the NODE_PATH.
         
         NODE_PATH=/usr/local/lib/node_modules; export NODE_PATH
         RALLY_SERVER=rally1.rallydev.com; export RALLY_SERVER

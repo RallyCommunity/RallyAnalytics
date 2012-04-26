@@ -37,6 +37,7 @@ cfdCalculator = (results, config) ->
     aggregationField: config.aggregationField
     aggregationFunction: config.aggregationFunction
     snapshotValidFromField: '_ValidFrom'
+    snapshotValidToField: '_ValidTo'
     snapshotUniqueID: 'ObjectID'
 
   {listOfAtCTs, groupByAtArray, uniqueValues} = timeSeriesGroupByCalculator(results, timeSeriesGroupByCalculatorConfig)
