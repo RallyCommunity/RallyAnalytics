@@ -8,7 +8,7 @@ Useful links:
 
 * [Getting Started Guide for Lookback API users](http://rally.lumenize.com/rally_analytics/Analytics2.0LookbackAPIGettingStartedGuide.html)
 * [API Documentation for this data access library/REST toolkit](http://rally.lumenize.com/rally_analytics/docs/index.html)
-* [GitHub repository](https://github.com/RallySoftware/rally_analytics)
+* [GitHub repository](https://github.com/RallyApps/rally_analytics)
 * [Full user documentation for the Analytics API](http://rally.lumenize.com/rally_analytics/Analytics2.0LookbackAPIUserManual.html)
 
 ## Concepts ##
