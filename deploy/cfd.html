@@ -1123,7 +1123,9 @@ The general structure of the visualization examples in this repository follows t
       Takes the "results" from a query to Rally's Analytics API (or similar MVCC-based implementation)
       and returns the data points for a cumulative flow diagram (CFD).
     */
-    var categories, ct, drillDownObjectIDs, firstTrackingDate, groupByAtArray, i, lastTrackingDate, listOfAtCTs, rangeSpec, row, series, timeSeriesGroupByCalculatorConfig, uniqueValues, _len, _ref;
+    var categories, ct, drillDownObjectIDs, firstTrackingCT, firstTrackingDate, groupByAtArray, i, lastTrackingCT, lastTrackingDate, lastValue, listOfAtCTs, maxDaysBackCT, rangeSpec, row, series, timeSeriesGroupByCalculatorConfig, uniqueValues, _len, _ref;
+    lastTrackingDate = results[results.length - 1]._ValidFrom;
+    lastTrackingCT = new ChartTime(lastTrackingDate, 'day', config.timezone).add(1);
     firstTrackingDate = '';
     for (i = 0, _len = results.length; i < _len; i++) {
       row = results[i];
@@ -1135,12 +1137,19 @@ The general structure of the visualization examples in this repository follows t
     if (firstTrackingDate === '') {
       throw new Error("Couldn't find any data whose " + config.groupByField + " transititioned into groupByFieldValue " + config.startTrackingGroupByFieldValue);
     }
-    lastTrackingDate = results[results.length - 1]._ValidFrom;
+    firstTrackingCT = new ChartTime(firstTrackingDate, 'day', config.timezone);
+    if (config.maxDaysBack != null) {
+      maxDaysBackCT = lastTrackingCT.add(-1 * config.maxDaysBack, 'day');
+      if (firstTrackingCT.$lt(maxDaysBackCT)) {
+        firstTrackingCT = maxDaysBackCT;
+        console.log('firstTrackingCT: ' + firstTrackingCT);
+      }
+    }
     rangeSpec = {
       workDays: config.workDays,
       holidays: config.holidays,
-      start: new ChartTime(firstTrackingDate, 'day', config.timezone),
-      pastEnd: new ChartTime(lastTrackingDate, 'day', config.timezone).add(1)
+      start: firstTrackingCT,
+      pastEnd: lastTrackingCT
     };
     timeSeriesGroupByCalculatorConfig = {
       rangeSpec: rangeSpec,
@@ -1155,6 +1164,10 @@ The general structure of the visualization examples in this repository follows t
       snapshotUniqueID: 'ObjectID'
     };
     _ref = timeSeriesGroupByCalculator(results, timeSeriesGroupByCalculatorConfig), listOfAtCTs = _ref.listOfAtCTs, groupByAtArray = _ref.groupByAtArray, uniqueValues = _ref.uniqueValues;
+    if (!config.useAllGroupByFieldValues) {
+      lastValue = uniqueValues[uniqueValues.length - 1];
+      console.log("lastValue: " + lastValue);
+    }
     if (config.useAllGroupByFieldValues) {
       series = lumenize.groupByAtArray_To_HighChartsSeries(groupByAtArray, config.groupByField, 'GroupBy');
       drillDownObjectIDs = lumenize.groupByAtArray_To_HighChartsSeries(groupByAtArray, config.groupByField, 'DrillDown', uniqueValues, true);
@@ -1200,6 +1213,8 @@ The general structure of the visualization examples in this repository follows t
             };
             
             var kanbanStateValues = [];
+            
+            maxDaysBack = 90;
             
             $(document).ready(function() {
             
@@ -1312,8 +1327,8 @@ The general structure of the visualization examples in this repository follows t
                 // TODO: Should we filter on presence of fieldName as a property? Not everything has a Kanban state set.
 
                 query.find() // Only called here to set _find for debugging
-                console.log('Query\n' + JSON.stringify(query._find, undefined, 2));
-                console.log('\nRequesting data...');
+                console.log('Query: ' + JSON.stringify(query._find, undefined, 2));
+                console.log('Requesting data...');
 
                 query.getAll(function () { callback(this, kanbanStateFieldName) })
             };
@@ -1333,6 +1348,7 @@ The general structure of the visualization examples in this repository follows t
                     groupByField: kanbanStateFieldName,
                     groupByFieldValues: kanbanStateValues,
                     useAllGroupByFieldValues: false,  // Extras are added to end. Setting to 'false' will just use the ones in groupByFieldValues. 
+                    maxDaysBack: maxDaysBack,
                     startTrackingGroupByFieldValue: results[results.length - 1][kanbanStateFieldName],
                     // aggregationField: "PlanEstimate",
                     // aggregationFunction: "$sum",
@@ -1343,10 +1359,10 @@ The general structure of the visualization examples in this repository follows t
                     workDays: 'Monday, Tuesday, Wednesday, Thursday, Friday',
                     timezone: 'America/New_York',
                     holidays: [
-                    { month: 12, day: 25 },
-                    { year: 2011, month: 11, day: 26 },
-                    { year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
-                  ]
+                      { month: 12, day: 25 },
+                      { year: 2011, month: 11, day: 26 },
+                      { year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
+                    ]
                 };
 
                 var cfdCalculation = cfdCalculator(results, config);

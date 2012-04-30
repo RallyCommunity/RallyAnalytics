@@ -56,6 +56,8 @@ The general structure of the visualization examples in this repository follows t
             
             var kanbanStateValues = [];
             
+            maxDaysBack = 90;
+            
             $(document).ready(function() {
             
                 var lumenize = require('/lumenize');
@@ -167,8 +169,8 @@ The general structure of the visualization examples in this repository follows t
                 // TODO: Should we filter on presence of fieldName as a property? Not everything has a Kanban state set.
 
                 query.find() // Only called here to set _find for debugging
-                console.log('Query\n' + JSON.stringify(query._find, undefined, 2));
-                console.log('\nRequesting data...');
+                console.log('Query: ' + JSON.stringify(query._find, undefined, 2));
+                console.log('Requesting data...');
 
                 query.getAll(function () { callback(this, kanbanStateFieldName) })
             };
@@ -188,6 +190,7 @@ The general structure of the visualization examples in this repository follows t
                     groupByField: kanbanStateFieldName,
                     groupByFieldValues: kanbanStateValues,
                     useAllGroupByFieldValues: false,  // Extras are added to end. Setting to 'false' will just use the ones in groupByFieldValues. 
+                    maxDaysBack: maxDaysBack,
                     startTrackingGroupByFieldValue: results[results.length - 1][kanbanStateFieldName],
                     // aggregationField: "PlanEstimate",
                     // aggregationFunction: "$sum",
@@ -198,10 +201,10 @@ The general structure of the visualization examples in this repository follows t
                     workDays: 'Monday, Tuesday, Wednesday, Thursday, Friday',
                     timezone: 'America/New_York',
                     holidays: [
-                    { month: 12, day: 25 },
-                    { year: 2011, month: 11, day: 26 },
-                    { year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
-                  ]
+                      { month: 12, day: 25 },
+                      { year: 2011, month: 11, day: 26 },
+                      { year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
+                    ]
                 };
 
                 var cfdCalculation = cfdCalculator(results, config);

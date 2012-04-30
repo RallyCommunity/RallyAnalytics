@@ -45,7 +45,7 @@ The general structure of the visualization examples in this repository follows t
         <!-- my calculator for this chart -->
         
 <script type="text/javascript">
-(function(){var a,b,c,d,e,f;d=this,c=require("/lumenize"),e=c.timeSeriesGroupByCalculator,a=c.ChartTime,f=c.utils,b=function(b,d){var f,g,h,i,j,k,l,m,n,o,p,q,r,s,t;i="";for(k=0,s=b.length;k<s;k++){o=b[k];if(o[d.groupByField]===d.startTrackingGroupByFieldValue){i=o._ValidFrom;break}}if(i==="")throw new Error("Couldn't find any data whose "+d.groupByField+" transititioned into groupByFieldValue "+d.startTrackingGroupByFieldValue);return l=b[b.length-1]._ValidFrom,n={workDays:d.workDays,holidays:d.holidays,start:new a(i,"day",d.timezone),pastEnd:(new a(l,"day",d.timezone)).add(1)},q={rangeSpec:n,timezone:d.timezone,groupByField:d.groupByField,groupByFieldValues:d.groupByFieldValues,useAllGroupByFieldValues:d.useAllGroupByFieldValues,aggregationField:d.aggregationField,aggregationFunction:d.aggregationFunction,snapshotValidFromField:"_ValidFrom",snapshotValidToField:"_ValidTo",snapshotUniqueID:"ObjectID"},t=e(b,q),m=t.listOfAtCTs,j=t.groupByAtArray,r=t.uniqueValues,d.useAllGroupByFieldValues?(p=c.groupByAtArray_To_HighChartsSeries(j,d.groupByField,"GroupBy"),h=c.groupByAtArray_To_HighChartsSeries(j,d.groupByField,"DrillDown",r,!0)):(p=c.groupByAtArray_To_HighChartsSeries(j,d.groupByField,"GroupBy",d.groupByFieldValues),h=c.groupByAtArray_To_HighChartsSeries(j,d.groupByField,"DrillDown",d.groupByFieldValues,!0)),f=function(){var a,b,c;c=[];for(a=0,b=m.length;a<b;a++)g=m[a],c.push(""+g.toString());return c}(),{series:p,categories:f,drillDownObjectIDs:h}},d.cfdCalculator=b}).call(this)
+(function(){var a,b,c,d,e,f;d=this,c=require("/lumenize"),e=c.timeSeriesGroupByCalculator,a=c.ChartTime,f=c.utils,b=function(b,d){var f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x;n=b[b.length-1]._ValidFrom,m=(new a(n,"day",d.timezone)).add(1),j="";for(l=0,w=b.length;l<w;l++){s=b[l];if(s[d.groupByField]===d.startTrackingGroupByFieldValue){j=s._ValidFrom;break}}if(j==="")throw new Error("Couldn't find any data whose "+d.groupByField+" transititioned into groupByFieldValue "+d.startTrackingGroupByFieldValue);return i=new a(j,"day",d.timezone),d.maxDaysBack!=null&&(q=m.add(-1*d.maxDaysBack,"day"),i.$lt(q)&&(i=q,console.log("firstTrackingCT: "+i))),r={workDays:d.workDays,holidays:d.holidays,start:i,pastEnd:m},u={rangeSpec:r,timezone:d.timezone,groupByField:d.groupByField,groupByFieldValues:d.groupByFieldValues,useAllGroupByFieldValues:d.useAllGroupByFieldValues,aggregationField:d.aggregationField,aggregationFunction:d.aggregationFunction,snapshotValidFromField:"_ValidFrom",snapshotValidToField:"_ValidTo",snapshotUniqueID:"ObjectID"},x=e(b,u),p=x.listOfAtCTs,k=x.groupByAtArray,v=x.uniqueValues,d.useAllGroupByFieldValues||(o=v[v.length-1],console.log("lastValue: "+o)),d.useAllGroupByFieldValues?(t=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"GroupBy"),h=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"DrillDown",v,!0)):(t=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"GroupBy",d.groupByFieldValues),h=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"DrillDown",d.groupByFieldValues,!0)),f=function(){var a,b,c;c=[];for(a=0,b=p.length;a<b;a++)g=p[a],c.push(""+g.toString());return c}(),{series:t,categories:f,drillDownObjectIDs:h}},d.cfdCalculator=b}).call(this)
 </script> 
         
         <script type="text/javascript">
@@ -64,6 +64,8 @@ The general structure of the visualization examples in this repository follows t
             };
             
             var kanbanStateValues = [];
+            
+            maxDaysBack = 90;
             
             $(document).ready(function() {
             
@@ -176,8 +178,8 @@ The general structure of the visualization examples in this repository follows t
                 // TODO: Should we filter on presence of fieldName as a property? Not everything has a Kanban state set.
 
                 query.find() // Only called here to set _find for debugging
-                console.log('Query\n' + JSON.stringify(query._find, undefined, 2));
-                console.log('\nRequesting data...');
+                console.log('Query: ' + JSON.stringify(query._find, undefined, 2));
+                console.log('Requesting data...');
 
                 query.getAll(function () { callback(this, kanbanStateFieldName) })
             };
@@ -197,6 +199,7 @@ The general structure of the visualization examples in this repository follows t
                     groupByField: kanbanStateFieldName,
                     groupByFieldValues: kanbanStateValues,
                     useAllGroupByFieldValues: false,  // Extras are added to end. Setting to 'false' will just use the ones in groupByFieldValues. 
+                    maxDaysBack: maxDaysBack,
                     startTrackingGroupByFieldValue: results[results.length - 1][kanbanStateFieldName],
                     // aggregationField: "PlanEstimate",
                     // aggregationFunction: "$sum",
@@ -207,10 +210,10 @@ The general structure of the visualization examples in this repository follows t
                     workDays: 'Monday, Tuesday, Wednesday, Thursday, Friday',
                     timezone: 'America/New_York',
                     holidays: [
-                    { month: 12, day: 25 },
-                    { year: 2011, month: 11, day: 26 },
-                    { year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
-                  ]
+                      { month: 12, day: 25 },
+                      { year: 2011, month: 11, day: 26 },
+                      { year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
+                    ]
                 };
 
                 var cfdCalculation = cfdCalculator(results, config);

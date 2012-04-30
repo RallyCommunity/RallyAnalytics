@@ -10,6 +10,10 @@ cfdCalculator = (results, config) ->
   and returns the data points for a cumulative flow diagram (CFD). 
   ###
   
+  # Find the last day for this CFD
+  lastTrackingDate = results[results.length - 1]._ValidFrom
+  lastTrackingCT = new ChartTime(lastTrackingDate, 'day', config.timezone).add(1)
+  
   # Find the first record where something moves into the `startTrackingGroupByFieldValue`.
   firstTrackingDate = ''  # !TODO: Upgrade this to match timeSeriesCalculator
   for row, i in results
@@ -18,15 +22,20 @@ cfdCalculator = (results, config) ->
       break
   if firstTrackingDate == ''
     throw new Error("Couldn't find any data whose #{config.groupByField} transititioned into groupByFieldValue #{config.startTrackingGroupByFieldValue}")
+    
+  firstTrackingCT = new ChartTime(firstTrackingDate, 'day', config.timezone)
   
-  # Find the last day for this CFD
-  lastTrackingDate = results[results.length - 1]._ValidFrom
-  
+  if config.maxDaysBack?
+    maxDaysBackCT = lastTrackingCT.add(-1 * config.maxDaysBack, 'day')
+    if firstTrackingCT.$lt(maxDaysBackCT)
+      firstTrackingCT = maxDaysBackCT
+      console.log('firstTrackingCT: ' + firstTrackingCT)
+    
   rangeSpec =
     workDays: config.workDays
     holidays: config.holidays
-    start: new ChartTime(firstTrackingDate, 'day', config.timezone)
-    pastEnd: new ChartTime(lastTrackingDate, 'day', config.timezone).add(1)
+    start: firstTrackingCT
+    pastEnd: lastTrackingCT
     
   timeSeriesGroupByCalculatorConfig = 
     rangeSpec: rangeSpec
@@ -41,6 +50,14 @@ cfdCalculator = (results, config) ->
     snapshotUniqueID: 'ObjectID'
 
   {listOfAtCTs, groupByAtArray, uniqueValues} = timeSeriesGroupByCalculator(results, timeSeriesGroupByCalculatorConfig)
+  
+  # compress the last state
+  unless config.useAllGroupByFieldValues
+    # find min value to subtract by
+    lastValue = uniqueValues[uniqueValues.length - 1]
+    console.log("lastValue: #{lastValue}")
+# STOPPED EDITING HERE
+    
 
   # Get it into HighCharts form
   if config.useAllGroupByFieldValues

@@ -11,6 +11,7 @@ Useful links:
 * [API Documentation for this data access library/REST toolkit](http://rally.lumenize.com/rally_analytics/docs/index.html)
 * [GitHub repository](https://github.com/RallyApps/rally_analytics)
 * [Full user documentation for the Analytics API](http://rally.lumenize.com/rally_analytics/Analytics2.0LookbackAPIUserManual.html)
+* [Slide deck summary showed at RallyON hack-a-thon](http://rally.lumenize.com/rally_analytics/Analytics_API_code_named_Lookback_RallyON.pdf)
 
 ## Concepts ##
 
