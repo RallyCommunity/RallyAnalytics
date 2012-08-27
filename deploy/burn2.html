@@ -1,0 +1,1495 @@
+<!DOCTYPE HTML>
+
+<!--
+The general structure of the visualization examples in this repository follows these steps:
+
+1. Gather the parameters you'll need to specify the visualization
+   a. Gather some info from Rally's standard WSAPI
+   b. Gather some info from the user.
+   
+2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
+
+3. Perform some calculation/manipulation/aggregation of the snapshot data
+
+4. Render the data as a chart using some library like HighCharts
+-->
+
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Rally Burn Chart Prototype</title>
+        
+        <!-- HighCharts -->
+        <script type="text/javascript" src="https://people.rallydev.com/js/jquery.min.js"></script>
+        <script type="text/javascript" src="https://people.rallydev.com/js/highcharts.js"></script>
+        <script type="text/javascript" src="https://people.rallydev.com/js/exporting.js"></script>
+        <!-- a theme file
+            <script type="text/javascript" src="../js/themes/gray.js"></script>
+        -->
+        
+        <!-- Lumenize -->
+        <script type="text/javascript" src="http://lmaccherone.github.com/Lumenize/deploy/lumenize-min.js"></script>
+        
+        <!-- rally_analytics -->
+        
+<script type="text/javascript">
+(function() {
+  var AnalyticsQuery, AtAnalyticsQuery, AtArrayAnalyticsQuery, BetweenAnalyticsQuery, GuidedAnalyticsQuery, TimeInStateAnalyticsQuery, TransitionsAnalyticsQuery, jsType, root,
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __hasProp = Object.prototype.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; },
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  root = this;
+
+  jsType = (function() {
+    var classToType, name, _i, _len, _ref;
+    classToType = {};
+    _ref = "Boolean Number String Function Array Date RegExp Undefined Null".split(" ");
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      name = _ref[_i];
+      classToType["[object " + name + "]"] = name.toLowerCase();
+    }
+    return function(obj) {
+      var strType;
+      strType = Object.prototype.toString.call(obj);
+      return classToType[strType] || "object";
+    };
+  })();
+
+  AnalyticsQuery = (function() {
+    /*
+      This is the base class for all analytics query classes. For the most part, you are better off using
+      one of the sub-classes but if you want more direct access, you can use this class as follows.
+      
+      ## Usage ##
+      
+      First, you need to "require" the desired analytics query class(es). In these examples, we're going to require a mock
+      for the XMLHttpResponse Object but you will simply pass in the browser's XMHttpRequest Object (or 
+      the equivalent from node-XMLHttpRequest if running on node.js)
+      
+          {XHRMock} = require('../../mock/XHRMock')
+          rally_analytics = require('../')      
+      
+      Then, you need to set the config Object.
+      
+          config =
+            'X-RallyIntegrationName': 'My Chart'
+            'X-RallyIntegrationVendor': 'My Company'
+            'X-RallyIntegrationVersion': '0.1.0'
+            username: null  # if running in browser, will prompt
+            password: null  # if running in Node.js will look for RALLY_USER/RALLY_PASSWORD environment variables
+            workspaceOID: 12345
+            additionalHeaders: [ 
+              someHeader: 'Some Value'
+            ]
+      Which you can then use when instantiating a query.
+      
+          query = new rally_analytics.AnalyticsQuery(config)
+          query.XHRClass = XHRMock  # Not required to hit actual Rally Analytics API
+    
+      Then you must set the query. `find` is required but you can also specify sort, fields, etc. Notice how you can chain these calls.
+    
+          query.find({Project: 1234, Tag: 'Expedited', _At: '2012-01-01'}).sort({_ValidFrom:1}).fields(['ScheduleState'])
+        
+      Of course you need to have a callback.
+      
+          callback = () ->
+            console.log(this.allResults.length)  # will spit back 5 from our XHRMock
+          # 5
+    
+      Finally, call getAll()
+    
+          query.getAll(callback)
+          
+      ## Properties you can inspect or set ##
+      
+      * **username** default null
+      * **password** default null
+      * **protocol** default "https"
+      * **server** default "rally1.rallydev.com"
+      * **service** default "analytics"
+      * **version** defaults to latest current version
+      * **endpoint** defaults to "artifact/snapshot/query.js"
+      * **XHRClass** defaults to the local context XMLHttpResquest. Set to mock for testing.
+      
+      ## Properties you should only inspect ##
+      
+      Note, the context for the callback you provide to the `getAll()` method is set to the AnalyticsQuery instance
+      so you can inspect these properties by simply prepending them with `this.` from inside of your callback.
+      
+      * **ETLDate** the ETLDate of the response in the first page
+      * **lastResponseText** the string containing the most recent response/page
+      * **lastResponse** the parsed JSON Object of the most recent response/page
+      * **lastMeta** the meta data included at the top of the most recent response/page
+      * **allResults** the Results from all pages concatenated together
+      * **allMeta** the meta data from all pages concatentated together
+      * **allErrors** NOT YET IMPLEMENTED
+      * **allWarnings** NOT YET IMPLEMENTED
+    */
+    function AnalyticsQuery(config) {
+      this._gotResponse = __bind(this._gotResponse, this);
+      var XMLHttpRequest, addRequiredHeader, key, os, platform, value, _ref, _ref2, _ref3, _ref4;
+      this._debug = false;
+      if ((typeof process !== "undefined" && process !== null) && !(typeof window !== "undefined" && window !== null)) {
+        XMLHttpRequest = require('node-XMLHttpRequest').XMLHttpRequest;
+      } else if (root.XMLHttpRequest != null) {
+        XMLHttpRequest = root.XMLHttpRequest;
+      }
+      this.XHRClass = XMLHttpRequest;
+      this._xhr = null;
+      this._find = null;
+      this._fields = null;
+      this._hydrate = null;
+      this._sort = {
+        _ValidFrom: 1
+      };
+      this._startIndex = 0;
+      this._pageSize = 100000;
+      this._callback = null;
+      this.headers = {};
+      this.headers['X-RallyIntegrationLibrary'] = 'rally_analytics-0.1.0';
+      if (typeof navigator !== "undefined" && navigator !== null) {
+        platform = navigator.appName + ' ' + navigator.appVersion;
+        os = navigator.platform;
+      } else if (typeof process !== "undefined" && process !== null) {
+        platform = 'Node.js (or some other non-browser) ' + process.version;
+        os = process.platform;
+      }
+      this.headers['X-RallyIntegrationPlatform'] = platform;
+      this.headers['X-RallyIntegrationOS'] = os;
+      _ref = config.additionalHeaders;
+      for (key in _ref) {
+        value = _ref[key];
+        this.headers[key] = value;
+      }
+      addRequiredHeader = function(headers, key) {
+        if (config[key] != null) {
+          return headers[key] = config[key];
+        } else {
+          throw new Error("Must include config[" + key + "] header when instantiating this rally_analytics.AnalyticsQuery object");
+        }
+      };
+      addRequiredHeader(this.headers, 'X-RallyIntegrationName');
+      addRequiredHeader(this.headers, 'X-RallyIntegrationVendor');
+      addRequiredHeader(this.headers, 'X-RallyIntegrationVersion');
+      if (config.workspaceOID != null) {
+        this.workspaceOID = config.workspaceOID;
+      } else if (typeof process !== "undefined" && process !== null ? (_ref2 = process.env) != null ? _ref2.RALLY_WORKSPACE : void 0 : void 0) {
+        this.workspaceOID = process.env.RALLY_WORKSPACE;
+      } else {
+        throw new Error('Must provide a config.workspaceOID or set environment variable RALLY_WORKSPACE');
+      }
+      if (config.username != null) {
+        this.username = config.username;
+      } else if (typeof process !== "undefined" && process !== null ? (_ref3 = process.env) != null ? _ref3.RALLY_USER : void 0 : void 0) {
+        this.username = process.env.RALLY_USER;
+      } else {
+        this.username = void 0;
+      }
+      if (config.password != null) {
+        this.password = config.password;
+      } else if (typeof process !== "undefined" && process !== null ? (_ref4 = process.env) != null ? _ref4.RALLY_PASSWORD : void 0 : void 0) {
+        this.password = process.env.RALLY_PASSWORD;
+      } else {
+        this.password = void 0;
+      }
+      this.protocol = "https";
+      this.server = "rally1.rallydev.com";
+      this.service = "analytics";
+      this.version = "1.27";
+      this.endpoint = "artifact/snapshot/query.js";
+      this._firstPage = true;
+      this.ETLDate = null;
+      this.lastResponseText = '';
+      this.lastResponse = {};
+      this.lastMeta = {};
+      this.allResults = [];
+      this.allMeta = [];
+    }
+
+    AnalyticsQuery.prototype.resetFind = function() {
+      return this._find = null;
+    };
+
+    AnalyticsQuery.prototype.find = function(_find) {
+      this._find = _find;
+      return this;
+    };
+
+    AnalyticsQuery.prototype.sort = function(_sort) {
+      this._sort = _sort;
+      return this;
+    };
+
+    AnalyticsQuery.prototype.fields = function(_fields) {
+      this._fields = _fields;
+      return this;
+    };
+
+    AnalyticsQuery.prototype.hydrate = function(_hydrate) {
+      this._hydrate = _hydrate;
+      return this;
+    };
+
+    AnalyticsQuery.prototype.start = function(_startIndex) {
+      this._startIndex = _startIndex;
+      return this;
+    };
+
+    AnalyticsQuery.prototype.startIndex = function(_startIndex) {
+      this._startIndex = _startIndex;
+      return this;
+    };
+
+    AnalyticsQuery.prototype.pagesize = function(_pageSize) {
+      this._pageSize = _pageSize;
+      return this;
+    };
+
+    AnalyticsQuery.prototype.pageSize = function(_pageSize) {
+      this._pageSize = _pageSize;
+      return this;
+    };
+
+    AnalyticsQuery.prototype.auth = function(username, password) {
+      this.username = username;
+      this.password = password;
+      return this;
+    };
+
+    AnalyticsQuery.prototype.debug = function() {
+      return this._debug = true;
+    };
+
+    AnalyticsQuery.prototype.getBaseURL = function() {
+      return this.protocol + '://' + [this.server, this.service, this.version, this.workspaceOID, this.endpoint].join('/');
+    };
+
+    AnalyticsQuery.prototype.getQueryString = function() {
+      var findString, queryArray;
+      findString = JSON.stringify(this._find);
+      if ((this._find != null) && findString.length > 2) {
+        queryArray = [];
+        queryArray.push('find=' + findString);
+        if (this._sort != null) {
+          queryArray.push('sort=' + JSON.stringify(this._sort));
+        }
+        if (this._fields != null) {
+          queryArray.push('fields=' + JSON.stringify(this._fields));
+        }
+        if (this._hydrate != null) {
+          queryArray.push('hydrate=' + JSON.stringify(this._hydrate));
+        }
+        queryArray.push('start=' + this._startIndex);
+        queryArray.push('pagesize=' + this._pageSize);
+        return queryArray.join('&');
+      } else {
+        throw new Error('find clause not set');
+      }
+    };
+
+    AnalyticsQuery.prototype.getURL = function() {
+      var url;
+      url = this.getBaseURL() + '?' + this.getQueryString();
+      if (this._debug) {
+        console.log('\nfind: ', this._find);
+        console.log('\nurl: ', url);
+      }
+      return encodeURI(url);
+    };
+
+    AnalyticsQuery.prototype.getAll = function(_callback) {
+      var key, value, _ref;
+      this._callback = _callback;
+      if (this._find == null) {
+        throw new Error('Must set find clause before calling getAll');
+      }
+      if (this.XHRClass == null) throw new Error('Must set XHRClass');
+      this._xhr = new this.XHRClass();
+      this._xhr.onreadystatechange = this._gotResponse;
+      this._xhr.open('GET', this.getURL(), true, this.username, this.password);
+      _ref = this.headers;
+      for (key in _ref) {
+        value = _ref[key];
+        this._xhr.setRequestHeader(key, value);
+      }
+      this._xhr.send();
+      return this;
+    };
+
+    AnalyticsQuery.prototype._gotResponse = function() {
+      var key, newFind, o, value, _i, _len, _ref, _ref2, _ref3, _return,
+        _this = this;
+      if (this._debug) console.log('readyState: ', this._xhr.readyState);
+      if (this._xhr.readyState === 4) {
+        _return = function() {
+          _this._firstPage = true;
+          _this._startIndex = 0;
+          return _this._callback.call(_this);
+        };
+        this.lastResponseText = this._xhr.responseText;
+        if (this._debug) {
+          console.log('headers: ' + this._xhr.getAllResponseHeaders());
+          console.log('status: ' + this._xhr.status);
+          console.log('lastResponse: ' + this.lastResponseText);
+        }
+        this.lastResponse = JSON.parse(this.lastResponseText);
+        if (this.lastResponse.Errors.length > 0) {
+          console.log('Errors\n' + JSON.stringify(this.lastResponse.Errors));
+          return _return();
+        } else {
+          if (this._firstPage) {
+            this._firstPage = false;
+            this.allResults = [];
+            this.allMeta = [];
+            this.ETLDate = this.lastResponse.ETLDate;
+            this._pageSize = this.lastResponse.PageSize;
+            newFind = {
+              '$and': [
+                this._find, {
+                  '_ValidFrom': {
+                    '$lte': this.ETLDate
+                  }
+                }
+              ]
+            };
+            this._find = newFind;
+          } else {
+
+          }
+          _ref = this.lastResponse.Results;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            o = _ref[_i];
+            this.allResults.push(o);
+          }
+          this.lastMeta = {};
+          _ref2 = this.lastResponse;
+          for (key in _ref2) {
+            value = _ref2[key];
+            if (key !== 'Results') this.lastMeta[key] = value;
+          }
+          this.allMeta.push(this.lastMeta);
+          if (this.lastResponse.Results.length + this.lastResponse.StartIndex >= this.lastResponse.TotalResultCount) {
+            return _return();
+          } else {
+            this._startIndex += this._pageSize;
+            this._xhr = new this.XHRClass();
+            this._xhr.onreadystatechange = this._gotResponse;
+            this._xhr.open('GET', this.getURL(), true, this.username, this.password);
+            _ref3 = this.headers;
+            for (key in _ref3) {
+              value = _ref3[key];
+              this._xhr.setRequestHeader(key, value);
+            }
+            return this._xhr.send();
+          }
+        }
+      }
+    };
+
+    return AnalyticsQuery;
+
+  })();
+
+  GuidedAnalyticsQuery = (function(_super) {
+
+    __extends(GuidedAnalyticsQuery, _super);
+
+    /*
+      To help you write performant queries against the non-traditional data model of Rally's Analytics engine, we provide a guided mode 
+      for composing queries. Like the raw AnalyticsQuery, you start by creating a GuidedAnalyticsQuery Object. 
+      
+          query = new rally_analytics.GuidedAnalyticsQuery(config)
+          query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+      
+      **Scope**
+      
+      Then you must specify at least one highly selective criteria using the scope method:
+      
+          query.scope('Project', 1234) # or [1234, 5678]
+          query.scope('_ProjectHierarchy', 1234) # or [1234, 5678], also accepts 'ProjectHierarchy'
+          query.scope('Iteration', 1234) # or [1234, 5678]
+          query.scope('Release', 1234) # or [1234, 5678]
+          query.scope('_ItemHierarchy', 1234) # also accepts 'ItemHierarchy'
+          query.scope('Tags', 'Top 10') # or ['Top 10', 'Expedite'], also accepts Tag
+          
+      The 'ProjectHierarchy' scope is not necessarily highly selective. So you should make sure that you
+      either have some other criteria or that you don't have too many Projects in scope beneith the specified Project(s).
+      
+      Alternatively, you can specify your scope in one big object:
+      
+          query.scope({
+            _ProjectHierarchy: 1234,
+            Iteration: [1234, 5678], 
+          })
+          
+      **Type**
+      
+      You can optionally limit your query to one or more work item types. Defaults to all types.
+      
+          query.type('Defect') # alteratively ['Defect', 'HierarchicalRequirement']
+          
+      Note, a change is expected to be made such that the Analytics API will require ObjectIDs of the types.
+      When that happens, we may update this REST toolkit to hide that from you but you'll need to update
+      to the latest version.
+      
+      **Leaf Nodes Only**  
+      
+      You can also specify that you only want leaf nodes to be returned by the query.
+      
+          query.leafOnly()
+          
+      It will expand to a clause like: 
+          
+          {
+            '$or': [
+              {_Type: "HierarchicalRequirement", Children: null},
+              {_Type:"PortfolioItem", Children: null, UserStories: null}
+            ]
+          }
+    
+      **Additional Criteria**
+      
+      You can also specify additional critaria. This can be useful for defining "sub-classes" of work items.
+          
+          query.additionalCriteria({Environment: 'Production'})
+          
+      **Chaining**
+      
+      Chaining is supported, so you could say:
+      
+          query = new rally_analytics.GuidedAnalyticsQuery(config)
+          query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+          query.scope('_ProjectHierarchy', 1234)
+               .type('HierarchicalRequirement')
+               .leafOnly()
+               .additionalCriteria({Blocked: true})
+               
+          query.find()
+          console.log(JSON.stringify(query._find, undefined, 2))
+          # {
+          #   "$and": [
+          #     {
+          #       "_ProjectHierarchy": 1234
+          #     },
+          #     {
+          #       "_Type": "HierarchicalRequirement"
+          #     },
+          #     {
+          #       "$or": [
+          #         {
+          #           "_Type": "HierarchicalRequirement",
+          #           "Children": null
+          #         },
+          #         {
+          #           "_Type": "PortfolioItem",
+          #           "Children": null,
+          #           "UserStories": null
+          #         }
+          #       ]
+          #     },
+          #     {
+          #       "Blocked": true
+          #     }
+          #   ]
+          # }
+    */
+
+    function GuidedAnalyticsQuery(config) {
+      GuidedAnalyticsQuery.__super__.constructor.call(this, config);
+      this._scope = {};
+      this._type = null;
+      this._additionalCriteria = [];
+    }
+
+    GuidedAnalyticsQuery.prototype.generateFind = function() {
+      var c, compoundArray, _i, _len, _ref, _ref2;
+      compoundArray = [];
+      if (JSON.stringify(this._scope).length > 2) {
+        compoundArray.push(this._scope);
+      } else {
+        throw new Error('Must set scope first.');
+      }
+      if (this._type != null) compoundArray.push(this._type);
+      _ref = this._additionalCriteria;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        c = _ref[_i];
+        compoundArray.push(c);
+      }
+      if ((0 < (_ref2 = compoundArray.length) && _ref2 < 2)) {
+        return compoundArray[0];
+      } else {
+        return {
+          '$and': compoundArray
+        };
+      }
+    };
+
+    GuidedAnalyticsQuery.prototype.find = function() {
+      if (arguments.length > 0) {
+        throw new Error('Do not call find() directly to set query. Use scope(), type(), and additionalCriteria()');
+      }
+      return GuidedAnalyticsQuery.__super__.find.call(this, this.generateFind());
+    };
+
+    GuidedAnalyticsQuery.prototype.resetScope = function() {
+      return this._scope = {};
+    };
+
+    GuidedAnalyticsQuery.prototype.scope = function(key, value) {
+      var addToScope, k, v,
+        _this = this;
+      addToScope = function(k, v) {
+        var okKeys;
+        if (k === 'ItemHierarchy') k = '_ItemHierarchy';
+        if (k === 'Tag') k = 'Tags';
+        if (k === 'ProjectHierarchy') k = '_ProjectHierarchy';
+        okKeys = ['Project', '_ProjectHierarchy', 'Iteration', 'Release', 'Tags', '_ItemHierarchy'];
+        if (__indexOf.call(okKeys, k) < 0) {
+          throw new Error("Key for scope() call must be one of " + okKeys);
+        }
+        if (jsType(v) === 'array') {
+          return _this._scope[k] = {
+            '$in': v
+          };
+        } else {
+          return _this._scope[k] = v;
+        }
+      };
+      if (jsType(key) === 'object') {
+        for (k in key) {
+          v = key[k];
+          addToScope(k, v);
+        }
+      } else if (arguments.length === 2) {
+        addToScope(key, value);
+      } else {
+        throw new Error('Must provide an Object in first parameter or two parameters (key, value).');
+      }
+      return this;
+    };
+
+    GuidedAnalyticsQuery.prototype.resetType = function() {
+      return this._type = null;
+    };
+
+    GuidedAnalyticsQuery.prototype.type = function(type) {
+      this._type = {
+        '_Type': type
+      };
+      return this;
+    };
+
+    GuidedAnalyticsQuery.prototype.resetAdditionalCriteria = function() {
+      return this._additionalCriteria = [];
+    };
+
+    GuidedAnalyticsQuery.prototype.additionalCriteria = function(criteria) {
+      this._additionalCriteria.push(criteria);
+      return this;
+    };
+
+    GuidedAnalyticsQuery.prototype.leafOnly = function() {
+      this.additionalCriteria({
+        '$or': [
+          {
+            _Type: "HierarchicalRequirement",
+            Children: null
+          }, {
+            _Type: "PortfolioItem",
+            Children: null,
+            UserStories: null
+          }
+        ]
+      });
+      return this;
+    };
+
+    GuidedAnalyticsQuery.prototype.getAll = function(callback) {
+      this.find();
+      return GuidedAnalyticsQuery.__super__.getAll.call(this, callback);
+    };
+
+    return GuidedAnalyticsQuery;
+
+  })(AnalyticsQuery);
+
+  AtAnalyticsQuery = (function(_super) {
+
+    __extends(AtAnalyticsQuery, _super);
+
+    /*
+      This pattern will tell you what a set of Artfacts looked like at particular moments in time
+        
+          query = new rally_analytics.AtAnalyticsQuery(config, '2012-01-01T12:34:56.789Z')
+          query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+          
+      It will expand to a query like this:
+          
+          query.scope('_ProjectHierarchy', 1234)
+          query.find()
+          console.log(JSON.stringify(query._find, undefined, 2))
+          # {
+          #   "$and": [
+          #     {
+          #       "_ProjectHierarchy": 1234
+          #     },
+          #     {
+          #       "_At": "2012-01-01T12:34:56.789Z"
+          #     }
+          #   ]
+          # }
+    */
+
+    function AtAnalyticsQuery(config, zuluDateString) {
+      AtAnalyticsQuery.__super__.constructor.call(this, config);
+      if (zuluDateString == null) {
+        throw new Error('Must provide a zuluDateString when instantiating an AtAnalyticsQuery.');
+      }
+      this._additionalCriteria.push({
+        _At: zuluDateString
+      });
+    }
+
+    return AtAnalyticsQuery;
+
+  })(GuidedAnalyticsQuery);
+
+  AtArrayAnalyticsQuery = (function(_super) {
+
+    __extends(AtArrayAnalyticsQuery, _super);
+
+    /*
+      This pattern is not implemented at this time but the intention is for it to tell you what a 
+      set of Artfacts looked like at particular moments in time. In the mean time, use the "Between"
+      pattern defined above combined with the Lumenize `snapshotArray_To_AtArray` function. 
+      Eventually, this will be the ideal pattern to use for Burn charts, CFD charts, and most time-series charts
+      It's the same as the 'At' pattern except that the second parameter can be a list of timestamps.
+      
+      `query = new rally_analytics.AtArrayAnalyticsQuery(config, ['2012-01-01T12:34:56.789Z', '2012-01-02T12:34:56.789Z', ...])`
+          
+      Altneratively, we may make it possible to submit a ChartTimeIterator spec.
+      
+      The way to implement this in the short term is to use the Between pattern and wrap in the Lumenize 
+      `snapshotArray_To_AtArray` transformation.
+         
+      Note: it's tempting to try to make this more efficient by just looking for snapshots where the fields of interest change. 
+      However, that approach would not pick up on the deletions/restores nor the changing of the work item so it no longer meets 
+      the other criteria.
+        
+      Note: when/if there is server-side support for finding the results at these points in time, this query pattern will be updated
+      to take advantage of it.
+    */
+
+    function AtArrayAnalyticsQuery(config, arrayOfZuluDates) {
+      AtArrayAnalyticsQuery.__super__.constructor.call(this, config);
+      throw new Error('AtArrayAnalyticsQuery is not yet implemented');
+    }
+
+    return AtArrayAnalyticsQuery;
+
+  })(GuidedAnalyticsQuery);
+
+  BetweenAnalyticsQuery = (function(_super) {
+
+    __extends(BetweenAnalyticsQuery, _super);
+
+    /*
+      This pattern will return all of the snapshots related to a particular timebox. The results are in the form expected by the 
+      Lumenize function `snapshotArray_To_AtArray`, which will tell you what each work item looked like at a provided list of
+      datetimes. This is the current recommended approach for most time-series charts. The burncalculator and cfdcalculator
+      use this approach. Note: the 'AtArray' approach will supercede this for time-series charts at some point in the future.
+        
+          query = new rally_analytics.BetweenAnalyticsQuery(config, '2012-01-01T12:34:56.789Z', '2012-01-10T12:34:56.789Z')
+          query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+    
+      It will expand to a query like this:
+      
+          query.scope('_ProjectHierarchy', 1234)
+          query.find()
+          console.log(JSON.stringify(query._find, undefined, 2))
+          # {
+          #   "$and": [
+          #     {
+          #       "_ProjectHierarchy": 1234
+          #     },
+          #     {
+          #       "$or": [
+          #         {
+          #           "_ValidFrom": {
+          #             "$lte": "2012-01-01T12:34:56.789Z"
+          #           },
+          #           "_ValidTo": {
+          #             "$gt": "2012-01-01T12:34:56.789Z"
+          #           }
+          #         },
+          #         {
+          #           "_ValidFrom": {
+          #             "$gte": "2012-01-01T12:34:56.789Z",
+          #             "$lt": "2012-01-10T12:34:56.789Z"
+          #           }
+          #         }
+          #       ]
+          #     }
+          #   ]
+          # }
+    */
+
+    function BetweenAnalyticsQuery(config, zuluDateString1, zuluDateString2) {
+      var criteria;
+      BetweenAnalyticsQuery.__super__.constructor.call(this, config);
+      if (!((zuluDateString1 != null) && (zuluDateString2 != null))) {
+        throw new Error('Must provide two zuluDateStrings when instantiating a BetweenAnalyticsQuery.');
+      }
+      criteria = {
+        '$or': [
+          {
+            _ValidFrom: {
+              '$lte': zuluDateString1
+            },
+            _ValidTo: {
+              '$gt': zuluDateString1
+            }
+          }, {
+            _ValidFrom: {
+              '$gte': zuluDateString1,
+              '$lt': zuluDateString2
+            }
+          }
+        ]
+      };
+      this._additionalCriteria.push(criteria);
+      this.sort({
+        _ValidFrom: 1
+      });
+    }
+
+    return BetweenAnalyticsQuery;
+
+  })(GuidedAnalyticsQuery);
+
+  TimeInStateAnalyticsQuery = (function(_super) {
+
+    __extends(TimeInStateAnalyticsQuery, _super);
+
+    /*
+      This pattern will only return snapshots where the specified clause is true.
+      This is useful for Cycle Time calculations as well as calculating Flow Efficiency or Blocked Time.
+      
+          query = new rally_analytics.TimeInStateAnalyticsQuery(config, {KanbanState: {$gte: 'In Dev', $lt: 'Accepted'}})
+          query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+    */
+
+    function TimeInStateAnalyticsQuery(config, predicate) {
+      TimeInStateAnalyticsQuery.__super__.constructor.call(this, config);
+      if (predicate == null) {
+        throw new Error('Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.');
+      }
+      this._additionalCriteria.push(predicate);
+      this.fields(['ObjectID', '_ValidFrom', '_ValidTo']);
+      this.sort({
+        _ValidFrom: 1
+      });
+    }
+
+    return TimeInStateAnalyticsQuery;
+
+  })(GuidedAnalyticsQuery);
+
+  TransitionsAnalyticsQuery = (function(_super) {
+
+    __extends(TransitionsAnalyticsQuery, _super);
+
+    /*
+      This pattern will return the snapshots where the _PreviousValue matches the first query clause parameter and the "current"
+      value matches the second query clause parameter. In other words, it finds particular transitions. It is useful for 
+      Throughput/Velocity calculations. 
+      
+      !TODO: Indent below to make sure it works and add example
+      query = new TransitionsAnalyticsQuery(config,
+        {ScheduleState: {$lt: 'Accepted'}}, 
+        {ScheduleState: {$gte: 'Accepted'}}
+      )
+      query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+    
+      
+      The first predicate is actually converted such that any non-operator key is prepended with "_PreviousValues.". In the example
+      above, "{ScheduleState: {$lt: 'Accepted'}}" becomes "{'_PreviousValues.ScheduleState': {$lt: 'Accepted'}}". So this will return
+      the snapshots that made this particular transition from before state to after state.
+      
+      Note, you should also run the query swapping the two predicates and subtract the two calculations before reporting a Thoughput or 
+      Velocity result. Without doing so, any story that crosses the boudary multiple times would get double, triple, etc. counted.
+      
+      In a future version, you may be able to specify aggregation functions ($count, $sum, $push, etc.) on a particular field when 
+      making this query, because when you use this pattern, you are usually interested in the sum or count and not the actual snapshots.
+      In the mean time, if you are only interested in the count, simply specify pagesize of 1 and inspect the TotalResultCount in the top
+      section of the response.
+      
+      There is a good reason that Throughput and Velocity are defined with two predicates rather than just specifying the line to the left
+      of "Accepted". Let's say, work is not really "Accepted" until the Ready flag is checked. You could write that query like so:
+      
+      !TODO: Indent below to make sure it works and add example
+      query = new rally_analytics.TransitionsAnalyticsQuery(config,
+        {$or: [{KanbanState: {$lt: 'Accepted'}}, {KanbanState: 'Accepted', Ready: false}]}, 
+        {$or: [{KanbanState: 'Accepted', Ready: true}, {KanbanState: {$gt: 'Accepted'}}]}
+      )
+      query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
+          
+      It will expand to a query like this:
+    
+      !TODO: Indent below to make sure it works and add example
+      query.scope('_ProjectHierarchy', 1234)
+      query.find()
+      console.log(JSON.stringify(query._find, undefined, 2))
+      #
+    */
+
+    function TransitionsAnalyticsQuery(config, arrayOfZuluDates) {
+      TransitionsAnalyticsQuery.__super__.constructor.call(this, config);
+      throw new Error('Not yet implemented');
+    }
+
+    return TransitionsAnalyticsQuery;
+
+  })(GuidedAnalyticsQuery);
+
+  root.AnalyticsQuery = AnalyticsQuery;
+
+  root.GuidedAnalyticsQuery = GuidedAnalyticsQuery;
+
+  root.AtAnalyticsQuery = AtAnalyticsQuery;
+
+  root.AtArrayAnalyticsQuery = AtArrayAnalyticsQuery;
+
+  root.BetweenAnalyticsQuery = BetweenAnalyticsQuery;
+
+  root.TimeInStateAnalyticsQuery = TimeInStateAnalyticsQuery;
+
+  root.TransitionsAnalyticsQuery = TransitionsAnalyticsQuery;
+
+}).call(this);
+
+</script> 
+        
+        <!-- rallyquery -->
+        
+<script type="text/javascript">
+(function() {
+  var RallyQuery, jsType, root,
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
+  root = this;
+
+  jsType = (function() {
+    var classToType, name, _i, _len, _ref;
+    classToType = {};
+    _ref = "Boolean Number String Function Array Date RegExp Undefined Null".split(" ");
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      name = _ref[_i];
+      classToType["[object " + name + "]"] = name.toLowerCase();
+    }
+    return function(obj) {
+      var strType;
+      strType = Object.prototype.toString.call(obj);
+      return classToType[strType] || "object";
+    };
+  })();
+
+  RallyQuery = (function() {
+    /*
+      This is total hack to get around the fact that I don't have App SDK 2.0 access yet
+    */
+    function RallyQuery(config) {
+      this._gotResponse = __bind(this._gotResponse, this);
+      var XMLHttpRequest, addRequiredHeader, key, os, platform, userAgent, value, _ref;
+      this.debug = false;
+      if ((typeof process !== "undefined" && process !== null) && !(typeof window !== "undefined" && window !== null)) {
+        XMLHttpRequest = require('node-XMLHttpRequest').XMLHttpRequest;
+      } else if (root.XMLHttpRequest != null) {
+        XMLHttpRequest = root.XMLHttpRequest;
+      }
+      this.XHRClass = XMLHttpRequest;
+      this._xhr = null;
+      this._query = '';
+      this._fetch = true;
+      this._order = null;
+      this._startIndex = 0;
+      this._pageSize = 200;
+      this._callback = null;
+      this.headers = {};
+      this.headers['X-RallyIntegrationLibrary'] = 'rally_analytics-0.1.0';
+      if (typeof navigator !== "undefined" && navigator !== null) {
+        platform = navigator.appName + ' ' + navigator.appVersion;
+        userAgent = navigator.userAgent;
+        os = navigator.platform;
+      } else if (typeof process !== "undefined" && process !== null) {
+        platform = 'Node.js (or some other non-browser) ' + process.version;
+        userAgent = 'Rally analytics toolkit on Node.js (or some other non-browser)';
+        os = process.platform;
+      }
+      this.headers['X-RallyIntegrationPlatform'] = platform;
+      this.headers['X-RallyIntegrationOS'] = os;
+      _ref = config.additionalHeaders;
+      for (key in _ref) {
+        value = _ref[key];
+        this.headers[key] = value;
+      }
+      addRequiredHeader = function(headers, key) {
+        if (config[key] != null) {
+          return headers[key] = config[key];
+        } else {
+          throw new Error("Must include config[" + key + "] header when instantiating this rally_analytics.AnalyticsQuery object");
+        }
+      };
+      addRequiredHeader(this.headers, 'X-RallyIntegrationName');
+      addRequiredHeader(this.headers, 'X-RallyIntegrationVendor');
+      addRequiredHeader(this.headers, 'X-RallyIntegrationVersion');
+      this.username = config.username;
+      this.password = config.password;
+      this.protocol = "https";
+      this.server = "rally1.rallydev.com/slm";
+      this.service = "webservice";
+      this.version = "1.31";
+      this.endpoint = "preferences.js";
+      this._firstPage = true;
+      this.lastResponseText = '';
+      this.lastResponse = {};
+      this.lastMeta = {};
+      this.allResults = [];
+      this.allMeta = [];
+    }
+
+    RallyQuery.prototype.resetQuery = function() {
+      return this._query = null;
+    };
+
+    RallyQuery.prototype.query = function(_query) {
+      this._query = _query;
+      return this;
+    };
+
+    RallyQuery.prototype.order = function(_order) {
+      this._order = _order;
+      return this;
+    };
+
+    RallyQuery.prototype.fetch = function(_fetch) {
+      this._fetch = _fetch;
+      return this;
+    };
+
+    RallyQuery.prototype.start = function(_startIndex) {
+      this._startIndex = _startIndex;
+      return this;
+    };
+
+    RallyQuery.prototype.startIndex = function(_startIndex) {
+      this._startIndex = _startIndex;
+      return this;
+    };
+
+    RallyQuery.prototype.pagesize = function(_pageSize) {
+      this._pageSize = _pageSize;
+      return this;
+    };
+
+    RallyQuery.prototype.pageSize = function(_pageSize) {
+      this._pageSize = _pageSize;
+      return this;
+    };
+
+    RallyQuery.prototype.auth = function(username, password) {
+      this.username = username;
+      this.password = password;
+      return this;
+    };
+
+    RallyQuery.prototype.getBaseURL = function() {
+      return this.protocol + '://' + [this.server, this.service, this.version, this.endpoint].join('/');
+    };
+
+    RallyQuery.prototype.getQueryString = function() {
+      var queryArray;
+      if (this._query != null) {
+        queryArray = [];
+        queryArray.push('query=' + this._query);
+        if (this._order != null) queryArray.push('order=' + this._order);
+        if (this._fetch != null) queryArray.push('fetch=' + this._fetch);
+        queryArray.push('start=' + this._startIndex);
+        queryArray.push('pagesize=' + this._pageSize);
+        return queryArray.join('&');
+      } else {
+        throw new Error('find clause not set');
+      }
+    };
+
+    RallyQuery.prototype.getURL = function() {
+      return this.getBaseURL() + '?' + this.getQueryString();
+    };
+
+    RallyQuery.prototype.getAll = function(_callback) {
+      var key, value, _ref;
+      this._callback = _callback;
+      if (this._query == null) {
+        throw new Error('Must set query clause before calling getAll');
+      }
+      if (this.XHRClass == null) throw new Error('Must set XHRClass');
+      this._xhr = new this.XHRClass();
+      this._xhr.onreadystatechange = this._gotResponse;
+      this._xhr.open('GET', this.getURL(), true, this.username, this.password);
+      _ref = this.headers;
+      for (key in _ref) {
+        value = _ref[key];
+        this._xhr.setRequestHeader(key, value);
+      }
+      this._xhr.send();
+      return this;
+    };
+
+    RallyQuery.prototype._gotResponse = function() {
+      var key, o, value, _i, _len, _ref, _ref2, _ref3, _return,
+        _this = this;
+      if (this._debug) console.log('readyState: ', this._xhr.readyState);
+      if (this._xhr.readyState === 4) {
+        _return = function() {
+          _this._firstPage = true;
+          _this._startIndex = 0;
+          return _this._callback.call(_this);
+        };
+        this.lastResponseText = this._xhr.responseText;
+        if (this.debug) console.log('\nlastResponse\n' + this.lastResponseText);
+        this.lastResponse = JSON.parse(this.lastResponseText).QueryResult;
+        if (this.lastResponse.Errors.length > 0) {
+          console.log('Errors\n' + JSON.stringify(this.lastResponse.Errors));
+          return _return();
+        } else {
+          if (this._firstPage) {
+            this._firstPage = false;
+            this.allResults = [];
+            this.allMeta = [];
+            this._pageSize = this.lastResponse.PageSize;
+          } else {
+
+          }
+          _ref = this.lastResponse.Results;
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            o = _ref[_i];
+            this.allResults.push(o);
+          }
+          this.lastMeta = {};
+          _ref2 = this.lastResponse;
+          for (key in _ref2) {
+            value = _ref2[key];
+            if (key !== 'Results') this.lastMeta[key] = value;
+          }
+          this.allMeta.push(this.lastMeta);
+          if (this.lastResponse.Results.length + this.lastResponse.StartIndex >= this.lastResponse.TotalResultCount) {
+            return _return();
+          } else {
+            this._startIndex += this._pageSize;
+            this._xhr = new this.XHRClass();
+            this._xhr.onreadystatechange = this._gotResponse;
+            this._xhr.open('GET', this.getURL(), true, this.username, this.password);
+            _ref3 = this.headers;
+            for (key in _ref3) {
+              value = _ref3[key];
+              this._xhr.setRequestHeader(key, value);
+            }
+            return this._xhr.send();
+          }
+        }
+      }
+    };
+
+    return RallyQuery;
+
+  })();
+
+  root.RallyQuery = RallyQuery;
+
+}).call(this);
+
+</script> 
+
+        <!-- my calculator for this chart -->
+        
+<script type="text/javascript">
+(function() {
+  var ChartTime, burnCalculator, lumenize, root, timeSeriesCalculator, utils,
+    __indexOf = Array.prototype.indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  root = this;
+
+  if (typeof exports !== "undefined" && exports !== null) {
+    lumenize = require('../lib/lumenize');
+  } else {
+    lumenize = require('/lumenize');
+  }
+
+  ChartTime = lumenize.ChartTime, timeSeriesCalculator = lumenize.timeSeriesCalculator;
+
+  utils = lumenize.utils;
+
+  burnCalculator = function(results, config) {
+    /*
+      Takes the "results" from a query to Rally's Analytics API (or similar MVCC-based implementation)
+      and returns the series for burn charts.
+    */
+    var aggregationAtArray, aggregations, categories, ct, derivedFields, f, field, granularity, i, idealData, idealStep, listOfAtCTs, maxTaskEstimateTotal, name, originalPointCount, pastEnd, rangeSpec, s, series, seriesFound, seriesNames, start, timeSeriesCalculatorConfig, type, yAxis, _i, _len, _ref, _ref2, _ref3;
+    if (config.granularity != null) {
+      granularity = config.granularity;
+    } else {
+      granularity = 'day';
+    }
+    start = config.start;
+    if (utils.type(start) === 'string') {
+      start = new ChartTime(start, granularity, config.workspaceConfiguration.TimeZone);
+    }
+    pastEnd = new ChartTime(results[results.length - 1]._ValidFrom, granularity, config.workspaceConfiguration.TimeZone).add(1);
+    rangeSpec = {
+      workDays: config.workspaceConfiguration.WorkDays,
+      holidays: config.holidays,
+      start: start,
+      pastEnd: pastEnd
+    };
+    if (config.upSeriesType == null) config.upSeriesType = 'Sums';
+    derivedFields = [];
+    if (config.upSeriesType === 'Points') {
+      derivedFields.push({
+        name: 'Accepted',
+        f: function(row) {
+          var _ref;
+          if (_ref = row.ScheduleState, __indexOf.call(config.acceptedStates, _ref) >= 0) {
+            return row.PlanEstimate;
+          } else {
+            return 0;
+          }
+        }
+      });
+    } else if (config.upSeriesType === 'Story Count') {
+      derivedFields.push({
+        name: 'Accepted',
+        f: function(row) {
+          var _ref;
+          if (_ref = row.ScheduleState, __indexOf.call(config.acceptedStates, _ref) >= 0) {
+            return 1;
+          } else {
+            return 0;
+          }
+        }
+      });
+    } else {
+      console.error("Unrecognized upSeriesType: " + config.upSeriesType);
+    }
+    seriesNames = [];
+    aggregations = [];
+    _ref = config.series;
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      s = _ref[_i];
+      seriesFound = true;
+      switch (s) {
+        case 'down':
+          name = 'Task To Do (Hours)';
+          f = '$sum';
+          field = 'TaskRemainingTotal';
+          yAxis = 0;
+          type = 'column';
+          break;
+        case 'ideal':
+          name = "Ideal (Hours)";
+          f = '$sum';
+          field = 'TaskEstimateTotal';
+          yAxis = 0;
+          type = 'line';
+          break;
+        case 'up':
+          name = "Accepted (" + config.upSeriesType + ")";
+          f = '$sum';
+          field = 'Accepted';
+          yAxis = 1;
+          type = 'column';
+          break;
+        case 'scope':
+          name = "Scope (" + config.upSeriesType + ")";
+          if (config.upSeriesType === 'Story Count') {
+            f = '$count';
+          } else if (config.upSeriesType === 'Points') {
+            f = '$sum';
+          }
+          field = 'PlanEstimate';
+          yAxis = 1;
+          type = 'line';
+          break;
+        default:
+          if ((s.name != null) && (s.f != null) && (s.field != null)) {
+            name = s.name;
+            f = s.f;
+            field = s.field;
+            type = 'column';
+          } else {
+            seriesFound = false;
+            console.error("Unrecognizable series: " + s);
+          }
+      }
+      if (seriesFound) {
+        aggregations.push({
+          name: name,
+          as: name,
+          f: f,
+          field: field,
+          yAxis: yAxis,
+          type: type
+        });
+        seriesNames.push(name);
+      }
+    }
+    timeSeriesCalculatorConfig = {
+      rangeSpec: rangeSpec,
+      derivedFields: derivedFields,
+      aggregations: aggregations,
+      timezone: config.workspaceConfiguration.TimeZone,
+      snapshotValidFromField: '_ValidFrom',
+      snapshotValidToField: '_ValidTo',
+      snapshotUniqueID: 'ObjectID'
+    };
+    _ref2 = lumenize.timeSeriesCalculator(results, timeSeriesCalculatorConfig), listOfAtCTs = _ref2.listOfAtCTs, aggregationAtArray = _ref2.aggregationAtArray;
+    console.log("aggregationAtArray: " + (JSON.stringify(aggregationAtArray, null, 2)));
+    series = lumenize.aggregationAtArray_To_HighChartsSeries(aggregationAtArray, aggregations);
+    categories = (function() {
+      var _j, _len2, _results;
+      _results = [];
+      for (_j = 0, _len2 = listOfAtCTs.length; _j < _len2; _j++) {
+        ct = listOfAtCTs[_j];
+        _results.push("" + (ct.toString()));
+      }
+      return _results;
+    })();
+    originalPointCount = categories.length;
+    if (__indexOf.call(config.series, "ideal") >= 0) {
+      i = 0;
+      while (series[i].name.indexOf("Ideal") < 0) {
+        i++;
+      }
+      idealData = series[i].data;
+      maxTaskEstimateTotal = lumenize.functions.$max(idealData);
+      idealStep = maxTaskEstimateTotal / (originalPointCount - 1);
+      for (i = 0, _ref3 = originalPointCount - 2; 0 <= _ref3 ? i <= _ref3 : i >= _ref3; 0 <= _ref3 ? i++ : i--) {
+        idealData[i] = (originalPointCount - 1 - i) * idealStep;
+      }
+      idealData[originalPointCount - 1] = 0;
+    }
+    return {
+      categories: categories,
+      series: series
+    };
+  };
+
+  root.burnCalculator = burnCalculator;
+
+}).call(this);
+
+</script> 
+                
+        <script type="text/javascript">
+
+            if (top == self) {
+              var workspaceOID = 41529001;
+              var projectScopingUp = false;
+              var projectScopingDown = true;
+              var projectOID = 279050021;
+              //var projectOID = 1194243695; // "Services Team" project
+            } else {                
+              var workspaceOID = __WORKSPACE_OID__;
+              var projectScopingUp = __PROJECT_SCOPING_UP__;
+              var projectScopingDown = __PROJECT_SCOPING_DOWN__;
+              var projectOID = __PROJECT_OID__;                
+            };
+            
+            var lumenize = require('/lumenize');
+            var ChartTime = lumenize.ChartTime;
+            ChartTime.setTZPath('All');  // Inside the browser, the tz files are embedded.          
+                    
+            // Step 1. Gather the parameters you'll need to specify the visualization
+            // Step 1a. Gather some info from Rally's standard WSAPI.
+            //          In this example, we are hard coding a workspaceConfiguration object but ideally, we'll get this from Rally  
+                        
+            var workspaceConfiguration = {  // Need to grab from Rally for this user
+              DateFormat: 'MM/dd/yyyy',
+              DateTimeFormat: 'MM/dd/yyyy hh:mm:ss a',
+              IterationEstimateUnitName: 'Points',  // !TODO: Should we use this?
+              ReleaseEstimateUnitName: 'Points',
+              TaskUnitName: 'Hours',
+              TimeTrackerEnabled: true,
+              TimeZone: 'America/Denver',
+              WorkDays: 'Monday,Tuesday,Wednesday,Thursday,Friday' // They work on Sundays
+            };
+                        
+            // Step 1b. Gather some info from the user.
+            //          Here to, we are hard coding some parameters for the chart but this could be in a UI for the user to specify.
+        
+            var burnCalculatorConfig = {
+              workspaceConfiguration: workspaceConfiguration,
+              upSeriesType: 'Story Count', // 'Points' or 'Story Count'
+              series: [
+/*                     'down', */
+                'up',
+/*
+                'projectionToCurrentScope',
+                'projectionToProjectedScope',
+                'ideal',
+*/
+                'scope'
+              ],
+              acceptedStates: ['Accepted', 'Released'],
+              start: "2011-01-02T13:00:00Z",  // Calculated either by inspecting results or via configuration. pastEnd is automatically the last date in results
+              holidays: [
+                {month: 12, day: 25}, // Notice how the year can be omitted
+                {year: 2011, month: 11, day: 26},
+                {year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
+              ]
+            };
+                
+            $(document).ready(function() {
+
+                // For PI/Story burn chart, {_ItemHiearchy: 123456L} where 123456L is the ObjectID of the PI or Story
+        
+                // Step 2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
+                  
+                queryConfig = {
+                  'X-RallyIntegrationName': 'Burn chart (prototype)',
+                  'X-RallyIntegrationVendor': 'Rally The A-Team',
+                  'X-RallyIntegrationVersion': '0.1.0',
+                  workspaceOID: workspaceOID
+                };
+  
+                var query = new GuidedAnalyticsQuery(queryConfig);
+
+                query
+                // .scope('Tags', 3256952173)
+                  .scope('_ItemHierarchy', 5103028089)
+                  .type('HierarchicalRequirement')
+                  .leafOnly();
+
+                query.fields(['ObjectID', '_ValidFrom', '_ValidTo', 'ScheduleState', 'PlanEstimate']);
+                
+                query.hydrate(['ScheduleState']);
+
+                query.find() // Only called here to set _find for debugging
+                console.log('Query: ' + JSON.stringify(query._find, undefined, 2));
+                console.log('Requesting data...');
+                
+                query.getAll(callback);
+              
+            });
+            
+            // Step 3. Perform some calculation/manipulation/aggregation of the snapshot data
+
+            callback = function() {
+                console.log('Got data. Received ' + this.allResults.length + ' snapshots.');
+                console.log('Calculating Burn chart...');
+                
+                var results = this.allResults;
+                                
+                var tscResults = burnCalculator(results, burnCalculatorConfig);
+                
+                var categories = tscResults.categories;
+                var series = tscResults.series;
+                
+                chart = new Highcharts.Chart({
+                    chart: {
+                        renderTo: 'container',
+                        defaultSeriesType: 'column'
+                    },
+                    credits: {
+                        enabled: false
+                    },
+                    title: {
+                        text: 'Burn Chart'
+                    },
+                    subtitle: {
+                        text: ''
+                    },
+                    xAxis: {
+                        categories: categories,
+                        tickmarkPlacement: 'on',
+                        tickInterval: Math.floor(categories.length / 13) + 1,
+                        title: {
+                            enabled: false
+                        }
+                    },
+                    yAxis: [
+                        {
+                            title: {
+                                text: 'Hours'
+                            },
+                            labels: {
+                                formatter: function() {
+                                    return this.value / 1;
+                                }
+                            },
+                            min: 0
+                        },
+                        {
+                            title: {
+                                text: burnCalculatorConfig.upSeriesType
+                            },
+                            opposite: true,
+                            labels: {
+                                formatter: function() {
+                                    return this.value / 1;
+                                }
+                            },
+                            min: 0
+                        }                        
+                    ],
+                    tooltip: {
+                        formatter: function() {
+                            return ''+ this.x + '<br />' + this.series.name + ': ' + this.y;
+                        }
+                    },
+                    plotOptions: {
+                        column: {
+                            stacking: null,
+                            lineColor: '#666666',
+                            lineWidth: 1,
+                            marker: {
+                                lineWidth: 1,
+                                lineColor: '#666666'
+                            }
+                        },
+/*
+                        series: {
+                            allowPointSelect: true,
+                            point: {
+                                events: {
+                                    select: function(event) {
+                                        // Use this to highlight the rows in a table
+                                        alert('ObjectIDs: ' +
+                                            JSON.stringify(cfdCalculation.drillDownObjectIDs[this.series.name][this.x]));
+                                    },
+                                    unselect: function(event) {
+                                        alert('Unselect rows')
+                                    }
+                                }
+                            }
+                        }
+*/
+                    },
+                    series: series
+                });
+                      
+                                  
+                
+            };
+                
+        </script>
+        
+    </head>
+    <body>
+        
+        <!-- 3. Add the container -->
+        <div id="container" style="width: 75%; height: 75%; margin: 0 auto"></div>
+        
+    </body>
+</html>
