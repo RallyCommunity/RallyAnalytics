@@ -21,7 +21,7 @@ cfdCalculator = (results, config) ->
       firstTrackingDate = row._ValidFrom
       break
   if firstTrackingDate == ''
-    throw new Error("Couldn't find any data whose #{config.groupByField} transititioned into groupByFieldValue #{config.startTrackingGroupByFieldValue}")
+    throw new Error("Couldn't find any data whose #{config.groupByField} transitioned into groupByFieldValue #{config.startTrackingGroupByFieldValue}")
     
   firstTrackingCT = new ChartTime(firstTrackingDate, 'day', config.timezone)
   

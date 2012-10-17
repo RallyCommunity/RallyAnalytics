@@ -1,0 +1,197 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Rally Cumulative Flow Example</title>
+        
+        
+        <!-- 1. Add these JavaScript inclusions in the head of your page -->
+        <script type="text/javascript" src="../lib/jquery.min.js"></script>
+        <script type="text/javascript" src="../lib/highcharts/js/highcharts.js"></script>
+        <script type="text/javascript" src="../deploy/rallycharttime.js"></script>
+        
+        <!-- 1a) Optional: add a theme file -->
+        <!--
+            <script type="text/javascript" src="../js/themes/gray.js"></script>
+        -->
+        
+        <!-- 1b) Optional: the exporting module -->
+        <script type="text/javascript" src="../js/modules/exporting.js"></script>
+        
+        
+        <!-- 2. Add the JavaScript to initialize the chart on document ready -->
+        <script type="text/javascript">
+            
+            $(document).ready(function() {
+                       
+                var charttime = require('/index').charttime;
+                var ChartTime = charttime.ChartTime;
+                charttime.ChartTime.setTZPath("../node_modules/charttime/vendor/tz");
+                var burnCalculator = require('/burncalculator').burnCalculator;
+                
+                // Let's say you have this data. I've put it in this CSV-style format for easy entry and comprehension.
+                resultsCSVStyle = [
+                    ["ObjectID", "_ValidFrom",           "ScheduleState"  , "PlanEstimate", "TaskRemainingTotal"],
+                                                                        
+                    [1,          "2010-10-10T15:00:00Z", "Ready to pull", 5            , 15                   ],  // Shouldn't show up, 2010 not yet "In progress"
+                
+                    [1,          "2011-01-02T13:00:00Z", "Ready to pull", 5            , 15                   ],  // !TODO: Should get the same results even without this line
+                    [1,          "2011-01-02T15:10:00Z", "In progress"  , 5            , 20                   ],  // Testing it starting at one state and switching later to another
+                    [2,          "2011-01-02T15:00:00Z", "Ready to pull", 3            , 5                    ],                
+                    [3,          "2011-01-02T15:00:00Z", "Ready to pull", 5            , 12                   ], 
+                
+                    [2,          "2011-01-03T15:00:00Z", "In progress"  , 3            , 5                    ], 
+                    [3,          "2011-01-03T15:00:00Z", "Ready to pull", 5            , 12                   ], 
+                    [4,          "2011-01-03T15:00:00Z", "Ready to pull", 5            , 15                   ], 
+                    [1,          "2011-01-03T15:10:00Z", "In progress"  , 5            , 12                   ],  // Testing later change
+                
+                    [1,          "2011-01-04T15:00:00Z", "Accepted"     , 5            , 0                    ], 
+                    [2,          "2011-01-04T15:00:00Z", "In test"      , 3            , 1                    ], 
+                    [3,          "2011-01-04T15:00:00Z", "In progress"  , 5            , 10                   ], 
+                    [4,          "2011-01-04T15:00:00Z", "Ready to pull", 5            , 15                   ], 
+                    [5,          "2011-01-04T15:00:00Z", "Ready to pull", 2            , 4                    ], 
+                
+                    [3,          "2011-01-05T15:00:00Z", "In test"      , 5            , 5                    ],
+                
+                    [1,          "2011-01-06T15:00:00Z", "Released"     , 5            , 0                    ], 
+                    [2,          "2011-01-06T15:00:00Z", "Accepted"     , 3            , 0                    ], 
+                    [4,          "2011-01-06T15:00:00Z", "In progress"  , 5            , 7                    ], 
+                    [5,          "2011-01-06T15:00:00Z", "Ready to pull", 2            , 4                    ], 
+                
+                    [1,          "2011-01-07T15:00:00Z", "Released"     , 5            , 0                    ], 
+                    [2,          "2011-01-07T15:00:00Z", "Released"     , 3            , 0                    ], 
+                    [3,          "2011-01-07T15:00:00Z", "Accepted"     , 5            , 0                    ], 
+                    [4,          "2011-01-07T15:00:00Z", "In test"      , 5            , 3                    ], 
+                    [5,          "2011-01-07T15:00:00Z", "In progress"  , 2            , 4                    ]
+                ];
+                
+                // The CSV-style table is not what it would look like from the Rally Analytics API so let's fix that.
+                var results = charttime.csvStyleArray_To_ArrayOfMaps(resultsCSVStyle);
+                
+                var config = {
+                  chartLibrary: 'HighCharts',
+                  derivedFields: [
+                    {name: 'Burn-up', f: function(row) {
+                        if (row.ScheduleState in {'Accepted':1, 'Released':1})
+                          return row.PlanEstimate
+                        else
+                          return 0;
+                      }
+                    }
+                  ],
+                  series:[
+                    {name: 'Scope', field: 'PlanEstimate', f: '$sum', yAxis: 1, type: 'line'},
+                    {name: 'Burn-up', field: 'Burn-up', f: '$sum', yAxis: 1},
+                    {name: 'Burn-down', field: 'TaskRemainingTotal', f: '$sum'}
+                  ],
+                  start: "2011-01-02T13:00:00Z", 
+                  workDays: 'Sunday, Monday, Tuesday, Wednesday, Thursday, Friday', // They work on Sundays
+                  timezone: 'America/New_York',
+                  holidays: [
+                    {month: 12, day: 25}, // Notice how the year can be omitted
+                    {year: 2011, month: 11, day: 26},
+                    {year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
+                  ]
+                };
+
+                var tscResults = burnCalculator(results, config);
+                
+                var categories = tscResults.categories;
+                var series = tscResults.series;
+                
+                chart = new Highcharts.Chart({
+                    chart: {
+                        renderTo: 'container',
+                        defaultSeriesType: 'column'
+                    },
+                    credits: {
+                        enabled: false
+                    },
+                    title: {
+                        text: 'Burn Chart'
+                    },
+                    subtitle: {
+                        text: ''
+                    },
+                    xAxis: {
+                        categories: categories,
+                        tickmarkPlacement: 'on',
+                        // tickInterval: 2, // set as a function of the length of categories
+                        title: {
+                            enabled: false
+                        }
+                    },
+                    yAxis: [
+                        {
+                            title: {
+                                text: 'Task Hours'
+                            },
+                            labels: {
+                                formatter: function() {
+                                    return this.value / 1;
+                                }
+                            }
+                        },
+                        {
+                            title: {
+                                text: 'Story Points'
+                            },
+                            opposite: true,
+                            labels: {
+                                formatter: function() {
+                                    return this.value / 1;
+                                }
+                            }
+                        }                        
+                    ],
+                    tooltip: {
+                        formatter: function() {
+                            return ''+ this.x + '<br />' + this.series.name + ': ' + this.y;
+                        }
+                    },
+                    plotOptions: {
+                        column: {
+                            stacking: null,
+                            lineColor: '#666666',
+                            lineWidth: 1,
+                            marker: {
+                                lineWidth: 1,
+                                lineColor: '#666666'
+                            }
+                        },
+/*
+                        series: {
+                            allowPointSelect: true,
+                            point: {
+                                events: {
+                                    select: function(event) {
+                                        // Use this to highlight the rows in a table
+                                        alert('ObjectIDs: ' +
+                                            JSON.stringify(cfdCalculation.drillDownObjectIDs[this.series.name][this.x]));
+                                    },
+                                    unselect: function(event) {
+                                        alert('Unselect rows')
+                                    }
+                                }
+                            }
+                        }
+*/
+                    },
+                    series: series
+                });
+                      
+                                  
+                
+            });
+                
+        </script>
+        
+    </head>
+    <body>
+        
+        <!-- 3. Add the container -->
+        <div id="container" style="width: 800px; height: 400px; margin: 0 auto"></div>
+        
+                
+    </body>
+</html>
