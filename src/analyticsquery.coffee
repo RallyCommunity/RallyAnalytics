@@ -157,8 +157,8 @@ class AnalyticsQuery
     
     @protocol = "https"
     @server = "rally1.rallydev.com"
-    @service = "analytics"
-    @version = "1.27"  # !TODO: Set automatically
+    @service = "analytics2"
+    @version = "v2.0"  # !TODO: Set automatically
     @endpoint = "artifact/snapshot/query.js"
     
     @_firstPage = true
@@ -184,6 +184,10 @@ class AnalyticsQuery
     # !TODO: Confirm @_fields is an Array
     return this
 
+  hydrate: (@_hydrate) ->
+    # !TODO: Confirm @_hydrate is an Array or true
+    return this
+
   start: (@_startIndex) ->
     return this
 
@@ -207,6 +211,7 @@ class AnalyticsQuery
       @server,
       @service,
       @version,
+      'service/rally/workspace',
       @workspaceOID,
       @endpoint
     ].join('/')
@@ -220,6 +225,8 @@ class AnalyticsQuery
         queryArray.push('sort=' + JSON.stringify(@_sort))
       if @_fields?
         queryArray.push('fields=' + JSON.stringify(@_fields))
+      if @_hydrate?
+        queryArray.push('hydrate=' + JSON.stringify(@_hydrate))  # !TODO: Test that this works for true
       queryArray.push('start=' + @_startIndex)
       queryArray.push('pagesize=' + @_pageSize)
       return queryArray.join('&')
@@ -264,7 +271,7 @@ class AnalyticsQuery
       if @_debug
         console.log('headers: ' + @_xhr.getAllResponseHeaders())
         console.log('status: ' + @_xhr.status)
-        console.log('lastResponse: ' + @lastResponseText)
+        console.log('lastResponse: ' + JSON.stringify(@lastResponseText, undefined, 2))
       @lastResponse = JSON.parse(@lastResponseText)
       
       # if error
@@ -360,8 +367,8 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
       
       {
         '$or': [
-          {_Type: "HierarchicalRequirement", Children: null},
-          {_Type:"PortfolioItem", Children: null, UserStories: null}
+          {_TypeHierarchy: "HierarchicalRequirement", Children: null},
+          {_TypeHierarchy:"PortfolioItem", Children: null, UserStories: null}
         ]
       }
 
@@ -390,12 +397,12 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
       #       "_ProjectHierarchy": 1234
       #     },
       #     {
-      #       "_Type": "HierarchicalRequirement"
+      #       "_TypeHierarchy": "HierarchicalRequirement"
       #     },
       #     {
       #       "$or": [
       #         {
-      #           "_Type": "HierarchicalRequirement",
+      #           "_TypeHierarchy": "HierarchicalRequirement",
       #           "Children": null
       #         },
       #         {
@@ -472,7 +479,7 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
     @_type = null
   
   type: (type) ->
-    @_type = {'_Type': type}
+    @_type = {'_TypeHierarchy': type}
     return this
 
   resetAdditionalCriteria: () ->
@@ -485,8 +492,8 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
   leafOnly: () ->
     @additionalCriteria({
       '$or': [
-        {_Type: "HierarchicalRequirement", Children: null},
-        {_Type:"PortfolioItem", Children: null, UserStories: null}
+        {_TypeHierarchy: "HierarchicalRequirement", Children: null},
+        {_TypeHierarchy:"PortfolioItem", Children: null, UserStories: null}
       ]
     })
     return this

@@ -13,6 +13,7 @@ burnCalculator = (results, config) ->
   Takes the "results" from a query to Rally's Analytics API (or similar MVCC-based implementation)
   and returns the series for burn charts. 
   ###
+  
   if config.granularity?  # !TODO: Test granularities other than 'day'
     granularity = config.granularity
   else
@@ -108,12 +109,14 @@ burnCalculator = (results, config) ->
   # See https://github.com/lmaccherone/Lumenize for information about Lumenize
   {listOfAtCTs, aggregationAtArray} = lumenize.timeSeriesCalculator(results, timeSeriesCalculatorConfig)
 
+  console.log("aggregationAtArray: #{JSON.stringify(aggregationAtArray, null, 2)}")
+  
   series = lumenize.aggregationAtArray_To_HighChartsSeries(aggregationAtArray, aggregations)
   categories = ("#{ct.toString()}" for ct in listOfAtCTs)  # !TODO: Should be smarter about skipping some when we have more than will fit on the x-axis
   originalPointCount = categories.length
   
   # Create the ideal line
-  if "Ideal" in config.series
+  if "ideal" in config.series
     i = 0
     while series[i].name.indexOf("Ideal") < 0
       i++

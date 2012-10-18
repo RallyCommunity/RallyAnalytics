@@ -28,7 +28,7 @@ The general structure of the visualization examples in this repository follows t
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/lumenize/deploy/lumenize-min.js" deploy_src="http://lmaccherone.github.com/Lumenize/deploy/lumenize-min.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize.js"></script>
         
         <!-- rallyquery -->
         <script type="text/javascript" src="../lib/analyticsquery.js"></script> 
@@ -56,7 +56,7 @@ The general structure of the visualization examples in this repository follows t
             
             var kanbanStateValues = [];
             
-            maxDaysBack = 90;
+            maxDaysBack = 120;
             
             $(document).ready(function() {
             
@@ -135,7 +135,9 @@ The general structure of the visualization examples in this repository follows t
                 kanbanStateValues = []
 
                 var key, value;
-
+                
+                console.log('kanbanDefinition: ' + JSON.stringify(kanbanDefinition, undefined, 2));
+                
                 for (key in fieldInfos) {
                     kanbanDefinition = fieldInfos[key];
                     if (kanbanDefinition.displayField == true) {
@@ -149,6 +151,10 @@ The general structure of the visualization examples in this repository follows t
             // Step 2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
 
             runAnalyticsQuery = function (kanbanStateFieldName) {
+                if (kanbanStateFieldName != 'ScheduleState') {
+                    kanbanStateFieldName = "c_" + kanbanStateFieldName;
+                }
+                
                 var config = {
                     'X-RallyIntegrationName': 'CFD Prototype',
                     'X-RallyIntegrationVendor': 'Rally The A-Team',
@@ -165,6 +171,8 @@ The general structure of the visualization examples in this repository follows t
                   .leafOnly();
 
                 query.fields(['ObjectID', '_ValidFrom', '_ValidTo', kanbanStateFieldName, 'PlanEstimate']);
+                
+                query.hydrate([kanbanStateFieldName]);
 
                 // TODO: Should we filter on presence of fieldName as a property? Not everything has a Kanban state set.
 
@@ -215,7 +223,7 @@ The general structure of the visualization examples in this repository follows t
                     chart: {
                         renderTo: 'container',
                         defaultSeriesType: 'area',
-                        zoomType: 'x'
+                        zoomType: 'xy'
                     },
                     credits: {
                         enabled: false
