@@ -17,6 +17,7 @@ deployHTMLFromDirectory = (directory, uglify = true) ->
     fs.mkdirSync(deployDirectory, '755')
 
   for fileName in files
+    console.log(fileName)
     fullPath = path.join(directory, fileName)
     htmlFileString = fs.readFileSync(fullPath, 'utf-8')
     rString = '<script +type="text/javascript" +src="([-_a-z0-9A-Z/\.]+)"( +deploy_src="([-_:a-z0-9A-Z/\.]+)" *>)'
