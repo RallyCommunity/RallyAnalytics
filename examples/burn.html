@@ -13,7 +13,7 @@
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/lumenize/deploy/lumenize-min.js" deploy_src="http://lmaccherone.github.com/Lumenize/deploy/lumenize-min.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize.js"></script>
         
         <!-- rally_analytics -->
         <script type="text/javascript" src="../lib/analyticsquery.js"></script> 
@@ -85,17 +85,17 @@
                   workspaceConfiguration: workspaceConfiguration,
                   upSeriesType: 'Story Count', // 'Points' or 'Story Count'
                   series: [
-/*                     'down', */
+                    'down',
                     'up',
 /*
                     'projectionToCurrentScope',
                     'projectionToProjectedScope',
-                    'ideal',
 */
+                    'ideal',
                     'scope'
                   ],
                   acceptedStates: ['Accepted', 'Released'],
-                  start: "2011-01-02T13:00:00Z",  // Calculated either by inspecting results or via configuration. pastEnd is automatically the last date in results
+                  start: "2011-01-03T13:00:00Z",  // Calculated either by inspecting results or via configuration. pastEnd is automatically the last date in results
                   holidays: [
                     {month: 12, day: 25}, // Notice how the year can be omitted
                     {year: 2011, month: 11, day: 26},

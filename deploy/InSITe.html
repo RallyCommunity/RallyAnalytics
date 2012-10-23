@@ -28,7 +28,7 @@ The general structure of the visualization examples in this repository follows t
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="http://lmaccherone.github.com/Lumenize/deploy/lumenize-min.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize.js"></script>
         
         <!-- rally_analytics -->
         
@@ -198,7 +198,7 @@ The general structure of the visualization examples in this repository follows t
       }
       this.protocol = "https";
       this.server = "rally1.rallydev.com";
-      this.service = "analytics2";
+      this.service = "analytics";
       this.version = "v2.0";
       this.endpoint = "artifact/snapshot/query.js";
       this._firstPage = true;
@@ -902,8 +902,8 @@ The general structure of the visualization examples in this repository follows t
               var workspaceOID = 41529001;
               var projectScopingUp = false;
               var projectScopingDown = true;
-              // var projectOID = 279050021; // A-Team
-              var projectOID = 81147451; // RallyDev
+              var projectOID = 279050021; // A-Team
+              // var projectOID = 81147451; // RallyDev
             } else {                
               var workspaceOID = __WORKSPACE_OID__;
               var projectScopingUp = __PROJECT_SCOPING_UP__;
@@ -1150,7 +1150,8 @@ The general structure of the visualization examples in this repository follows t
                 scatter = new Highcharts.Chart({
                     chart: {
                         renderTo: 'scatter-container',
-                        defaultSeriesType: 'scatter'
+                        defaultSeriesType: 'scatter',
+                        zoomType: 'x'
                     },
                     legend: {
                         enabled: false
@@ -1159,7 +1160,7 @@ The general structure of the visualization examples in this repository follows t
                         enabled: false
                     },
                     title: {
-                        text: 'Time In State InSITe'
+                        text: 'Time In Process'
                     },
                     subtitle: {
                         text: ''

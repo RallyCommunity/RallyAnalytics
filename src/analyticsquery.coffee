@@ -157,7 +157,7 @@ class AnalyticsQuery
     
     @protocol = "https"
     @server = "rally1.rallydev.com"
-    @service = "analytics2"
+    @service = "analytics"
     @version = "v2.0"  # !TODO: Set automatically
     @endpoint = "artifact/snapshot/query.js"
     

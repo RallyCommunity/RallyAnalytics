@@ -53,7 +53,7 @@ burnCalculator = (results, config) ->
     console.error("Unrecognized upSeriesType: #{config.upSeriesType}")
   
   seriesNames = []
-  aggregations = []
+  aggregationSpec = []
   for s in config.series
     seriesFound = true
     switch s
@@ -94,13 +94,13 @@ burnCalculator = (results, config) ->
           seriesFound = false
           console.error("Unrecognizable series: #{s}")
     if seriesFound  
-      aggregations.push({name: name, as: name, f: f, field: field, yAxis: yAxis, type: type})
+      aggregationSpec.push({name: name, as: name, f: f, field: field, yAxis: yAxis, type: type})
       seriesNames.push(name)
   
   timeSeriesCalculatorConfig = 
     rangeSpec: rangeSpec
     derivedFields: derivedFields 
-    aggregations: aggregations
+    aggregationSpec: aggregationSpec
     timezone: config.workspaceConfiguration.TimeZone
     snapshotValidFromField: '_ValidFrom'
     snapshotValidToField: '_ValidTo'
@@ -111,7 +111,7 @@ burnCalculator = (results, config) ->
 
   console.log("aggregationAtArray: #{JSON.stringify(aggregationAtArray, null, 2)}")
   
-  series = lumenize.aggregationAtArray_To_HighChartsSeries(aggregationAtArray, aggregations)
+  series = lumenize.aggregationAtArray_To_HighChartsSeries(aggregationAtArray, aggregationSpec)
   categories = ("#{ct.toString()}" for ct in listOfAtCTs)  # !TODO: Should be smarter about skipping some when we have more than will fit on the x-axis
   originalPointCount = categories.length
   
