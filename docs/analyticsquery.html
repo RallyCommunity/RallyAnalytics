@@ -157,6 +157,11 @@ so you can inspect these properties by simply prepending them with <code>this.</
                 </div>
                 
                 <div class="method">
+                  <h4>hydrate(@_hydrate)</h4>
+                  
+                </div>
+                
+                <div class="method">
                   <h4>start(@_startIndex)</h4>
                   
                 </div>
@@ -274,8 +279,8 @@ to the latest version.</p>
 
 <pre><code>{
   '$or': [
-    {_Type: "HierarchicalRequirement", Children: null},
-    {_Type:"PortfolioItem", Children: null, UserStories: null}
+    {_TypeHierarchy: "HierarchicalRequirement", Children: null},
+    {_TypeHierarchy:"PortfolioItem", Children: null, UserStories: null}
   ]
 }
 </code></pre>
@@ -306,12 +311,12 @@ console.log(JSON.stringify(query._find, undefined, 2))
 #       "_ProjectHierarchy": 1234
 #     },
 #     {
-#       "_Type": "HierarchicalRequirement"
+#       "_TypeHierarchy": "HierarchicalRequirement"
 #     },
 #     {
 #       "$or": [
 #         {
-#           "_Type": "HierarchicalRequirement",
+#           "_TypeHierarchy": "HierarchicalRequirement",
 #           "Children": null
 #         },
 #         {
