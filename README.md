@@ -1,7 +1,15 @@
-
-
-
 # Rally Analytics #
+
+Note, to run the examples in here, you'll need to launch Chrome with the following:
+
+On Mac
+
+    cd /Applications
+    open Google\ Chrome.app --args --disable-web-security --allow-file-access-from-files --allow-cross-origin-auth-prompt
+    
+On Windows
+
+    %LOCALAPPDATA%\Google\Chrome\Application\chrome.exe --disable-web-security --allow-file-access-from-files --allow-cross-origin-auth-prompt
 
 This project makes it easier to get data from Rally's Analytics web services endpoints. Due to the magic of server/desktop-side 
 JavaScript provided by Node.js, it serves as both a REST Toolkit for script-based access, as well as a data access library for 
@@ -11,7 +19,7 @@ Useful links:
 
 * [Getting Started Guide for Lookback API users](http://rally.lumenize.com/rally_analytics/Analytics2.0LookbackAPIGettingStartedGuide.html)
 * [API Documentation for this data access library/REST toolkit](http://rally.lumenize.com/rally_analytics/docs/index.html)
-* [GitHub repository](https://github.com/RallyApps/rally_analytics)
+* [GitHub repository](https://github.com/RallyCommunity/rally_analytics)
 * [Full user documentation for the Analytics API](http://rally.lumenize.com/rally_analytics/Analytics2.0LookbackAPIUserManual.html)
 * [Slide deck summary showed at RallyON hack-a-thon](http://rally.lumenize.com/rally_analytics/Analytics_API_code_named_Lookback_RallyON.pdf)
 
@@ -187,5 +195,3 @@ A detailed description of this process along with simplified git tools and instr
 
 * [Mac](http://rally.lumenize.com/rally_analytics/UsingGitHubforRallyAppsMacversion.pdf)
 * [Windows](http://rally.lumenize.com/rally_analytics/UsingGitHubforRallyAppsWindowsversion.pdf)
-
-
