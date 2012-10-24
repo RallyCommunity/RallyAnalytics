@@ -11,6 +11,9 @@ cfdCalculator = (results, config) ->
   ###
   
   # Find the last day for this CFD
+  
+  console.profile('cfdCalculator')
+  
   lastTrackingDate = results[results.length - 1]._ValidFrom
   lastTrackingCT = new ChartTime(lastTrackingDate, 'day', config.timezone).add(1)
   
@@ -70,6 +73,8 @@ cfdCalculator = (results, config) ->
   # HighCharts needs a categories Array for the x-axis so...
   categories = ("#{ct.toString()}" for ct in listOfAtCTs)  # !TODO: Should be smarter about skipping some when we have more than will fit on the x-axis
   
+  console.profileEnd('cfdCalculator')
+
   return {series, categories, drillDownObjectIDs}
   
 root.cfdCalculator = cfdCalculator
