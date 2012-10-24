@@ -4,12 +4,12 @@ Note, to run the examples in here, you'll need to launch Chrome with the followi
 
 On Mac
 
-    cd /Applications
-    open Google\ Chrome.app --args --disable-web-security --allow-file-access-from-files --allow-cross-origin-auth-prompt
+`cd /Applications`
+`open Google\ Chrome.app --args --disable-web-security --allow-file-access-from-files --allow-cross-origin-auth-prompt`
     
 On Windows
 
-    %LOCALAPPDATA%\Google\Chrome\Application\chrome.exe --disable-web-security --allow-file-access-from-files --allow-cross-origin-auth-prompt
+`%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe --disable-web-security --allow-file-access-from-files --allow-cross-origin-auth-prompt`
 
 This project makes it easier to get data from Rally's Analytics web services endpoints. Due to the magic of server/desktop-side 
 JavaScript provided by Node.js, it serves as both a REST Toolkit for script-based access, as well as a data access library for 

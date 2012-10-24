@@ -406,7 +406,7 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
       #           "Children": null
       #         },
       #         {
-      #           "_Type": "PortfolioItem",
+      #           "_TypeHierarchy": "PortfolioItem",
       #           "Children": null,
       #           "UserStories": null
       #         }
