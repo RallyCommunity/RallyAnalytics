@@ -1170,8 +1170,7 @@ The general structure of the visualization examples in this repository follows t
       and returns the data points for a cumulative flow diagram (CFD).
     */
 
-    var categories, ct, drillDownObjectIDs, firstTrackingCT, firstTrackingDate, groupByAtArray, i, lastTrackingCT, lastTrackingDate, lastValue, listOfAtCTs, maxDaysBackCT, rangeSpec, row, series, timeSeriesGroupByCalculatorConfig, uniqueValues, _i, _len, _ref;
-    console.profile('cfdCalculator');
+    var categories, ct, drillDownObjectIDs, firstTrackingCT, firstTrackingDate, groupByAtArray, i, lastTrackingCT, lastTrackingDate, listOfAtCTs, lowestValueInLastState, maxDaysBackCT, rangeSpec, row, series, timeSeriesGroupByCalculatorConfig, uniqueValues, _i, _len, _ref;
     lastTrackingDate = results[results.length - 1]._ValidFrom;
     lastTrackingCT = new ChartTime(lastTrackingDate, 'day', config.timezone).add(1);
     firstTrackingDate = '';
@@ -1212,10 +1211,6 @@ The general structure of the visualization examples in this repository follows t
       snapshotUniqueID: 'ObjectID'
     };
     _ref = timeSeriesGroupByCalculator(results, timeSeriesGroupByCalculatorConfig), listOfAtCTs = _ref.listOfAtCTs, groupByAtArray = _ref.groupByAtArray, uniqueValues = _ref.uniqueValues;
-    if (!config.useAllGroupByFieldValues) {
-      lastValue = uniqueValues[uniqueValues.length - 1];
-      console.log("lastValue: " + lastValue);
-    }
     if (config.useAllGroupByFieldValues) {
       series = lumenize.groupByAtArray_To_HighChartsSeries(groupByAtArray, config.groupByField, 'GroupBy');
       drillDownObjectIDs = lumenize.groupByAtArray_To_HighChartsSeries(groupByAtArray, config.groupByField, 'DrillDown', uniqueValues, true);
@@ -1232,11 +1227,15 @@ The general structure of the visualization examples in this repository follows t
       }
       return _results;
     })();
-    console.profileEnd('cfdCalculator');
+    lowestValueInLastState = null;
+    if (!config.useAllGroupByFieldValues) {
+      lowestValueInLastState = lumenize.functions.$min(series[series.length - 1].data);
+    }
     return {
       series: series,
       categories: categories,
-      drillDownObjectIDs: drillDownObjectIDs
+      drillDownObjectIDs: drillDownObjectIDs,
+      lowestValueInLastState: lowestValueInLastState
     };
   };
 
@@ -1263,7 +1262,9 @@ The general structure of the visualization examples in this repository follows t
             
             var kanbanStateValues = [];
             
-            maxDaysBack = 120;
+            var rawKanbanStateFieldName = '';
+            
+            var maxDaysBack = 120;
             
             $(document).ready(function() {
             
@@ -1358,6 +1359,7 @@ The general structure of the visualization examples in this repository follows t
             // Step 2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
 
             runAnalyticsQuery = function (kanbanStateFieldName) {
+                rawKanbanStateFieldName = kanbanStateFieldName;
                 if (kanbanStateFieldName != 'ScheduleState') {
                     kanbanStateFieldName = "c_" + kanbanStateFieldName;
                 }
@@ -1439,7 +1441,7 @@ The general structure of the visualization examples in this repository follows t
                         text: 'Cumulative Flow Diagram'
                     },
                     subtitle: {
-                        text: 'State field: ' + config.groupByField
+                        text: 'State field: ' + rawKanbanStateFieldName
                     },
                     xAxis: {
                         categories: cfdCalculation.categories,
@@ -1458,7 +1460,8 @@ The general structure of the visualization examples in this repository follows t
                             formatter: function () {
                                 return this.value / 1;
                             }
-                        }
+                        },
+                        min: cfdCalculation.lowestValueInLastState
                     },
                     tooltip: {
                         formatter: function () {

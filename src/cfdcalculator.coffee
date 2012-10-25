@@ -12,8 +12,6 @@ cfdCalculator = (results, config) ->
   
   # Find the last day for this CFD
   
-  console.profile('cfdCalculator')
-  
   lastTrackingDate = results[results.length - 1]._ValidFrom
   lastTrackingCT = new ChartTime(lastTrackingDate, 'day', config.timezone).add(1)
   
@@ -54,14 +52,6 @@ cfdCalculator = (results, config) ->
 
   {listOfAtCTs, groupByAtArray, uniqueValues} = timeSeriesGroupByCalculator(results, timeSeriesGroupByCalculatorConfig)
   
-  # compress the last state
-  unless config.useAllGroupByFieldValues
-    # find min value to subtract by
-    lastValue = uniqueValues[uniqueValues.length - 1]
-    console.log("lastValue: #{lastValue}")
-# STOPPED EDITING HERE
-    
-
   # Get it into HighCharts form
   if config.useAllGroupByFieldValues
     series = lumenize.groupByAtArray_To_HighChartsSeries(groupByAtArray, config.groupByField, 'GroupBy')
@@ -72,9 +62,12 @@ cfdCalculator = (results, config) ->
     
   # HighCharts needs a categories Array for the x-axis so...
   categories = ("#{ct.toString()}" for ct in listOfAtCTs)  # !TODO: Should be smarter about skipping some when we have more than will fit on the x-axis
-  
-  console.profileEnd('cfdCalculator')
 
-  return {series, categories, drillDownObjectIDs}
+  # find the min for the last state
+  lowestValueInLastState = null
+  unless config.useAllGroupByFieldValues
+    lowestValueInLastState = lumenize.functions.$min(series[series.length-1].data)
+
+  return {series, categories, drillDownObjectIDs, lowestValueInLastState}
   
 root.cfdCalculator = cfdCalculator

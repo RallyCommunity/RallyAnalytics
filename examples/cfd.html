@@ -56,7 +56,9 @@ The general structure of the visualization examples in this repository follows t
             
             var kanbanStateValues = [];
             
-            maxDaysBack = 120;
+            var rawKanbanStateFieldName = '';
+            
+            var maxDaysBack = 120;
             
             $(document).ready(function() {
             
@@ -151,6 +153,7 @@ The general structure of the visualization examples in this repository follows t
             // Step 2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
 
             runAnalyticsQuery = function (kanbanStateFieldName) {
+                rawKanbanStateFieldName = kanbanStateFieldName;
                 if (kanbanStateFieldName != 'ScheduleState') {
                     kanbanStateFieldName = "c_" + kanbanStateFieldName;
                 }
@@ -232,7 +235,7 @@ The general structure of the visualization examples in this repository follows t
                         text: 'Cumulative Flow Diagram'
                     },
                     subtitle: {
-                        text: 'State field: ' + config.groupByField
+                        text: 'State field: ' + rawKanbanStateFieldName
                     },
                     xAxis: {
                         categories: cfdCalculation.categories,
@@ -251,7 +254,8 @@ The general structure of the visualization examples in this repository follows t
                             formatter: function () {
                                 return this.value / 1;
                             }
-                        }
+                        },
+                        min: cfdCalculation.lowestValueInLastState
                     },
                     tooltip: {
                         formatter: function () {
