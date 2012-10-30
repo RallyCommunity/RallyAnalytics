@@ -105,7 +105,7 @@ class AnalyticsQuery
     @_xhr = null  # the instance of XHR
     
     @_find = null
-    @_fields = null
+    @_fields = []
     @_sort = {_ValidFrom: 1}
     @_startIndex = 0
     @_pageSize = 100000  # Start with a really large number because it gets set to whatever comes back on the first page
@@ -180,8 +180,8 @@ class AnalyticsQuery
   sort: (@_sort) ->
     return this
     
-  fields: (@_fields) ->
-    # !TODO: Confirm @_fields is an Array
+  fields: (additionalFields) ->  # !TODO: Confirm that additionalFields is an array
+    @_fields = @_fields.concat(additionalFields)
     return this
 
   hydrate: (@_hydrate) ->
@@ -445,6 +445,7 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
     if arguments.length > 0
       throw new Error('Do not call find() directly to set query. Use scope(), type(), and additionalCriteria()')
     super(@generateFind())
+    return this
     
   resetScope: () ->
     @_scope = {}

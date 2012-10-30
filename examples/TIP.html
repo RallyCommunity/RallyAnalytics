@@ -55,6 +55,7 @@ The general structure of the visualization examples in this repository follows t
             ChartTime.setTZPath('All');  // Inside the browser, the tz files are embedded.
             var ChartTimeRange = lumenize.ChartTimeRange;
             var histogram = lumenize.histogram;
+            var nameLookup = {};
             
             // Step 1. Gather the parameters you'll need to specify the visualization
             // Step 1a. Gather some info from Rally's standard WSAPI.
@@ -118,7 +119,8 @@ The general structure of the visualization examples in this repository follows t
               query
                 .type('HierarchicalRequirement')
                 .additionalCriteria({_ValidFrom:{$gte:"2011-11-15TZ"}})
-                .leafOnly();
+                .leafOnly()
+                .fields(['Name']);
             
               // query.fields(['ObjectID', '_ValidFrom', '_ValidTo']); default for TimeInStateAnalyticsQuery
             
@@ -138,6 +140,12 @@ The general structure of the visualization examples in this repository follows t
                 console.log('Calculating TimeInState...');
                             
                 snapshots = this.allResults;
+                
+                var s, _i, _len;
+                for (_i = 0, _len = snapshots.length; _i < _len; _i++) {
+                  s = snapshots[_i];
+                  nameLookup[s.ObjectID] = s.Name;
+                }
                 
                 var uniqueIDField = 'ObjectID';
                 var granularity = 'hour';
@@ -364,6 +372,7 @@ The general structure of the visualization examples in this repository follows t
                         formatter: function() {
                             var lookupRow = tooltipLookup[this.x];
                             return uniqueIDField + ': ' + lookupRow[uniqueIDField] + '<br />' + // !TODO: Upgrade to link to revisions page in Rally
+                              nameLookup[lookupRow[uniqueIDField]] + '<br />' +
                               this.series.name + ': <b>' + Highcharts.numberFormat(lookupRow[histogramField], 1) + '</b> work days';
                         }
                     },

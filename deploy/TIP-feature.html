@@ -142,7 +142,7 @@ The general structure of the visualization examples in this repository follows t
       this.XHRClass = XMLHttpRequest;
       this._xhr = null;
       this._find = null;
-      this._fields = null;
+      this._fields = [];
       this._sort = {
         _ValidFrom: 1
       };
@@ -224,8 +224,8 @@ The general structure of the visualization examples in this repository follows t
       return this;
     };
 
-    AnalyticsQuery.prototype.fields = function(_fields) {
-      this._fields = _fields;
+    AnalyticsQuery.prototype.fields = function(additionalFields) {
+      this._fields = this._fields.concat(additionalFields);
       return this;
     };
 
@@ -541,7 +541,8 @@ The general structure of the visualization examples in this repository follows t
       if (arguments.length > 0) {
         throw new Error('Do not call find() directly to set query. Use scope(), type(), and additionalCriteria()');
       }
-      return GuidedAnalyticsQuery.__super__.find.call(this, this.generateFind());
+      GuidedAnalyticsQuery.__super__.find.call(this, this.generateFind());
+      return this;
     };
 
     GuidedAnalyticsQuery.prototype.resetScope = function() {
@@ -902,8 +903,8 @@ The general structure of the visualization examples in this repository follows t
               var workspaceOID = 41529001;
               var projectScopingUp = false;
               var projectScopingDown = true;
-              var projectOID = 279050021; // A-Team
-              // var projectOID = 81147451; // RallyDev
+              // var projectOID = 279050021; // A-Team
+              var projectOID = 81147451; // RallyDev
             } else {                
               var workspaceOID = __WORKSPACE_OID__;
               var projectScopingUp = __PROJECT_SCOPING_UP__;
@@ -916,6 +917,7 @@ The general structure of the visualization examples in this repository follows t
             ChartTime.setTZPath('All');  // Inside the browser, the tz files are embedded.
             var ChartTimeRange = lumenize.ChartTimeRange;
             var histogram = lumenize.histogram;
+            var nameLookup = {};  // key: ObjectID, value: Name
             
             // Step 1. Gather the parameters you'll need to specify the visualization
             // Step 1a. Gather some info from Rally's standard WSAPI.
@@ -938,7 +940,7 @@ The general structure of the visualization examples in this repository follows t
    
             var mainConfig = {
               endJSDate: new Date(),
-              daysBack: 90,
+              daysBack: 360,
               // startJSDate: ????  // Not used but could specify start and pastEnd instead of now - n days
             };
             
@@ -955,8 +957,7 @@ The general structure of the visualization examples in this repository follows t
                 workspaceOID: workspaceOID
               };
 
-              query = new TimeInStateAnalyticsQuery(config, 
-                {$and:[{ScheduleState:{$lt:"Accepted"}}, {ScheduleState:{$gte:"In-Progress"}}]});
+              query = new TimeInStateAnalyticsQuery(config, {"State":"In Dev"});
 
 /*
               query = new TimeInStateAnalyticsQuery(config, 
@@ -977,9 +978,9 @@ The general structure of the visualization examples in this repository follows t
               query.debug();
             
               query
-                .type('HierarchicalRequirement')
+                .type('PortfolioItem/Feature')
                 .additionalCriteria({_ValidFrom:{$gte:"2011-11-15TZ"}})
-                .leafOnly();
+                .fields(['Name'])
             
               // query.fields(['ObjectID', '_ValidFrom', '_ValidTo']); default for TimeInStateAnalyticsQuery
             
@@ -999,6 +1000,12 @@ The general structure of the visualization examples in this repository follows t
                 console.log('Calculating TimeInState...');
                             
                 snapshots = this.allResults;
+                
+                var s, _i, _len;
+                for (_i = 0, _len = snapshots.length; _i < _len; _i++) {
+                  s = snapshots[_i];
+                  nameLookup[s.ObjectID] = s.Name;
+                }
                 
                 var uniqueIDField = 'ObjectID';
                 var granularity = 'hour';
@@ -1135,6 +1142,7 @@ The general structure of the visualization examples in this repository follows t
                   };
                   data.push([milliseconds, row.clippedChartValue]);
                   tooltipLookup[milliseconds] = row;
+                  console.log(JSON.stringify(row));
                 }
                           
                 // formatting for HighCharts             
@@ -1225,6 +1233,7 @@ The general structure of the visualization examples in this repository follows t
                         formatter: function() {
                             var lookupRow = tooltipLookup[this.x];
                             return uniqueIDField + ': ' + lookupRow[uniqueIDField] + '<br />' + // !TODO: Upgrade to link to revisions page in Rally
+                              nameLookup[lookupRow[uniqueIDField]] + '<br />' +
                               this.series.name + ': <b>' + Highcharts.numberFormat(lookupRow[histogramField], 1) + '</b> work days';
                         }
                     },

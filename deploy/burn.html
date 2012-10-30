@@ -127,7 +127,7 @@
       this.XHRClass = XMLHttpRequest;
       this._xhr = null;
       this._find = null;
-      this._fields = null;
+      this._fields = [];
       this._sort = {
         _ValidFrom: 1
       };
@@ -209,8 +209,8 @@
       return this;
     };
 
-    AnalyticsQuery.prototype.fields = function(_fields) {
-      this._fields = _fields;
+    AnalyticsQuery.prototype.fields = function(additionalFields) {
+      this._fields = this._fields.concat(additionalFields);
       return this;
     };
 
@@ -526,7 +526,8 @@
       if (arguments.length > 0) {
         throw new Error('Do not call find() directly to set query. Use scope(), type(), and additionalCriteria()');
       }
-      return GuidedAnalyticsQuery.__super__.find.call(this, this.generateFind());
+      GuidedAnalyticsQuery.__super__.find.call(this, this.generateFind());
+      return this;
     };
 
     GuidedAnalyticsQuery.prototype.resetScope = function() {
