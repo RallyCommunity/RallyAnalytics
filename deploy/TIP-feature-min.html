@@ -58,7 +58,7 @@ The general structure of the visualization examples in this repository follows t
             ChartTime.setTZPath('All');  // Inside the browser, the tz files are embedded.
             var ChartTimeRange = lumenize.ChartTimeRange;
             var histogram = lumenize.histogram;
-            var nameLookup = {};  // key: ObjectID, value: Name
+            var lookups = {};  // key: ObjectID, value: {Name: Name, PreliminaryEstimate: PreliminaryEstimate, LeafStoryCount: LeafStoryCount}
             
             // Step 1. Gather the parameters you'll need to specify the visualization
             // Step 1a. Gather some info from Rally's standard WSAPI.
@@ -121,7 +121,7 @@ The general structure of the visualization examples in this repository follows t
               query
                 .type('PortfolioItem/Feature')
                 .additionalCriteria({_ValidFrom:{$gte:"2011-11-15TZ"}})
-                .fields(['Name'])
+                .fields(['Name','LeafStoryCount','PreliminaryEstimate'])
             
               // query.fields(['ObjectID', '_ValidFrom', '_ValidTo']); default for TimeInStateAnalyticsQuery
             
@@ -142,10 +142,15 @@ The general structure of the visualization examples in this repository follows t
                             
                 snapshots = this.allResults;
                 
+                // Map Name and LeafStoryCount to ObjectID
                 var s, _i, _len;
                 for (_i = 0, _len = snapshots.length; _i < _len; _i++) {
                   s = snapshots[_i];
-                  nameLookup[s.ObjectID] = s.Name;
+                  lookups[s.ObjectID] = {
+                    Name: s.Name, 
+                    PreliminaryEstimate: s.PreliminaryEstimate,
+                    LeafStoryCount: s.LeafStoryCount
+                  };
                 }
                 
                 var uniqueIDField = 'ObjectID';
@@ -283,7 +288,6 @@ The general structure of the visualization examples in this repository follows t
                   };
                   data.push([milliseconds, row.clippedChartValue]);
                   tooltipLookup[milliseconds] = row;
-                  console.log(JSON.stringify(row));
                 }
                           
                 // formatting for HighCharts             
@@ -295,6 +299,19 @@ The general structure of the visualization examples in this repository follows t
                   histogramCategories.push(b.label);
                   histogramData.push(b.count);
                 }
+                                
+                data2 = [];
+                var d, _i, _len, lookupRow;           
+                for (_i = 0, _len = data.length; _i < _len; _i++) {
+                  d = data[_i];
+                  lookupRow = tooltipLookup[d[0]];
+                  data2.push({
+                    x: d[0],
+                    y: d[1],
+                    marker: {radius: Math.pow(lookups[lookupRow[uniqueIDField]].LeafStoryCount, 0.75) + 5}
+                  });
+                }
+                data = data2;
                 
                 scatter = new Highcharts.Chart({
                     chart: {
@@ -304,6 +321,17 @@ The general structure of the visualization examples in this repository follows t
                     },
                     legend: {
                         enabled: false
+                    },
+                    plotOptions: {
+                       scatter: {
+                          marker: {
+                             states: {
+                                hover: {
+                                   enabled: false
+                                }
+                             }
+                          }
+                       }
                     },
                     credits: {
                         enabled: false
@@ -374,7 +402,9 @@ The general structure of the visualization examples in this repository follows t
                         formatter: function() {
                             var lookupRow = tooltipLookup[this.x];
                             return uniqueIDField + ': ' + lookupRow[uniqueIDField] + '<br />' + // !TODO: Upgrade to link to revisions page in Rally
-                              nameLookup[lookupRow[uniqueIDField]] + '<br />' +
+                              '<b>' + lookups[lookupRow[uniqueIDField]].Name + '</b><br />' +
+                              'Preliminary Estimate: ' + lookups[lookupRow[uniqueIDField]].PreliminaryEstimate + '<br />' +
+                              'Leaf Story Count: ' + lookups[lookupRow[uniqueIDField]].LeafStoryCount + '<br />' +
                               this.series.name + ': <b>' + Highcharts.numberFormat(lookupRow[histogramField], 1) + '</b> work days';
                         }
                     },
