@@ -28,7 +28,7 @@ The general structure of the visualization examples in this repository follows t
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize-0.4.0-min.js"></script>
         
         <!-- rallyquery -->
         
@@ -1190,7 +1190,6 @@ The general structure of the visualization examples in this repository follows t
       maxDaysBackCT = lastTrackingCT.add(-1 * config.maxDaysBack, 'day');
       if (firstTrackingCT.$lt(maxDaysBackCT)) {
         firstTrackingCT = maxDaysBackCT;
-        console.log('firstTrackingCT: ' + firstTrackingCT);
       }
     }
     rangeSpec = {
@@ -1199,6 +1198,7 @@ The general structure of the visualization examples in this repository follows t
       start: firstTrackingCT,
       pastEnd: lastTrackingCT
     };
+    console.log('RangeSpec:\n' + JSON.stringify(rangeSpec, void 0, 4));
     timeSeriesGroupByCalculatorConfig = {
       rangeSpec: rangeSpec,
       timezone: config.timezone,
@@ -1270,7 +1270,6 @@ The general structure of the visualization examples in this repository follows t
             $(document).ready(function() {
             
                 var lumenize = require('/lumenize');
-                lumenize.ChartTime.setTZPath("All");  // Inside the browser, the tz files are embedded.
                 
                 // Step 1. Gather the parameters you'll need to specify the visualization
                 // Step 1a. Gather some info from Rally's standard WSAPI
@@ -1291,7 +1290,7 @@ The general structure of the visualization examples in this repository follows t
                 
                 rallyQuery.order('CreationDate desc');
                 
-                console.log(rallyQuery.getURL());
+/*                 console.log(rallyQuery.getURL()); */
                 
                 rallyQuery.getAll(gotPreferencesResponse);          
                 
@@ -1345,7 +1344,7 @@ The general structure of the visualization examples in this repository follows t
 
                 var key, value;
                 
-                console.log('kanbanDefinition: ' + JSON.stringify(kanbanDefinition, undefined, 2));
+                /* console.log */('kanbanDefinition: ' + JSON.stringify(kanbanDefinition, undefined, 2));
                 
                 for (key in fieldInfos) {
                     kanbanDefinition = fieldInfos[key];

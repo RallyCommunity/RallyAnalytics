@@ -5,21 +5,27 @@
         <title>Rally Burn Chart Prototype</title>
         
         <!-- HighCharts -->
-        <script type="text/javascript" src="../lib/jquery.min.js" deploy_src="https://people.rallydev.com/js/jquery.min.js"></script>
-        <script type="text/javascript" src="../lib/highcharts/js/highcharts.js" deploy_src="https://people.rallydev.com/js/highcharts.js"></script>
-        <script type="text/javascript" src="../lib/highcharts/js/modules/exporting.js" deploy_src="https://people.rallydev.com/js/exporting.js"></script>
+        <script type="text/javascript" src="https://people.rallydev.com/js/jquery.min.js"></script>
+        <script type="text/javascript" src="https://people.rallydev.com/js/highcharts.js"></script>
+        <script type="text/javascript" src="https://people.rallydev.com/js/exporting.js"></script>
         <!-- a theme file
             <script type="text/javascript" src="../js/themes/gray.js"></script>
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/lumenize/deploy/lumenize-min.js" deploy_src="http://lmaccherone.github.com/Lumenize/deploy/lumenize-min.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize.js"></script>
         
         <!-- rally_analytics -->
-        <script type="text/javascript" src="../lib/analyticsquery.js"></script> 
+        
+<script type="text/javascript">
+
+</script> 
         
         <!-- my calculator for this chart -->
-        <script type="text/javascript" src="../lib/burncalculator.js"></script> 
+        
+<script type="text/javascript">
+(function(){var a,b,c,d,e,f,g=[].indexOf||function(a){for(var b=0,c=this.length;b<c;b++)if(b in this&&this[b]===a)return b;return-1};d=this,typeof exports!="undefined"&&exports!==null?c=require("../lib/lumenize"):c=require("/lumenize"),a=c.ChartTime,e=c.timeSeriesCalculator,f=c.utils,b=function(b,d){var e,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,A,B,C,D,E,F,G,H,I,J,K;d.granularity!=null?n=d.granularity:n="day",B=d.start,f.type(B)==="string"&&(B=new a(B,n,d.workspaceConfiguration.TimeZone)),v=(new a(b[b.length-1]._ValidFrom,n,d.workspaceConfiguration.TimeZone)).add(1),w={workDays:d.workspaceConfiguration.WorkDays,holidays:d.holidays,start:B,pastEnd:v},d.upSeriesType==null&&(d.upSeriesType="Sums"),k=[],d.upSeriesType==="Points"?k.push({name:"Accepted",f:function(a){var b;return(b=a.ScheduleState,g.call(d.acceptedStates,b)>=0)?a.PlanEstimate:0}}):d.upSeriesType==="Story Count"?k.push({name:"Accepted",f:function(a){var b;return(b=a.ScheduleState,g.call(d.acceptedStates,b)>=0)?1:0}}):console.error("Unrecognized upSeriesType: "+d.upSeriesType),A=[],h=[],I=d.series;for(F=0,H=I.length;F<H;F++){x=I[F],z=!0;switch(x){case"down":t="Task To Do (Hours)",l="$sum",m="TaskRemainingTotal",E=0,D="column";break;case"ideal":t="Ideal (Hours)",l="$sum",m="TaskEstimateTotal",E=0,D="line";break;case"up":t="Accepted ("+d.upSeriesType+")",l="$sum",m="Accepted",E=1,D="column";break;case"scope":t="Scope ("+d.upSeriesType+")",d.upSeriesType==="Story Count"?l="$count":d.upSeriesType==="Points"&&(l="$sum"),m="PlanEstimate",E=1,D="line";break;default:x.name!=null&&x.f!=null&&x.field!=null?(t=x.name,l=x.f,m=x.field,D="column"):(z=!1,console.error("Unrecognizable series: "+x))}z&&(h.push({name:t,as:t,f:l,field:m,yAxis:E,type:D}),A.push(t))}C={rangeSpec:w,derivedFields:k,aggregationSpec:h,timezone:d.workspaceConfiguration.TimeZone,snapshotValidFromField:"_ValidFrom",snapshotValidToField:"_ValidTo",snapshotUniqueID:"ObjectID"},J=c.timeSeriesCalculator(b,C),r=J.listOfAtCTs,e=J.aggregationAtArray,console.log("aggregationAtArray: "+JSON.stringify(e,null,2)),y=c.aggregationAtArray_To_HighChartsSeries(e,h),i=function(){var a,b,c;c=[];for(a=0,b=r.length;a<b;a++)j=r[a],c.push(""+j.toString());return c}(),u=i.length;if(g.call(d.series,"ideal")>=0){o=0;while(y[o].name.indexOf("Ideal")<0)o++;p=y[o].data,s=c.functions.$max(p),q=s/(u-1);for(o=G=0,K=u-2;0<=K?G<=K:G>=K;o=0<=K?++G:--G)p[o]=(u-1-o)*q;p[u-1]=0}return{categories:i,series:y}},d.burnCalculator=b}).call(this)
+</script> 
                 
         <script type="text/javascript">
         

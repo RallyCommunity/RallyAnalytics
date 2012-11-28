@@ -42,7 +42,8 @@ The general structure of the visualization examples in this repository follows t
               var projectScopingUp = false;
               var projectScopingDown = true;
               // var projectOID = 279050021; // A-Team
-              var projectOID = 81147451; // RallyDev
+              var projectOID = 3449712661; // Mr Ninjago Train
+/*               var projectOID = 81147451; // RallyDev */
             } else {                
               var workspaceOID = __WORKSPACE_OID__;
               var projectScopingUp = __PROJECT_SCOPING_UP__;
@@ -89,7 +90,7 @@ The general structure of the visualization examples in this repository follows t
             $(document).ready(function() {
                         
               config = {
-                'X-RallyIntegrationName': 'Time In State Insight (prototype)',
+                'X-RallyIntegrationName': 'Feature TIP Chart',
                 'X-RallyIntegrationVendor': 'Rally The A-Team',
                 'X-RallyIntegrationVersion': '0.1.0',
                 workspaceOID: workspaceOID
@@ -113,11 +114,11 @@ The general structure of the visualization examples in this repository follows t
                 };
               };
               
-              query.debug();
+/*               query.debug(); */
             
               query
                 .type('PortfolioItem/Feature')
-                .additionalCriteria({_ValidFrom:{$gte:"2011-11-15TZ"}})
+                .additionalCriteria({_ValidFrom: {$gte:"2011-11-15TZ"}})
                 .fields(['Name','LeafStoryCount','PreliminaryEstimate'])
             
               // query.fields(['ObjectID', '_ValidFrom', '_ValidTo']); default for TimeInStateAnalyticsQuery
@@ -139,7 +140,7 @@ The general structure of the visualization examples in this repository follows t
                             
                 snapshots = this.allResults;
                 
-                // Map Name and LeafStoryCount to ObjectID
+                // Map Name, PreliminaryEstimate and LeafStoryCount to ObjectID
                 var s, _i, _len;
                 for (_i = 0, _len = snapshots.length; _i < _len; _i++) {
                   s = snapshots[_i];
@@ -191,7 +192,7 @@ The general structure of the visualization examples in this repository follows t
                   workMinutes += r1.pastEndWorkMinutes;
                 }
                 var workHours = workMinutes / 60;
-                            
+                
                 // converting ticks (hours) into days
                 var _i, _len;
                 for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
@@ -274,19 +275,21 @@ The general structure of the visualization examples in this repository follows t
                 
                 // Step 4. Render the data as a chart using some library like HighCharts
 
-                // creating data and tooltipLookup for HighCharts
+                // creating data for HighCharts
                 var data = [];
-                var tooltipLookup = {};
+                var calculations, milliseconds;
                 for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
-                  row = timeInState[_i];
-                  milliseconds = new ChartTime(row.finalEventAt, 'millisecond').getJSDate(workspaceConfiguration.TimeZone).getTime();
-                  while (tooltipLookup[milliseconds]) {  // Hack so we get different index
-                    milliseconds++;
+                  calculations = timeInState[_i];
+                  milliseconds = new ChartTime(calculations.finalEventAt, 'millisecond').getJSDate(workspaceConfiguration.TimeZone).getTime();
+                  row = {
+                    x: milliseconds,
+                    y: calculations.clippedChartValue,
+                    marker: {radius: Math.pow(lookups[calculations[uniqueIDField]].LeafStoryCount, 0.75) + 5},
+                    calculations: calculations
                   };
-                  data.push([milliseconds, row.clippedChartValue]);
-                  tooltipLookup[milliseconds] = row;
-                }
-                          
+                  data.push(row);
+                };
+
                 // formatting for HighCharts             
                 var histogramCategories = [];
                 var histogramData = [];
@@ -296,20 +299,7 @@ The general structure of the visualization examples in this repository follows t
                   histogramCategories.push(b.label);
                   histogramData.push(b.count);
                 }
-                                
-                data2 = [];
-                var d, _i, _len, lookupRow;           
-                for (_i = 0, _len = data.length; _i < _len; _i++) {
-                  d = data[_i];
-                  lookupRow = tooltipLookup[d[0]];
-                  data2.push({
-                    x: d[0],
-                    y: d[1],
-                    marker: {radius: Math.pow(lookups[lookupRow[uniqueIDField]].LeafStoryCount, 0.75) + 5}
-                  });
-                }
-                data = data2;
-                
+                                         
                 scatter = new Highcharts.Chart({
                     chart: {
                         renderTo: 'scatter-container',
@@ -397,12 +387,12 @@ The general structure of the visualization examples in this repository follows t
                     ],                      
                     tooltip: {
                         formatter: function() {
-                            var lookupRow = tooltipLookup[this.x];
-                            return uniqueIDField + ': ' + lookupRow[uniqueIDField] + '<br />' + // !TODO: Upgrade to link to revisions page in Rally
-                              '<b>' + lookups[lookupRow[uniqueIDField]].Name + '</b><br />' +
-                              'Preliminary Estimate: ' + lookups[lookupRow[uniqueIDField]].PreliminaryEstimate + '<br />' +
-                              'Leaf Story Count: ' + lookups[lookupRow[uniqueIDField]].LeafStoryCount + '<br />' +
-                              this.series.name + ': <b>' + Highcharts.numberFormat(lookupRow[histogramField], 1) + '</b> work days';
+                            var id = this.point.calculations[uniqueIDField];
+                            return uniqueIDField + ': ' + id + '<br />' + // !TODO: Upgrade to link to revisions page in Rally
+                              '<b>' + lookups[id].Name + '</b><br />' +
+                              'Preliminary Estimate: ' + lookups[id].PreliminaryEstimate + '<br />' +
+                              'Leaf Story Count: ' + lookups[id].LeafStoryCount + '<br />' +
+                              this.series.name + ': <b>' + Highcharts.numberFormat(this.point.calculations[histogramField], 1) + '</b> work days';
                         }
                     },
               		  series: [
@@ -425,7 +415,7 @@ The general structure of the visualization examples in this repository follows t
  
                 
                 
-                histogram = new Highcharts.Chart({
+                histogramChart = new Highcharts.Chart({
               		chart: {
               			renderTo: 'histogram-container',
               			type: 'bar'

@@ -28,7 +28,7 @@ The general structure of the visualization examples in this repository follows t
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize-0.4.0-min.js"></script>
         
         <!-- rallyquery -->
         
@@ -45,7 +45,7 @@ The general structure of the visualization examples in this repository follows t
         <!-- my calculator for this chart -->
         
 <script type="text/javascript">
-(function(){var a,b,c,d,e,f;d=this,c=require("/lumenize"),e=c.timeSeriesGroupByCalculator,a=c.ChartTime,f=c.utils,b=function(b,d){var f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y;n=b[b.length-1]._ValidFrom,m=(new a(n,"day",d.timezone)).add(1),j="";for(l=w=0,x=b.length;w<x;l=++w){s=b[l];if(s[d.groupByField]===d.startTrackingGroupByFieldValue){j=s._ValidFrom;break}}if(j==="")throw new Error("Couldn't find any data whose "+d.groupByField+" transitioned into groupByFieldValue "+d.startTrackingGroupByFieldValue);return i=new a(j,"day",d.timezone),d.maxDaysBack!=null&&(q=m.add(-1*d.maxDaysBack,"day"),i.$lt(q)&&(i=q,console.log("firstTrackingCT: "+i))),r={workDays:d.workDays,holidays:d.holidays,start:i,pastEnd:m},u={rangeSpec:r,timezone:d.timezone,groupByField:d.groupByField,groupByFieldValues:d.groupByFieldValues,useAllGroupByFieldValues:d.useAllGroupByFieldValues,aggregationField:d.aggregationField,aggregationFunction:d.aggregationFunction,snapshotValidFromField:"_ValidFrom",snapshotValidToField:"_ValidTo",snapshotUniqueID:"ObjectID"},y=e(b,u),o=y.listOfAtCTs,k=y.groupByAtArray,v=y.uniqueValues,d.useAllGroupByFieldValues?(t=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"GroupBy"),h=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"DrillDown",v,!0)):(t=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"GroupBy",d.groupByFieldValues),h=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"DrillDown",d.groupByFieldValues,!0)),f=function(){var a,b,c;c=[];for(a=0,b=o.length;a<b;a++)g=o[a],c.push(""+g.toString());return c}(),p=null,d.useAllGroupByFieldValues||(p=c.functions.$min(t[t.length-1].data)),{series:t,categories:f,drillDownObjectIDs:h,lowestValueInLastState:p}},d.cfdCalculator=b}).call(this)
+(function(){var a,b,c,d,e,f;d=this,c=require("/lumenize"),e=c.timeSeriesGroupByCalculator,a=c.ChartTime,f=c.utils,b=function(b,d){var f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y;n=b[b.length-1]._ValidFrom,m=(new a(n,"day",d.timezone)).add(1),j="";for(l=w=0,x=b.length;w<x;l=++w){s=b[l];if(s[d.groupByField]===d.startTrackingGroupByFieldValue){j=s._ValidFrom;break}}if(j==="")throw new Error("Couldn't find any data whose "+d.groupByField+" transitioned into groupByFieldValue "+d.startTrackingGroupByFieldValue);return i=new a(j,"day",d.timezone),d.maxDaysBack!=null&&(q=m.add(-1*d.maxDaysBack,"day"),i.$lt(q)&&(i=q)),r={workDays:d.workDays,holidays:d.holidays,start:i,pastEnd:m},console.log("RangeSpec:\n"+JSON.stringify(r,void 0,4)),u={rangeSpec:r,timezone:d.timezone,groupByField:d.groupByField,groupByFieldValues:d.groupByFieldValues,useAllGroupByFieldValues:d.useAllGroupByFieldValues,aggregationField:d.aggregationField,aggregationFunction:d.aggregationFunction,snapshotValidFromField:"_ValidFrom",snapshotValidToField:"_ValidTo",snapshotUniqueID:"ObjectID"},y=e(b,u),o=y.listOfAtCTs,k=y.groupByAtArray,v=y.uniqueValues,d.useAllGroupByFieldValues?(t=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"GroupBy"),h=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"DrillDown",v,!0)):(t=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"GroupBy",d.groupByFieldValues),h=c.groupByAtArray_To_HighChartsSeries(k,d.groupByField,"DrillDown",d.groupByFieldValues,!0)),f=function(){var a,b,c;c=[];for(a=0,b=o.length;a<b;a++)g=o[a],c.push(""+g.toString());return c}(),p=null,d.useAllGroupByFieldValues||(p=c.functions.$min(t[t.length-1].data)),{series:t,categories:f,drillDownObjectIDs:h,lowestValueInLastState:p}},d.cfdCalculator=b}).call(this)
 </script> 
         
         <script type="text/javascript">
@@ -72,7 +72,6 @@ The general structure of the visualization examples in this repository follows t
             $(document).ready(function() {
             
                 var lumenize = require('/lumenize');
-                lumenize.ChartTime.setTZPath("All");  // Inside the browser, the tz files are embedded.
                 
                 // Step 1. Gather the parameters you'll need to specify the visualization
                 // Step 1a. Gather some info from Rally's standard WSAPI
@@ -93,7 +92,7 @@ The general structure of the visualization examples in this repository follows t
                 
                 rallyQuery.order('CreationDate desc');
                 
-                console.log(rallyQuery.getURL());
+/*                 console.log(rallyQuery.getURL()); */
                 
                 rallyQuery.getAll(gotPreferencesResponse);          
                 
@@ -147,7 +146,7 @@ The general structure of the visualization examples in this repository follows t
 
                 var key, value;
                 
-                console.log('kanbanDefinition: ' + JSON.stringify(kanbanDefinition, undefined, 2));
+                /* console.log */('kanbanDefinition: ' + JSON.stringify(kanbanDefinition, undefined, 2));
                 
                 for (key in fieldInfos) {
                     kanbanDefinition = fieldInfos[key];

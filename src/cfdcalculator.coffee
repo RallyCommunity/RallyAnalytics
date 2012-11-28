@@ -30,13 +30,14 @@ cfdCalculator = (results, config) ->
     maxDaysBackCT = lastTrackingCT.add(-1 * config.maxDaysBack, 'day')
     if firstTrackingCT.$lt(maxDaysBackCT)
       firstTrackingCT = maxDaysBackCT
-      console.log('firstTrackingCT: ' + firstTrackingCT)
     
   rangeSpec =
     workDays: config.workDays
     holidays: config.holidays
     start: firstTrackingCT
     pastEnd: lastTrackingCT
+  
+  console.log('RangeSpec:\n' + JSON.stringify(rangeSpec, undefined, 4))
     
   timeSeriesGroupByCalculatorConfig = 
     rangeSpec: rangeSpec
