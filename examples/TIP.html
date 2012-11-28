@@ -28,7 +28,7 @@ The general structure of the visualization examples in this repository follows t
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize-0.4.0.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize-0.4.0-min.js"></script>
         
         <!-- rally_analytics -->
         <script type="text/javascript" src="../lib/analyticsquery.js"></script> 
@@ -52,7 +52,6 @@ The general structure of the visualization examples in this repository follows t
         
             var lumenize = require('/lumenize');
             var ChartTime = lumenize.ChartTime;
-            ChartTime.setTZPath('All');  // Inside the browser, the tz files are embedded.
             var ChartTimeRange = lumenize.ChartTimeRange;
             var histogram = lumenize.histogram;
             var nameLookup = {};
