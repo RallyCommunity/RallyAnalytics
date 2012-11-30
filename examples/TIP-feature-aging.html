@@ -1,0 +1,490 @@
+<!DOCTYPE HTML>
+
+<!--
+The general structure of the visualization examples in this repository follows these steps:
+
+1. Gather the parameters you'll need to specify the visualization
+   a. Gather some info from Rally's standard WSAPI
+   b. Gather some info from the user.
+   
+2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
+
+3. Perform some calculation/manipulation/aggregation of the snapshot data
+
+4. Render the data as a chart using some library like HighCharts
+-->
+
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Time In State Insight Chart</title>
+        
+        <!-- HighCharts -->
+        <script type="text/javascript" src="../lib/jquery.min.js" deploy_src="https://people.rallydev.com/js/jquery.min.js"></script>
+        <script type="text/javascript" src="../lib/highcharts/js/highcharts.js" deploy_src="https://people.rallydev.com/js/highcharts.js"></script>
+        <script type="text/javascript" src="../lib/highcharts/js/modules/exporting.js" deploy_src="https://people.rallydev.com/js/exporting.js"></script>
+        <!-- a theme file
+            <script type="text/javascript" src="../js/themes/gray.js"></script>
+        -->
+        
+        <!-- Lumenize -->
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize-0.4.0.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize-0.4.0-min.js"></script>
+        
+        <!-- rally_analytics -->
+        <script type="text/javascript" src="../lib/analyticsquery.js"></script> 
+        
+        <!-- my calculator for this chart (optional) -->
+        
+        <script type="text/javascript">
+        
+            if (top == self) {
+              var workspaceOID = 41529001;
+              var projectScopingUp = false;
+              var projectScopingDown = true;
+              // var projectOID = 279050021; // A-Team
+/*               var projectOID = 3449712661; // Mr Ninjago Train */
+              var projectOID = 81147451; // RallyDev
+            } else {                
+              var workspaceOID = __WORKSPACE_OID__;
+              var projectScopingUp = __PROJECT_SCOPING_UP__;
+              var projectScopingDown = __PROJECT_SCOPING_DOWN__;
+              var projectOID = __PROJECT_OID__;                
+            };
+        
+            var lumenize = require('/lumenize');
+            var ChartTime = lumenize.ChartTime;
+            var ChartTimeRange = lumenize.ChartTimeRange;
+            var histogram = lumenize.histogram;
+            var lookups = {};  // key: ObjectID, value: {Name: Name, PreliminaryEstimate: PreliminaryEstimate, LeafStoryCount: LeafStoryCount}
+            
+            // Step 1. Gather the parameters you'll need to specify the visualization
+            // Step 1a. Gather some info from Rally's standard WSAPI.
+            //          In this example, we are hard coding a workspaceConfiguration object but ideally, we'll get this from Rally
+
+            var workspaceConfiguration = {  // Need to grab from Rally for this user
+              DateFormat: 'MM/dd/yyyy',
+              DateTimeFormat: 'MM/dd/yyyy hh:mm:ss a',
+              IterationEstimateUnitName: 'Points',
+              ReleaseEstimateUnitName: 'Points',
+              TaskUnitName: 'Hours',
+              TimeTrackerEnabled: true,
+              TimeZone: 'America/Denver',
+              WorkDays: 'Monday,Tuesday,Wednesday,Thursday,Friday' // They work on Sundays
+            };
+            
+            
+            // Step 1b. Gather some info from the user.
+            //          Here to, we are hard coding some parameters for the chart but this could be in a UI for the user to specify.
+   
+            var mainConfig = {
+              endJSDate: new Date(),
+              daysBack: 360,
+              // startJSDate: ????  // Not used but could specify start and pastEnd instead of now - n days
+            };
+            
+            var rangeSpec, i1, r1;
+            
+            // Step 2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
+
+            $(document).ready(function() {
+                        
+              config = {
+                'X-RallyIntegrationName': 'Feature TIP Chart Aging',
+                'X-RallyIntegrationVendor': 'Rally Red Pill',
+                'X-RallyIntegrationVersion': '0.1.0',
+                workspaceOID: workspaceOID
+              };
+
+              query = new TimeInStateAnalyticsQuery(config, {"State":"In Dev"});
+
+/*
+              query = new TimeInStateAnalyticsQuery(config, 
+                {$and:[{ScheduleState:{$lt:"Accepted"}}, {ScheduleState:{$gte:"In-Progress"}}, {Blocked:true}]});
+*/
+
+              
+              if (projectScopingUp) {
+                alert('Scoping up not yet supported');
+              } else {
+                if (projectScopingDown) {
+                  query.scope('_ProjectHierarchy', projectOID)
+                } else {
+                  query.scope('Project', projectOID)
+                };
+              };
+              
+/*               query.debug(); */
+            
+              query
+                .type('PortfolioItem/Feature')
+                .additionalCriteria({_ValidFrom: {$gte:"2011-11-15TZ"}})
+                .fields(['Name','LeafStoryCount','PreliminaryEstimate'])
+            
+              // query.fields(['ObjectID', '_ValidFrom', '_ValidTo']); default for TimeInStateAnalyticsQuery
+            
+              query.find() // Only called here to set _find for debugging
+              console.log('Query\n' + JSON.stringify(query._find, undefined, 2));
+              console.log('Requesting data...');
+              
+              query.getAll(callback);
+              
+            });
+            
+            // Step 3. Perform some calculation/manipulation/aggregation of the snapshot data
+
+            callback = function() {
+
+                console.log('Got data. Received ' + this.allResults.length + ' snapshots.');
+                console.log('Calculating TimeInState...');
+                            
+                snapshots = this.allResults;
+                
+                // Map Name, PreliminaryEstimate and LeafStoryCount to ObjectID
+                var s, _i, _len;
+                for (_i = 0, _len = snapshots.length; _i < _len; _i++) {
+                  s = snapshots[_i];
+                  lookups[s.ObjectID] = {
+                    Name: s.Name, 
+                    PreliminaryEstimate: s.PreliminaryEstimate,
+                    LeafStoryCount: s.LeafStoryCount,
+                    LastModified: s._ValidFrom
+                  };
+                }
+                
+                var uniqueIDField = 'ObjectID';
+                var granularity = 'hour';
+                var startCT, pastEndCT;
+                
+                pastEndCT = new ChartTime(mainConfig.endJSDate, granularity);
+                pastEndCT.addInPlace(1, 'day');
+                
+                startCT = new ChartTime(snapshots[0]._ValidFrom, granularity);
+                startCT.addInPlace(-1, 'day');
+                
+                rangeSpec = {
+                  granularity: granularity,
+                  start: startCT,
+                  pastEnd: pastEndCT,
+                  startWorkTime: {
+                    hour: 9,
+                    minute: 0
+                  },
+                  pastEndWorkTime: {
+                    hour: 17,
+                    minute: 0
+                  }
+                };
+              
+                r1 = new ChartTimeRange(rangeSpec);
+              
+                i1 = r1.getIterator('ChartTime');
+                
+                isc1 = i1.getChartTimeInStateCalculator(workspaceConfiguration.TimeZone);
+                timeInState = isc1.timeInState(snapshots, '_ValidFrom', '_ValidTo', uniqueIDField, false);
+                
+                // calculating workHours from startWorkTime and pastEndWorkTime
+                var workMinutes;
+                if (r1.startWorkMinutes < r1.pastEndWorkMinutes) {
+                  workMinutes = r1.pastEndWorkMinutes - r1.startWorkMinutes;
+                } else {
+                  workMinutes = 24 * 60 - r1.startWorkMinutes;
+                  workMinutes += r1.pastEndWorkMinutes;
+                }
+                var workHours = workMinutes / 60;
+                
+                // converting ticks (hours) into days
+                var row;
+                var _i, _len;
+                for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
+                  row = timeInState[_i];
+                  row.days = row.ticks / workHours;
+                }
+                
+                // -- summary panel calculations
+                // print analysis
+                printAnalysis = function(values, exponent) {
+                  var mean = lumenize.functions.$average(values);
+                  var stdDev = lumenize.functions.$standardDeviation(values);
+                  console.log('Mean              : ' + Math.pow(mean, exponent));
+                  console.log('Standard Deviation: ' + Math.pow(stdDev, exponent));
+                  console.log('Mean + 1*stdDev   : ' + Math.pow((mean + stdDev), exponent));
+                  var p84 = lumenize.percentileCreator(84.1);
+                  console.log('P84.1             : ' + Math.pow(p84(values), exponent));
+                  console.log('Mean + 2*stdDev   : ' + Math.pow((mean + 2 * stdDev), exponent));
+                  var p98 = lumenize.percentileCreator(97.7);
+                  console.log('P97.7             : ' + Math.pow(p98(values), exponent));                  
+                };
+                
+                log10 = function(val) {
+                  return Math.log(val) / Math.log(10);
+                }
+                
+                // pull out timeInStates to an array
+                var bareValues = [];
+                for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
+                  row = timeInState[_i];
+                  bareValues.push(row.days);
+                }
+                console.log('Analysis with bare values...');
+                printAnalysis(bareValues, 1);
+                
+                
+                // moving range Shewhart
+                var range = []
+                for (_i = 1, _len = bareValues.length; _i < _len; _i++) {
+                  range.push(Math.abs(bareValues[_i] - bareValues[_i-1]));
+                }
+                var averageMovingRange = lumenize.functions.$average(range);
+                var mean = lumenize.functions.$average(bareValues);
+                console.log('Shewhart upper limit: ' + (mean + 2.66 * averageMovingRange));
+                
+                
+                // log10
+                var log10Values = [];
+                for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
+                  row = timeInState[_i];
+                  log10Values.push(log10(row.days + 1));
+                }
+                console.log('Analysis with log10...');
+                printAnalysis(log10Values, 10);
+                
+                // natural log
+                var logValues = [];
+                for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
+                  row = timeInState[_i];
+                  logValues.push(Math.log(row.days + 1));
+                }
+                console.log('Analysis with natural log...');
+                printAnalysis(logValues, Math.E);
+                
+                // -- end summary panel calculations                   
+               
+                // calling lumenize.histogram
+                var histogramField = 'days';
+                var histogramResults = histogram(timeInState, histogramField);
+                if (! histogramResults) {
+                  return;
+                }
+                var buckets = histogramResults.buckets;
+                var chartMax = histogramResults.chartMax;
+                var valueMax = histogramResults.valueMax;
+                var bucketSize = histogramResults.bucketSize;
+                var clipped = histogramResults.clipped;
+                
+                // Step 4. Render the data as a chart using some library like HighCharts
+
+                // creating data for HighCharts
+                var data = [];
+                var calculations, milliseconds;
+                for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
+                  calculations = timeInState[_i];
+                  if (calculations.finalState) {
+                    milliseconds = new ChartTime(lookups[calculations.ObjectID].LastModified, 'millisecond').getJSDate(workspaceConfiguration.TimeZone).getTime();
+                    row = {
+                      x: milliseconds,
+                      y: calculations.clippedChartValue,
+/*                       marker: {radius: Math.pow(lookups[calculations[uniqueIDField]].LeafStoryCount, 0.75) + 5}, */
+                      marker: {radius: 3},                      
+                      calculations: calculations
+                    };
+                    data.push(row);
+                  };
+                };
+
+                // formatting for HighCharts             
+                var histogramCategories = [];
+                var histogramData = [];
+                var b, idx, _len2;
+                for (idx = 0, _len2 = buckets.length; idx < _len2; idx++) {
+                  b = buckets[idx];
+                  histogramCategories.push(b.label);
+                  histogramData.push(b.count);
+                }
+                                         
+                scatter = new Highcharts.Chart({
+                    chart: {
+                        renderTo: 'scatter-container',
+                        defaultSeriesType: 'scatter',
+                        zoomType: 'x'
+                    },
+                    legend: {
+                        enabled: false
+                    },
+                    plotOptions: {
+                       scatter: {
+                          marker: {
+                             states: {
+                                hover: {
+                                   enabled: false
+                                }
+                             }
+                          }
+                       }
+                    },
+                    credits: {
+                        enabled: false
+                    },
+                    title: {
+                        text: 'Current WIP Aging (Features)'
+                    },
+                    subtitle: {
+                        text: ''
+                    },
+                    xAxis: {
+                        startOnTick: false,
+                        tickmarkPlacement: 'on',
+                        title: {
+                            text: 'Last Time Active'
+                        },
+                        type: 'datetime'
+                    },
+                    yAxis: [
+                        {
+                            title: {
+                                text: 'Time In State (Work Days)'
+                            },
+                            opposite: false,
+                            endOnTick: false,
+                            tickInterval: bucketSize,
+                            labels: {
+                                formatter: function() {
+                                    // console.log(JSON.stringify(this, undefined, 2));
+                                    if (this.value != 0) {
+                                        if (this.value == chartMax) {
+                                          if (clipped) {
+                                            return '' + valueMax + '*';
+                                          } else {
+                                            return chartMax;
+                                          }
+                                        } else {
+                                          return this.value / 1;
+                                        }
+                                    }
+                                }
+                            },
+                            min: 0,
+                            max: chartMax
+                        },
+                        {
+                            title: {
+                                text: null
+                            },
+                            opposite: true,
+                            // endOnTick: true,
+                            tickInterval: 1,
+                            labels: {
+                                formatter: function() {
+                                    if (this.value != 0) {
+                                      return Highcharts.numberFormat(buckets[this.value - 1].percentile * 100, 1) + "%";
+                                    } else {
+                                      return "0.0%"
+                                    }
+                                }
+                            },
+                            min: 0,
+                            max: buckets.length                        
+                        }
+
+                    ],                      
+                    tooltip: {
+                        formatter: function() {
+                            var id = this.point.calculations[uniqueIDField];
+                            return uniqueIDField + ': ' + id + '<br />' + // !TODO: Upgrade to link to revisions page in Rally
+                              '<b>' + lookups[id].Name + '</b><br />' +
+                              'Preliminary Estimate: ' + lookups[id].PreliminaryEstimate + '<br />' +
+                              'Leaf Story Count: ' + lookups[id].LeafStoryCount + '<br />' +
+                              this.series.name + ': <b>' + Highcharts.numberFormat(this.point.calculations[histogramField], 1) + '</b> work days';
+                        }
+                    },
+              		  series: [
+                  		  {
+                      			name: 'Time in state',
+                      			data: data,
+                      			yAxis: 0
+                        },
+                    		{
+                      		  name: 'Percentile',
+                      		  data: [],
+                      		  yAxis: 1
+                    		}
+                    ]
+                }, function(chart) {
+              	     if (clipped) {
+                       chart.renderer.text('* non-linear', 57, 55).add();
+                     };
+                });
+ 
+                
+                
+                histogramChart = new Highcharts.Chart({
+              		chart: {
+              			renderTo: 'histogram-container',
+              			type: 'bar'
+              		},
+                  legend: {
+                    enabled: false
+                  },
+                  credits: {
+                      enabled: false
+                  },
+              		title: {
+              			text: 'Histogram'
+              		},
+              		subtitle: {
+              			text: ''
+              		},
+              		xAxis: [{ // mirror axis on right side
+              			opposite: false,
+              			reversed: false,
+              			categories: histogramCategories,
+              		}],
+              		yAxis: {
+              			title: {
+              				text: null
+              			},
+                    labels: {
+              				formatter: function(){
+              					return Math.abs(this.value);
+              				}
+              			},
+              			min: 0
+              		},
+              		plotOptions: {
+              			series: {
+              				stacking: 'normal'
+              			}
+              		},
+              		tooltip: {
+              			formatter: function(){
+              				return '' + this.point.category +' work days: <b>' + Highcharts.numberFormat(Math.abs(this.point.y), 0) + '</b>';
+              			}
+              		},
+              		series: [{
+              			name: 'Time in state',
+              			data: histogramData
+              		}]
+              	}, function(chart) {
+              	     if (false) {
+                       chart.renderer.text('* non-linear', 200, 65).add();
+                     };
+                });
+
+            };
+                
+        </script>
+        
+    </head>
+    <body>
+        
+        <!-- 3. Add the containers -->
+        <table cellpading="0px" cellspacing="0px" width="98%" height="98%">
+          <tr>
+            <td width="65%"><div id="scatter-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+            <td width="35%"><div id="histogram-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+          </tr>
+        </table>
+                
+    </body>
+</html>
+
+
