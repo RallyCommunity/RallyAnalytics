@@ -1,3 +1,5 @@
 coffeedoctest_temp
 .DS_Store
 play
+.idea
+node_modules
