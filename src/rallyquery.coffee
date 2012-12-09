@@ -19,7 +19,7 @@ class RallyQuery
     @debug = false
     
     if process? and not window?  # assume running in Node.js
-      XMLHttpRequest = require('node-XMLHttpRequest').XMLHttpRequest
+      XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest
     else if root.XMLHttpRequest?
       XMLHttpRequest = root.XMLHttpRequest
     

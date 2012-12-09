@@ -27,19 +27,22 @@
     "node": ">=0.4.10"
   },
   "repository": {
-    "type" : "git",
-    "url" : "http://github.com/RallySoftware/rally_analytics.git"
+    "type": "git",
+    "url": "http://github.com/RallySoftware/rally_analytics.git"
   },
   "preferGlobal": false,
   "dependencies": {
-    "coffee-script": ">=1.1.1"
+    "coffee-script": "1.4.x"
   },
   "devDependencies": {
     "coffeedoctest": ">=0.2.0",
-    "jitter": ">=1.1.1",
-    "uglify-js": ">=1.2.5"
+    "nodeunit": "~0.7.4",
+    "uglify-js": "2.2.1",
+    "browserify": "1.16.x",
+    "xmlhttprequest": "~1.5.0",
+    "coffeedoc-lm": "~0.1.12"
   },
-  "scripts":{
-    "test":"cake test"
+  "scripts": {
+    "test": "cake test"
   }
 }

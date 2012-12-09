@@ -4,8 +4,9 @@ path          = require('path')
 {spawn, exec} = require('child_process')
 fs = require('fs')
 path = require('path')
-jsp = require("uglify-js").parser
-pro = require("uglify-js").uglify
+# jsp = require("uglify-js").parser
+# pro = require("uglify-js").uglify
+uglifyJS = require("uglify-js")
 
 deployHTMLFromDirectory = (directory, uglify = true) ->
   contents = fs.readdirSync(directory)
@@ -34,14 +35,16 @@ deployHTMLFromDirectory = (directory, uglify = true) ->
       jsFileName = r2Output[1]
       jsFullPath = path.join(directory, jsFileName)
       if path.existsSync(jsFullPath)
-        jsFileString = fs.readFileSync(jsFullPath, 'utf-8')
-        if jsFileString?
-          if uglify   
-            ast = jsp.parse(jsFileString)
-            ast = pro.ast_mangle(ast)
-            ast = pro.ast_squeeze(ast)
-            jsFileString = pro.gen_code(ast)
-          htmlFileString = htmlFileString.replace(r2Output[0], "\n<script type=\"text/javascript\">\n#{jsFileString}\n")
+        jsFileString = uglifyJS.minify(jsFullPath).code
+        htmlFileString = htmlFileString.replace(r2Output[0], "\n<script type=\"text/javascript\">\n#{jsFileString}\n")
+#         jsFileString = fs.readFileSync(jsFullPath, 'utf-8')
+#         if jsFileString?
+#           if uglify   
+#             ast = jsp.parse(jsFileString)
+#             ast = pro.ast_mangle(ast)
+#             ast = pro.ast_squeeze(ast)
+#             jsFileString = pro.gen_code(ast)
+#           htmlFileString = htmlFileString.replace(r2Output[0], "\n<script type=\"text/javascript\">\n#{jsFileString}\n")
       else
         console.log("\nWARNING: Could not find local file #{jsFileName} referenced from #{fileName}. \n    Your deploy file may still work if it's optional or if the file can be found relative to the web address.")
         key = Math.floor(Math.random() * 9999999999)
@@ -118,7 +121,7 @@ task('docs', 'Generate docs with CoffeeDoc and place in ./docs', () ->
       files = [srcPlus].concat(files[0..position-1], files[position+1..files.length-1])
 
     process.chdir(__dirname + '/src')
-    run('coffeedoc', ['-o', '../docs'].concat(files))
+    run('../node_modules/.bin/coffeedoc', ['-o', '../docs'].concat(files))
     
     process.chdir(__dirname)
     run('coffeedoctest', ['--readme', '--requirepath', 'src', 'src'])

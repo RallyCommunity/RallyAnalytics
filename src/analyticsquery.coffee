@@ -96,7 +96,7 @@ class AnalyticsQuery
     @_debug = false
     
     if process? and not window?  # assume running in Node.js
-      XMLHttpRequest = require('node-XMLHttpRequest').XMLHttpRequest
+      XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest
     else if root.XMLHttpRequest?
       XMLHttpRequest = root.XMLHttpRequest
     
@@ -224,7 +224,10 @@ class AnalyticsQuery
       if @_sort?
         queryArray.push('sort=' + JSON.stringify(@_sort))
       if @_fields?
-        queryArray.push('fields=' + JSON.stringify(@_fields))
+        if @_fields[0] == true
+          queryArray.push('fields=true')
+        else if @_fields.length > 0
+          queryArray.push('fields=' + JSON.stringify(@_fields))
       if @_hydrate?
         queryArray.push('hydrate=' + JSON.stringify(@_hydrate))  # !TODO: Test that this works for true
       queryArray.push('start=' + @_startIndex)
@@ -271,7 +274,8 @@ class AnalyticsQuery
       if @_debug
         console.log('headers: ' + @_xhr.getAllResponseHeaders())
         console.log('status: ' + @_xhr.status)
-        console.log('lastResponse: ' + JSON.stringify(@lastResponseText, undefined, 2))
+        console.log('lastResponseText: ' + @lastResponseText)
+        console.log('lastResponseJSON: ' + JSON.stringify(JSON.parse(@lastResponseText), undefined, 2))
       @lastResponse = JSON.parse(@lastResponseText)
       
       # if error
