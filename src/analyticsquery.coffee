@@ -566,7 +566,7 @@ class AtArrayAnalyticsQuery extends GuidedAnalyticsQuery
 
 class BetweenAnalyticsQuery extends GuidedAnalyticsQuery
   ###
-  This pattern will return all of the snapshots related to a particular timebox. The results are in the form expected by the 
+  This pattern will return all of the snapshots active in a particular timebox. The results are in the form expected by the 
   Lumenize function `snapshotArray_To_AtArray`, which will tell you what each work item looked like at a provided list of
   datetimes. This is the current recommended approach for most time-series charts. The burncalculator and cfdcalculator
   use this approach. Note: the 'AtArray' approach will supercede this for time-series charts at some point in the future.
@@ -585,34 +585,21 @@ class BetweenAnalyticsQuery extends GuidedAnalyticsQuery
       #       "_ProjectHierarchy": 1234
       #     },
       #     {
-      #       "$or": [
-      #         {
-      #           "_ValidFrom": {
-      #             "$lte": "2012-01-01T12:34:56.789Z"
-      #           },
-      #           "_ValidTo": {
-      #             "$gt": "2012-01-01T12:34:56.789Z"
-      #           }
-      #         },
-      #         {
-      #           "_ValidFrom": {
-      #             "$gte": "2012-01-01T12:34:56.789Z",
-      #             "$lt": "2012-01-10T12:34:56.789Z"
-      #           }
-      #         }
-      #       ]
+      #       "_ValidFrom": {
+      #         "$lt": "2012-01-10T12:34:56.789Z"
+      #       }, 
+      #       "_ValidTo": {
+      #         "$gt": "2012-01-01T12:34:56.789Z"
+      #       }
       #     }
       #   ]
       # }
   ###
-  constructor: (config, zuluDateString1, zuluDateString2) ->
+  constructor: (config, startOn, endBefore) ->
     super(config)
-    unless zuluDateString1? and zuluDateString2?
-      throw new Error('Must provide two zuluDateStrings when instantiating a BetweenAnalyticsQuery.')
-    criteria = {'$or':[
-      {_ValidFrom: {'$lte': zuluDateString1}, _ValidTo: {'$gt': zuluDateString1}},  # Snapshot at start
-      {_ValidFrom: {'$gte': zuluDateString1, '$lt': zuluDateString2}} # Snapshots of changes between
-    ]}
+    unless startOn? and endBefore?
+      throw new Error('Must provide two zulu data strings when instantiating a BetweenAnalyticsQuery.')
+    criteria = {"_ValidFrom": {$lt: endBefore}, "_ValidTo": {$gt: startOn}}
     @_additionalCriteria.push(criteria)
     @sort({_ValidFrom:1})
  

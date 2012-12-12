@@ -504,7 +504,7 @@ to take advantage of it.</p>
             
           </div>
           <div class="class_content">
-            <p>This pattern will return all of the snapshots related to a particular timebox. The results are in the form expected by the 
+            <p>This pattern will return all of the snapshots active in a particular timebox. The results are in the form expected by the 
 Lumenize function <code>snapshotArray_To_AtArray</code>, which will tell you what each work item looked like at a provided list of
 datetimes. This is the current recommended approach for most time-series charts. The burncalculator and cfdcalculator
 use this approach. Note: the 'AtArray' approach will supercede this for time-series charts at some point in the future.</p>
@@ -524,22 +524,12 @@ console.log(JSON.stringify(query._find, undefined, 2))
 #       "_ProjectHierarchy": 1234
 #     },
 #     {
-#       "$or": [
-#         {
-#           "_ValidFrom": {
-#             "$lte": "2012-01-01T12:34:56.789Z"
-#           },
-#           "_ValidTo": {
-#             "$gt": "2012-01-01T12:34:56.789Z"
-#           }
-#         },
-#         {
-#           "_ValidFrom": {
-#             "$gte": "2012-01-01T12:34:56.789Z",
-#             "$lt": "2012-01-10T12:34:56.789Z"
-#           }
-#         }
-#       ]
+#       "_ValidFrom": {
+#         "$lt": "2012-01-10T12:34:56.789Z"
+#       }, 
+#       "_ValidTo": {
+#         "$gt": "2012-01-01T12:34:56.789Z"
+#       }
 #     }
 #   ]
 # }
@@ -551,7 +541,7 @@ console.log(JSON.stringify(query._find, undefined, 2))
                 <h3>Instance Methods</h3>
                 
                 <div class="method">
-                  <h4>constructor(config, zuluDateString1, zuluDateString2)</h4>
+                  <h4>constructor(config, startOn, endBefore)</h4>
                   
                 </div>
                 

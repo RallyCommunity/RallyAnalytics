@@ -28,7 +28,7 @@ The general structure of the visualization examples in this repository follows t
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.4.3/deploy/Lumenize-min.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/v0.4.8/deploy/Lumenize-min.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.4.8/deploy/Lumenize-min.js"></script>
         
         <!-- rally_analytics -->
         <script type="text/javascript" src="../lib/analyticsquery.js"></script> 
@@ -95,7 +95,7 @@ The general structure of the visualization examples in this repository follows t
                 workspaceOID: workspaceOID
               };
 
-              query = new TimeInStateAnalyticsQuery(config, {"State":"In Dev"});
+              query = new TimeInStateAnalyticsQuery(config, {"State":"In Dev", "PercentDoneByStoryCount":{$lt:1,$gt:0}});
 
 /*
               query = new TimeInStateAnalyticsQuery(config, 
