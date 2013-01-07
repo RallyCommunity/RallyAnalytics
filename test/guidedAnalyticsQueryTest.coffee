@@ -53,7 +53,7 @@ exports.guidedAnalyticsQueryTest =
     query.XHRClass = XHRMock
     
     f2 = () ->
-      query.getAll(() -> console.log('never get here'))
+      query.getPage(() -> console.log('never get here'))
       
     test.throws(f2, Error)
     
@@ -155,38 +155,6 @@ exports.guidedAnalyticsQueryTest =
     
     test.done()
     
-  testGetAllHappy: (test) ->
-    test.expect(3)
-    query = new GuidedAnalyticsQuery(basicConfig)
-    query.XHRClass = XHRMock
 
-    callback = () ->
-      expectedText = '''{
-      	"_rallyAPIMajor": "1", 
-      	"_rallyAPIMinor": "27", 
-      	"Errors": [], 
-      	"Warnings": [], 
-      	"TotalResultCount": 5, 
-      	"StartIndex": 4, 
-      	"PageSize": 2, 
-      	"ETLDate": "2012-03-16T21:01:17.802Z", 
-      	"Results": [
-      		{"id": 5}
-      	]
-      }'''
-      expectedResponse = JSON.parse(expectedText)
-      test.equal(this.lastResponseText, expectedText)
-      test.deepEqual(this.lastResponse, expectedResponse)
-      test.deepEqual(this.allResults, [
-        {id: 1},
-        {id: 2},
-        {id: 3},
-        {id: 4},
-        {id: 5}
-      ])
-      test.done()
-      
-    query.scope('Project', 1234)
-    query.getAll(callback)
 
     

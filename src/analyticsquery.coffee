@@ -54,7 +54,7 @@ class AnalyticsQuery
 
   Then you must set the query. `find` is required but you can also specify sort, fields, etc. Notice how you can chain these calls.
 
-      query.find({Project: 1234, Tag: 'Expedited', _At: '2012-01-01'}).sort({_ValidFrom:1}).fields(['ScheduleState'])
+      query.find({Project: 1234, Tag: 'Expedited', _At: '2012-01-01'}).fields(['ScheduleState'])
     
   Of course you need to have a callback.
   
@@ -62,9 +62,9 @@ class AnalyticsQuery
         console.log(this.allResults.length)  # will spit back 5 from our XHRMock
       # 5
 
-  Finally, call getAll()
+  Finally, call getPage()
 
-      query.getAll(callback)
+      query.getPage(callback)
       
   ## Properties you can inspect or set ##
   
@@ -79,20 +79,24 @@ class AnalyticsQuery
   
   ## Properties you should only inspect ##
   
-  Note, the context for the callback you provide to the `getAll()` method is set to the AnalyticsQuery instance
-  so you can inspect these properties by simply prepending them with `this.` from inside of your callback.
-  
+  Note, the signature of the callback is callback(snapshots, startOn, endBefore, this). On the last page, endBefore will
+  be the ETLDate. For earlier pages, it will be the _ValidFrom of the last row in lastPageResults, which is why the
+  sort order must be {_ValidFrom: 1}. startOn will be the @upToDate value, so be sure to set it before calling getPage() for the
+  first time. It will update it after that first call to getPage().
+
+  The last parameter allows you to inspect the contents of this object. It has these potentially interesting properties.
+
+  * **upToDate** the endBefore of the prior call or as set when calling the constructor
   * **ETLDate** the ETLDate of the response in the first page
   * **lastResponseText** the string containing the most recent response/page
   * **lastResponse** the parsed JSON Object of the most recent response/page
-  * **lastMeta** the meta data included at the top of the most recent response/page
+  * **lastPageResults** the Results from the most recent page
   * **allResults** the Results from all pages concatenated together
-  * **allMeta** the meta data from all pages concatentated together
-  * **allErrors** NOT YET IMPLEMENTED
-  * **allWarnings** NOT YET IMPLEMENTED
+  * **lastPageMeta** the meta data included at the top of the most recent page
+  * **allMeta** the meta data from all pages concatentated together including errors and warnings
     
   ###
-  constructor: (config) ->
+  constructor: (config, @upToDate) ->
     @_debug = false
     
     if process? and not window?  # assume running in Node.js
@@ -160,24 +164,27 @@ class AnalyticsQuery
     @service = "analytics"
     @version = "v2.0"  # !TODO: Set automatically
     @endpoint = "artifact/snapshot/query.js"
-    
+
+    @_hasMorePages = true
     @_firstPage = true
     @ETLDate = null
     @lastResponseText = ''
     @lastResponse = {}
-    @lastMeta = {}
+    @lastPageResults = []
     @allResults = []
-    @allMeta = []
-#     @allErrors = []  # !TODO: Populate allErrors and allWarnings
-#     @allWarnings = []
+    @lastPageMeta = {}
+    @allMeta = []  # Will contain all Errors and Warnings
     
   resetFind: () ->
     @_find = null
     
   find: (@_find) ->
     return this  # to enable chaining
+
+  sort: () ->
+    throw new Error('Sort must be {_ValidFrom: 1}.')
     
-  sort: (@_sort) ->
+  _setSort: (@_sort) ->
     return this
     
   fields: (additionalFields) ->  # !TODO: Confirm that additionalFields is an array
@@ -240,18 +247,25 @@ class AnalyticsQuery
     url = @getBaseURL() + '?' + @getQueryString()
     if @_debug
       console.log('\nfind: ', @_find)
-      console.log('\nurl: ', url)
+      console.log('\nurl:')
+      console.log(url)
     return encodeURI(url)  # !TODO: May need to look into altnerative (maybe encodeURIComponent?) because won't encode '+', '=', and '&' in values correctly
     
-#   getPage:(callback) ->
-#     callback.call(this)
-#     return this
+  getAll: (callback) ->
+    throw new Error('getAll() not supported in this version of AnalyticsQuery.')
 
-  getAll: (@_callback) ->
+  hasMorePages: () ->
+    return @_hasMorePages
+
+  getPage: (@_callback) ->
     unless @_find?
-      throw new Error('Must set find clause before calling getAll')
+      throw new Error('Must set find clause before calling getPage')
     unless @XHRClass?
       throw new Error('Must set XHRClass')
+    unless @_hasMorePages
+      throw new Error('All pages retrieved. Inspect AnalyticsQuery.allResults and AnalyticsQuery.allMeta for results.')
+    unless @upToDate?
+      throw new Error('Must set property upToDate before calling getPage')
     @_xhr = new @XHRClass()
     @_xhr.onreadystatechange = @_gotResponse
     @_xhr.open('GET', @getURL(), true, @username, @password)
@@ -263,21 +277,19 @@ class AnalyticsQuery
   _gotResponse: () =>
     # !TODO: Implement code to deal with errors at the XHR level as well as non-200 response codes
     if @_debug
-      console.log('readyState: ', @_xhr.readyState)
+      console.log('\nreadyState: ', @_xhr.readyState)
     if @_xhr.readyState == 4
-      _return = () =>
-          @_firstPage = true 
-          @_startIndex = 0
-          @_callback.call(this)
-                
       @lastResponseText = @_xhr.responseText
-      if @_debug
-        console.log('headers: ' + @_xhr.getAllResponseHeaders())
-        console.log('status: ' + @_xhr.status)
-        console.log('lastResponseText: ' + @lastResponseText)
-        console.log('lastResponseJSON: ' + JSON.stringify(JSON.parse(@lastResponseText), undefined, 2))
       @lastResponse = JSON.parse(@lastResponseText)
-      
+      if @_debug
+        console.log('\nresponse headers:\n')
+        console.log(@_xhr.getAllResponseHeaders())
+        console.log('\nstatus: ', @_xhr.status)
+        if typeof(@lastResponse) is 'string'
+          console.log('\nlastResponseText: ', @lastResponseText)
+        else
+          console.log('\nlastResponseJSON: ', @lastResponse)
+
       # if error
       if @lastResponse.Errors.length > 0
         # !TODO: Maybe throw away partially complete allResults?
@@ -288,40 +300,45 @@ class AnalyticsQuery
           @_firstPage = false
           @allResults = []
           @allMeta = []
-  #         @allErrors = []
-  #         @allWarnings = []
           # add ETLDate clause so subsequent pages are from the same moment in time
           @ETLDate = @lastResponse.ETLDate
           @_pageSize = @lastResponse.PageSize
           newFind = {'$and':[@_find, {'_ValidFrom': {'$lte': @ETLDate}}]}
           @_find = newFind
         else
-          # !TODO: Check that TotalResultCount hasn't changed and error if it has
+          if @lastResponse.PageSize != @_pageSize
+            throw new Error('Pagesize changed after first page which is unexpected.')
         
+        # populate @lastPageResults
+        @lastPageResults = []
+        results = @lastResponse.Results
+        for o in results
+          @lastPageResults.push(o)
         # populate @allResults
-        for o in @lastResponse.Results
-          @allResults.push(o)
+        @allResults = @allResults.concat(@lastPageResults)
           
-        # populate @allMeta
-        @lastMeta = {}  
+        # populate @lastPageMeta
+        @lastPageMeta = {}
         for key, value of @lastResponse
           unless key == 'Results'
-            @lastMeta[key] = value
-        @allMeta.push(@lastMeta)
-        
-        # if last page, return else call again
+            @lastPageMeta[key] = value
+        # populate @allMeta
+        @allMeta.push(@lastPageMeta)
+
+        # if last page, unset @_hasMorePages
         if @lastResponse.Results.length + @lastResponse.StartIndex >= @lastResponse.TotalResultCount
-          _return()
+          @_hasMorePages = false
+          endBefore = @ETLDate
         else
+          @_hasMorePages = true
           @_startIndex += @_pageSize
-          @_xhr = new @XHRClass()
-          @_xhr.onreadystatechange = @_gotResponse
-          @_xhr.open('GET', @getURL(), true, @username, @password)
-          for key, value of @headers
-            @_xhr.setRequestHeader(key, value)
-          @_xhr.send()
-    
-    
+          endBefore = @lastPageResults[@lastPageResults.length - 1]._ValidFrom
+        startOn = @upToDate
+        @upToDate = endBefore
+
+        @_callback(@lastPageResults, startOn, endBefore, this)
+
+
 class GuidedAnalyticsQuery extends AnalyticsQuery
   ###
   To help you write performant queries against the non-traditional data model of Rally's Analytics engine, we provide a guided mode 
@@ -424,8 +441,8 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
 
       
   ###
-  constructor: (config) ->
-    super(config)
+  constructor: (config, upToDate) ->
+    super(config, upToDate)
     @_scope = {}
     @_type = null
     @_additionalCriteria = []
@@ -503,7 +520,7 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
     })
     return this
     
-  getAll: (callback) ->
+  getPage: (callback) ->
     @find()
     super(callback)
 
@@ -531,8 +548,8 @@ class AtAnalyticsQuery extends GuidedAnalyticsQuery
       # }
 
   ###
-  constructor: (config, zuluDateString) ->
-    super(config)
+  constructor: (config, upToDate, zuluDateString) ->
+    super(config, upToDate)
     unless zuluDateString?
       throw new Error('Must provide a zuluDateString when instantiating an AtAnalyticsQuery.')
     @_additionalCriteria.push({_At: zuluDateString})
@@ -560,8 +577,8 @@ class AtArrayAnalyticsQuery extends GuidedAnalyticsQuery
   to take advantage of it.
 
   ###
-  constructor: (config, arrayOfZuluDates) ->
-    super(config)
+  constructor: (config, upToDate, arrayOfZuluDates) ->
+    super(config, upToDate)
     throw new Error('AtArrayAnalyticsQuery is not yet implemented')
 
 class BetweenAnalyticsQuery extends GuidedAnalyticsQuery
@@ -596,13 +613,12 @@ class BetweenAnalyticsQuery extends GuidedAnalyticsQuery
       # }
   ###
   constructor: (config, startOn, endBefore) ->
-    super(config)
+    super(config, startOn)
     unless startOn? and endBefore?
       throw new Error('Must provide two zulu data strings when instantiating a BetweenAnalyticsQuery.')
     criteria = {"_ValidFrom": {$lt: endBefore}, "_ValidTo": {$gt: startOn}}
     @_additionalCriteria.push(criteria)
-    @sort({_ValidFrom:1})
- 
+
 class TimeInStateAnalyticsQuery extends GuidedAnalyticsQuery
   ###
   This pattern will only return snapshots where the specified clause is true.
@@ -611,13 +627,13 @@ class TimeInStateAnalyticsQuery extends GuidedAnalyticsQuery
       query = new rally_analytics.TimeInStateAnalyticsQuery(config, {KanbanState: {$gte: 'In Dev', $lt: 'Accepted'}})
       query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
   ###
-  constructor: (config, predicate) ->
-    super(config)
+  constructor: (config, upToDate, predicate) ->
+    super(config, upToDate)
     unless predicate?
       throw new Error('Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.')
     @_additionalCriteria.push(predicate)
+    @_additionalCriteria.push({"_ValidTo": {$gt: upToDate}})
     @fields(['ObjectID', '_ValidFrom', '_ValidTo'])
-    @sort({_ValidFrom:1})
 
 class TransitionsAnalyticsQuery extends GuidedAnalyticsQuery
   ###
@@ -663,8 +679,8 @@ class TransitionsAnalyticsQuery extends GuidedAnalyticsQuery
   console.log(JSON.stringify(query._find, undefined, 2))
   # 
   ###
-  constructor: (config, arrayOfZuluDates) ->
-    super(config)
+  constructor: (config, upToDate, arrayOfZuluDates) ->
+    super(config, upToDate)
     throw new Error('Not yet implemented')
 
 root.AnalyticsQuery = AnalyticsQuery

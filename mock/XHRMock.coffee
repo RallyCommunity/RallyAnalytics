@@ -15,8 +15,8 @@ class XHRMock
         	"PageSize": 2, 
         	"ETLDate": "2012-03-16T21:01:17.802Z", 
         	"Results": [
-        		{"id": 1},
-        		{"id": 2}
+        		{"id": 1, "_ValidFrom": "1 valid from"},
+        		{"id": 2, "_ValidFrom": "2 valid from"}
         	]
         }''',
      '''{
@@ -29,8 +29,8 @@ class XHRMock
         	"PageSize": 2, 
         	"ETLDate": "2012-03-16T21:01:17.802Z", 
         	"Results": [
-        		{"id": 3},
-        		{"id": 4}
+        		{"id": 3, "_ValidFrom": "3 valid from"},
+        		{"id": 4, "_ValidFrom": "4 valid from"}
         	]
         }''',
      '''{
@@ -43,7 +43,7 @@ class XHRMock
         	"PageSize": 2, 
         	"ETLDate": "2012-03-16T21:01:17.802Z", 
         	"Results": [
-        		{"id": 5}
+        		{"id": 5, "_ValidFrom": "5 valid from"}
         	]
         }'''        
   ]

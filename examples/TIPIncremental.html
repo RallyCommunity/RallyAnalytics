@@ -1,0 +1,259 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Time In Process (TIP) Chart</title>
+        
+        <!-- HighCharts -->
+        <script type="text/javascript" src="../lib/jquery.min.js" deploy_src="https://people.rallydev.com/js/jquery.min.js"></script>
+        <script type="text/javascript" src="../lib/highcharts/js/highcharts.js" deploy_src="https://people.rallydev.com/js/highcharts.js"></script>
+        <script type="text/javascript" src="../lib/highcharts/js/modules/exporting.js" deploy_src="https://people.rallydev.com/js/exporting.js"></script>
+        <!-- a theme file
+            <script type="text/javascript" src="../js/themes/gray.js"></script>
+        -->
+        
+        <!-- Lumenize -->
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.5.0/deploy/Lumenize-min.js"></script>
+        
+        <!-- rally_analytics -->
+        <script type="text/javascript" src="../lib/analyticsquery.js"></script>
+
+        <!-- md5 -->
+        <script type="text/javascript" src="../lib/md5.js"></script>
+        
+        <!-- my calculator for this chart (optional) -->
+        <script type="text/javascript" src="../lib/localcache/LocalCache.js"></script> 
+        <script type="text/javascript" src="../lib/ChartCalculatorBase.js"></script> 
+        <script type="text/javascript" src="../lib/TIPChartCalculator.js"></script>
+        
+        <script type="text/javascript">
+            (function() {
+                var userConfig = {
+                  debug: false,
+                  daysToShow: 90,
+                  showStillInProcess: false,
+                  statePredicate: {$and:[{ScheduleState:{$lt:"Accepted"}}, {ScheduleState:{$gte:"In-Progress"}}]},
+                  type: 'HierarchicalRequirement',
+                  leafOnly: true,
+                  showTheseFieldsInToolTip: ['Name', 'PlanEstimate'],  // Will automatically show ObjectID and Work Days In State
+                  workDayStartOn: {hour: 9},
+                  workDayEndBefore: {hour: 17},
+                  // holidays (unless we pull them from some data model in Rally)
+                  // workDays (if you want to override the default pulling from WorkspaceConfiguration)
+                }
+                var charts = {};
+                var calculator;
+                
+                createVisualization = function(visualizationData) {
+                
+                  if (typeof visualizationData !== "undefined" && visualizationData !== null) {
+                    
+                    timeInState = visualizationData.timeInState;
+                    histogramResults = visualizationData.histogramResults;
+                    histogramCategories = visualizationData.histogramCategories;
+                    histogramData = visualizationData.histogramData;
+                    
+                    bucketSize = histogramResults.bucketSize;
+                    chartMax = histogramResults.chartMax;
+                    buckets = histogramResults.buckets;
+                    clipped = histogramResults.clipped;
+                    valueMax = histogramResults.valueMax;
+                
+                    charts.scatterChart = new Highcharts.Chart({
+                      chart: {
+                         renderTo: 'scatter-container',
+                         defaultSeriesType: 'scatter',
+                         zoomType: 'x'
+                      },
+                      legend: {
+                         enabled: false
+                      },
+                      credits: {
+                         enabled: false
+                      },
+                      title: {
+                         text: 'Time In Process'
+                      },
+                      subtitle: {
+                         text: ''
+                      },
+                      xAxis: {
+                         startOnTick: false,
+                         tickmarkPlacement: 'on',
+                         title: {
+                             enabled: false
+                         },
+                         type: 'datetime'
+                      },
+                      yAxis: [
+                         {
+                             title: {
+                                 text: 'Time In Process (Work Days)'
+                             },
+                             opposite: false,
+                             endOnTick: false,
+                             tickInterval: bucketSize,
+                             labels: {
+                               formatter: function() {
+                                   if (this.value !== 0) {
+                                     if (this.value == chartMax) {
+                                       if (clipped) {
+                                         return '' + valueMax + '*';
+                                       } else {
+                                         return chartMax;
+                                       }
+                                     } else {
+                                       return this.value;
+                                     }
+                                   }
+                                 }
+                               
+                             },
+                             min: 0,
+                             max: chartMax
+                         },
+                         {
+                             title: {
+                                 text: null
+                             },
+                             opposite: true,
+                             // endOnTick: true,
+                             tickInterval: 1,
+                             labels: {
+                                 formatter: function() {
+                                    if (this.value !== 0) {
+                                      return Highcharts.numberFormat(buckets[this.value - 1].percentile * 100, 1) + "%";
+                                    } else {
+                                      return "0.0%";
+                                    }
+                                  }
+                             },
+                             min: 0,
+                             max: buckets.length                        
+                         }
+                      
+                      ],                      
+                      tooltip: {
+                         formatter: function() {
+                             var point = this.point;
+                             tooltip = 'ObjectID: ' + point.ObjectID + '<br />';  // !TODO: Upgrade to link to revisions page in Rally
+                             tooltip += this.series.name + ': <b>' + Highcharts.numberFormat(point.days, 1) + '</b> work days';
+                             var t, _i, _len, _ref;
+                             _ref = userConfig.showTheseFieldsInToolTip;
+                             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                               t = _ref[_i];
+                               tooltip += '<br />' + t + ': ' + point[t + "_lastValue"];
+                             }
+                             return tooltip;
+                         }
+                      },
+                      series: [
+                      	  {
+                       			name: 'Time in process',
+                       			data: timeInState,
+                       			yAxis: 0
+                          },
+                      		{
+                       		  name: 'Percentile',
+                       		  data: [],
+                       		  yAxis: 1
+                      		}
+                      ]
+                    }, function(chart) {
+                         if (clipped) {
+                          chart.renderer.text('* non-linear', 57, 55).add();
+                        };
+                    });  // end of scatterChart
+              
+                    charts.histogramChart = new Highcharts.Chart({
+                   		chart: {
+                   			renderTo: 'histogram-container',
+                   			type: 'bar'
+                   		},
+                       legend: {
+                         enabled: false
+                       },
+                       credits: {
+                           enabled: false
+                       },
+                   		title: {
+                   			text: 'Histogram'
+                   		},
+                   		subtitle: {
+                   			text: ''
+                   		},
+                   		xAxis: [{ // mirror axis on right side
+                   			opposite: false,
+                   			reversed: false,
+                   			categories: histogramCategories,
+                   		}],
+                   		yAxis: {
+                   			title: {
+                   				text: null
+                   			},
+                         labels: {
+                   				formatter: function(){
+                   					return Math.abs(this.value);
+                   				}
+                   			},
+                   			min: 0
+                   		},
+                   		plotOptions: {
+                   			series: {
+                   				stacking: 'normal'
+                   			}
+                   		},
+                   		tooltip: {
+                   			formatter: function(){
+                   				return '' + this.point.category +' work days: <b>' + Highcharts.numberFormat(Math.abs(this.point.y), 0) + '</b>';
+                   			}
+                   		},
+                   		series: [{
+                   			name: 'Time in process',
+                   			data: histogramData
+                   		}]
+                   	}, function(chart) {
+                   	     if (false) {
+                            chart.renderer.text('* non-linear', 200, 65).add();
+                          };
+                    });  // end of histogramChart
+                    
+                  } else {
+                    // Put a spinner in the chart containers until first fetch returns
+                    $('#scatter-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
+                    $('#histogram-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
+                  };  // end of if visualizationData?
+                
+                };  // end of createVisualization  
+                  
+    
+                $(document).ready(function() {
+                  calculator = new TIPChartCalculator(charts, userConfig, createVisualization);
+                });
+            
+            })();
+            
+                
+        </script>
+
+        
+    </head>
+    <body>
+        
+        <!-- 3. Add the containers -->
+        <table cellpading="0px" cellspacing="0px" width="98%" height="98%">
+          <tr>
+            <td width="65%"><div id="scatter-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+            <td width="35%"><div id="histogram-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+          </tr>
+        </table>
+                
+    </body>
+</html>
+
+

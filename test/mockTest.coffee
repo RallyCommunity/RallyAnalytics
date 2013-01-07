@@ -10,20 +10,22 @@ exports.mockTest =
     xhr = new XHRMock()
     
     handler = () ->
-      test.equal(this.responseText, '''{
-      	"_rallyAPIMajor": "1", 
-      	"_rallyAPIMinor": "27", 
-      	"Errors": [], 
-      	"Warnings": [], 
-      	"TotalResultCount": 5, 
-      	"StartIndex": 0, 
-      	"PageSize": 2, 
-      	"ETLDate": "2012-03-16T21:01:17.802Z", 
-      	"Results": [
-      		{"id": 1},
-      		{"id": 2}
-      	]
-      }''')
+      test.deepEqual(JSON.parse(this.responseText), JSON.parse('''
+        {
+        	"_rallyAPIMajor": "1",
+        	"_rallyAPIMinor": "27",
+        	"Errors": [],
+        	"Warnings": [],
+        	"TotalResultCount": 5,
+        	"StartIndex": 0,
+        	"PageSize": 2,
+        	"ETLDate": "2012-03-16T21:01:17.802Z",
+        	"Results": [
+        		{"id": 1, "_ValidFrom": "1 valid from"},
+        		{"id": 2, "_ValidFrom": "2 valid from"}
+        	]
+        }
+      '''))
       
     xhr.onreadystatechange = handler
     xhr.open('GET', 'http://somewhere.com')

@@ -77,41 +77,71 @@ exports.analyticsQueryTest =
         
     test.done()
     
-  testGetAllHappy: (test) ->
-    test.expect(3)
-    query = new AnalyticsQuery(basicConfig)
+  testGetPageHappy: (test) ->
+    test.expect(15)
+    query = new AnalyticsQuery(basicConfig, 'hello')
     query.XHRClass = XHRMock
 
-    callback = () ->
+    callback = (lastPageResults, startOn, endBefore, aqInstance) ->
       expectedText = '''{
-      	"_rallyAPIMajor": "1", 
-      	"_rallyAPIMinor": "27", 
-      	"Errors": [], 
-      	"Warnings": [], 
-      	"TotalResultCount": 5, 
-      	"StartIndex": 4, 
-      	"PageSize": 2, 
-      	"ETLDate": "2012-03-16T21:01:17.802Z", 
-      	"Results": [
-      		{"id": 5}
-      	]
-      }'''
+        	"_rallyAPIMajor": "1",
+        	"_rallyAPIMinor": "27",
+        	"Errors": [],
+        	"Warnings": [],
+        	"TotalResultCount": 5,
+        	"StartIndex": 0,
+        	"PageSize": 2,
+        	"ETLDate": "2012-03-16T21:01:17.802Z",
+        	"Results": [
+        		{"id": 1, "_ValidFrom": "1 valid from"},
+        		{"id": 2, "_ValidFrom": "2 valid from"}
+        	]
+        }'''
       expectedResponse = JSON.parse(expectedText)
-      test.equal(this.lastResponseText, expectedText)
-      test.deepEqual(this.lastResponse, expectedResponse)
-      test.deepEqual(this.allResults, [
-        {id: 1},
-        {id: 2},
-        {id: 3},
-        {id: 4},
-        {id: 5}
+      test.deepEqual(aqInstance.lastResponse, expectedResponse)
+      test.deepEqual(lastPageResults, [
+        {"id": 1, "_ValidFrom": "1 valid from"},
+        {"id": 2, "_ValidFrom": "2 valid from"}
       ])
+      test.equal(startOn, 'hello')
+      test.equal(endBefore, "2 valid from")
+      aqInstance.getPage(callback2)
+
+    callback2 = (lastPageResults, startOn, endBefore, aqInstance) ->
+      test.deepEqual(lastPageResults, [
+        {"id": 3, "_ValidFrom": "3 valid from"},
+        {"id": 4, "_ValidFrom": "4 valid from"}
+      ])
+      test.equal(startOn, '2 valid from')
+      test.equal(endBefore, "4 valid from")
+      test.equal(aqInstance.allResults.length, 4)
+      test.ok(aqInstance.hasMorePages())
+      aqInstance.getPage(callback3)
+
+    callback3 = (lastPageResults, startOn, endBefore, aqInstance) ->
+      test.deepEqual(lastPageResults, [
+        {"id": 5, "_ValidFrom": "5 valid from"}
+      ])
+      test.equal(startOn, '4 valid from')
+      test.equal(endBefore, aqInstance.ETLDate)
+      test.equal(aqInstance.allResults.length, 5)
+      test.ok(!aqInstance.hasMorePages())
+
+      f = () ->
+        aqInstance.getPage(callback4)
+
+      test.throws(f, Error)
+
+      test.done()
+
+    callback4 = (lastPageResults, startOn, endBefore, aqInstance) ->
+      test.ok(false)  # This should never run
       test.done()
       
     query.find({Project: 1234, _At: '2012-01-01'})
-    query.getAll(callback)
+    query.getPage(callback)
     
-  testGetAllMissingFind: (test) ->
+  testGetPageMissingFind: (test) ->
     query = new AnalyticsQuery(basicConfig)
     query.XHRClass = XHRMock
 
@@ -119,7 +149,7 @@ exports.analyticsQueryTest =
       test.done()
       
     f = () ->
-      query.getAll(callback)
+      query.getPage(callback)
       
     test.throws(f, Error)
     

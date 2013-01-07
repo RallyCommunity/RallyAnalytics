@@ -12,7 +12,8 @@ jsType = do ->  # from http://arcturo.github.com/library/coffeescript/07_the_bad
 
 class RallyQuery
   ###
-  This is total hack to get around the fact that I don't have App SDK 2.0 access yet
+  This is hack to get around the fact that I didn't have App SDK 2.0 access when I started.
+  I continue to use it for prototypes until I can ramp up on SDK 2.0.
   ###
 
   constructor: (config) ->

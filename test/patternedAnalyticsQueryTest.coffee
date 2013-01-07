@@ -26,7 +26,7 @@ exports.patternedAnalyticsQueryTest =
       password: 'xxxxx'
       workspaceOID: 12345
     
-    query = new AtAnalyticsQuery(config, '2012-01-01T00:00:00.000Z')
+    query = new AtAnalyticsQuery(config, 'hello', '2012-01-01T00:00:00.000Z')
     query.XHRClass = XHRMock
     
     test.equal(query.XHRClass, XHRMock)
@@ -47,38 +47,35 @@ exports.patternedAnalyticsQueryTest =
     
     test.done()
         
-  testGetAllHappy: (test) ->
-    test.expect(3)
-    query = new BetweenAnalyticsQuery(basicConfig, '2012-01-01T00:00:00.000Z', '2012-04-01T00:00:00.000Z')
+  testGetPageHappy: (test) ->
+    test.expect(2)
+    query = new BetweenAnalyticsQuery(basicConfig, 'hello', '2012-01-01T00:00:00.000Z', '2012-04-01T00:00:00.000Z')
     query.XHRClass = XHRMock    
 
-    callback = () ->
+    callback = (lastPageResults, startOn, endBefore, aqInstance) ->
       expectedText = '''{
       	"_rallyAPIMajor": "1", 
       	"_rallyAPIMinor": "27", 
       	"Errors": [], 
       	"Warnings": [], 
       	"TotalResultCount": 5, 
-      	"StartIndex": 4, 
+      	"StartIndex": 0,
       	"PageSize": 2, 
       	"ETLDate": "2012-03-16T21:01:17.802Z", 
       	"Results": [
-      		{"id": 5}
+          {"id": 1, "_ValidFrom": "1 valid from"},
+          {"id": 2, "_ValidFrom": "2 valid from"}
       	]
       }'''
       expectedResponse = JSON.parse(expectedText)
-      test.equal(this.lastResponseText, expectedText)
-      test.deepEqual(this.lastResponse, expectedResponse)
-      test.deepEqual(this.allResults, [
-        {id: 1},
-        {id: 2},
-        {id: 3},
-        {id: 4},
-        {id: 5}
+      test.deepEqual(aqInstance.lastResponse, expectedResponse)
+      test.deepEqual(lastPageResults, [
+        {"id": 1, "_ValidFrom": "1 valid from"},
+        {"id": 2, "_ValidFrom": "2 valid from"}
       ])
       test.done()
       
     query.scope('Project', 1234)
-    query.getAll(callback)
+    query.getPage(callback)
 
     
