@@ -65,10 +65,10 @@ deployHTMLFromDirectory = (directory, uglify = true) ->
     
 task('deploy', 'Combine local .js with .html from ./src and ./examples; then output to ./deploy', () -> 
   invoke('compile') 
-  deployHTMLFromDirectory(path.join(__dirname, 'src'), false) 
+  deployHTMLFromDirectory(path.join(__dirname, 'src'), false)
   deployHTMLFromDirectory(path.join(__dirname, 'examples'), false)
-  deployHTMLFromDirectory(path.join(__dirname, 'src')) 
-  deployHTMLFromDirectory(path.join(__dirname, 'examples'))
+#  deployHTMLFromDirectory(path.join(__dirname, 'src'))
+#  deployHTMLFromDirectory(path.join(__dirname, 'examples'))
 )
 
 run = (command, options, next) ->
@@ -89,24 +89,6 @@ run = (command, options, next) ->
 task('compile', 'Compile CS to JS and place in ./lib. Good for development.', () ->
   options = ['-c', '-o', 'lib', 'src']
   run('coffee', options)
-)
-
-task('watch', 'Recompile CoffeeScript source files when modified and place in ./lib *\n' +
-              '                          * Actually, it is best to just run `jitter src lib` from the command line', () ->
-    options = ['src', 'lib']
-    run('jitter', options)
-    
-#     jitter = spawn('jitter', options)
-#     jitter.stdout.on('data', (data) ->
-#       console.log(data)
-#     )
-#     jitter.stderr.on('data', (data) ->
-#       console.log(data)
-#     )
-#     jitter.stdout.on('exit', (code) ->
-#       if code != 0
-#         console.log('Failed: ' + code)
-#     )
 )
 
 task('docs', 'Generate docs with CoffeeDoc and place in ./docs', () ->

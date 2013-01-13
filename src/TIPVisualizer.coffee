@@ -5,15 +5,30 @@ else
 
 {utils} = lumenize
 
-class TIPChartCalculator extends ChartCalculatorBase
+class TIPVisualizer extends VisualizerBase
   ###
   ###
 
   initialize: () ->
     super()
-    trackLastValueForTheseFields = ['_ValidTo']
+
+    @config.toolTipFieldNames = []
     for s in @config.showTheseFieldsInToolTip
-      trackLastValueForTheseFields.push(s)
+      if utils.type(s) is 'string'
+        field = s
+      else
+        field = s.field
+      @config.toolTipFieldNames.push(field)
+      
+    trackLastValueForTheseFields = ['_ValidTo'].concat(@config.toolTipFieldNames)
+    unless @config.radiusField.field in trackLastValueForTheseFields
+      trackLastValueForTheseFields.push(@config.radiusField.field)
+
+    if @config.asOf?
+      @asOfISOString = new lumenize.Time(@config.asOf, 'millisecond').getISOStringInTZ(@config.lumenizeCalculatorConfig.tz)
+    else
+      @asOfISOString = null
+
     @config.lumenizeCalculatorConfig.trackLastValueForTheseFields = trackLastValueForTheseFields
     @config.lumenizeCalculatorConfig.granularity = 'hour'
     @config.lumenizeCalculatorConfig.workDayStartOn = @config.workDayStartOn
@@ -41,11 +56,14 @@ class TIPChartCalculator extends ChartCalculatorBase
 
     @analyticsQuery
       .type(@config.type)
-      .fields(@userConfig.showTheseFieldsInToolTip)
-#      .pagesize(3000)  # !TODO: Delete this after done debugging
-
+      .fields(@config.toolTipFieldNames)
+#      .pagesize(3000)  # For debugging incremental update
+ 
     if @config.leafOnly
       @analyticsQuery.leafOnly()
+
+    if @asOfISOString?
+      @analyticsQuery.additionalCriteria({_ValidFrom:{$lt:@asOfISOString}})
 
     if @config.debug
       @analyticsQuery.debug()
@@ -62,7 +80,7 @@ class TIPChartCalculator extends ChartCalculatorBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'v0.2.56'
+    salt = 'v0.2.70'
 #    salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)
@@ -85,18 +103,23 @@ class TIPChartCalculator extends ChartCalculatorBase
       return
 
     timeInState = []
-    nowMilliseconds = new Date().getTime()
+    if @config.asOf?
+      asOfMilliseconds = new lumenize.Time(@config.asOf, 'millisecond').getJSDate(@config.lumenizeCalculatorConfig.tz).getTime()
+    else
+      asOfMilliseconds = new Date().getTime()
     millisecondsToShow = @userConfig.daysToShow * 1000 * 60 * 60 * 24
+    startMilliseconds = asOfMilliseconds - millisecondsToShow
     for row in calculatorResults
       jsDateMilliseconds = new lumenize.Time(row._ValidTo_lastValue, 'millisecond').getJSDate(@config.lumenizeCalculatorConfig.tz).getTime()
-      if jsDateMilliseconds > nowMilliseconds
-        row.x = nowMilliseconds
+      if jsDateMilliseconds > asOfMilliseconds
+        row.x = asOfMilliseconds
       else
         row.x = jsDateMilliseconds
-      row.x -= Math.random() * 1000 * 60 * 60  # Seperate data points that show up on top of each other
-      if @userConfig.showStillInProcess or jsDateMilliseconds < nowMilliseconds
-        if nowMilliseconds - row.x < millisecondsToShow
-          timeInState.push(row)
+      row.x -= Math.random() * 1000 * 60 * 60  # Separate data points that show up on top of each other
+      if @config.radiusField?
+        row.marker = {radius: @config.radiusField.f(row[@config.radiusField.field + "_lastValue"])}
+      if (@userConfig.showStillInProcess or jsDateMilliseconds < asOfMilliseconds) and jsDateMilliseconds > startMilliseconds
+        timeInState.push(row)
 
     unless timeInState.length > 0
       return
@@ -129,6 +152,7 @@ class TIPChartCalculator extends ChartCalculatorBase
       row.y = row.clippedChartValue
 
     if @config.debug
+      console.log('timeInState just after calling histogram:')
       console.log(timeInState)
 
     histogramCategories = []
@@ -145,5 +169,5 @@ class TIPChartCalculator extends ChartCalculatorBase
 
     return
   
-this.TIPChartCalculator = TIPChartCalculator
+this.TIPVisualizer = TIPVisualizer
   

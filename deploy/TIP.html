@@ -1,23 +1,51 @@
 <!DOCTYPE HTML>
 
-<!--
-The general structure of the visualization examples in this repository follows these steps:
-
-1. Gather the parameters you'll need to specify the visualization
-   a. Gather some info from Rally's standard WSAPI
-   b. Gather some info from the user.
-   
-2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
-
-3. Perform some calculation/manipulation/aggregation of the snapshot data
-
-4. Render the data as a chart using some library like HighCharts
--->
-
 <html>
     <head>
+        <script type="text/javascript"">
+            var userConfig = {
+                subTitle: 'Stories In-Progress to Accepted',
+                debug: false,
+                daysToShow: 90,
+                showStillInProcess: false,
+                statePredicate: {ScheduleState:{$lt:"Accepted", $gte:"In-Progress"}},
+                type: 'HierarchicalRequirement',
+                leafOnly: true,
+                showTheseFieldsInToolTip: [ // Will automatically show ObjectID and Work Days In State
+                  'Name', 
+                  {field: 'PlanEstimate', as: "Plan Estimate"}
+                ],  
+                radiusField: {field: 'PlanEstimate', f: function(value){
+                  return Math.pow(value, 0.6) + 5
+                }},
+                workDayStartOn: {hour: 9},
+                workDayEndBefore: {hour: 17},
+                // holidays (unless we pull them from some data model in Rally)
+                // workDays (if you want to override the default pulling from WorkspaceConfiguration)
+            }
+            
+            // Feature Aging
+            userConfig.subTitle = 'Features In Dev and less than 100% done'
+            userConfig.showStillInProcess = true,
+            userConfig.statePredicate = {"State":"In Dev", "PercentDoneByStoryCount":{$lt:1,$gt:0}}
+            userConfig.type = 'PortfolioItem/Feature'
+            userConfig.leafOnly = false
+            userConfig.showTheseFieldsInToolTip = [
+              'Name',
+              {field: 'LeafStoryCount', as: 'Leaf Story Count'},
+              {field: "PercentDoneByStoryCount", as: 'Percent Done By Story Count', f: function(value) {
+                return Math.floor(value * 100 + 0.5).toString() + '%';
+              }}
+            ]
+            userConfig.radiusField = {field: 'LeafStoryCount', f: function(value){
+              return Math.pow(value, 0.6) + 5
+            }}
+
+            
+        </script>
+        
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <title>Time In State Insight Chart</title>
+        <title>Time In Process (TIP) Chart</title>
         
         <!-- HighCharts -->
         <script type="text/javascript" src="https://people.rallydev.com/js/jquery.min.js"></script>
@@ -28,432 +56,268 @@ The general structure of the visualization examples in this repository follows t
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/v0.4.3/deploy/Lumenize-min.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/v0.5.1/deploy/Lumenize-min.js"></script>
         
         <!-- rally_analytics -->
         
 <script type="text/javascript">
-(function(){var t,e,s,r,i,n,o,a,l,h=function(t,e){return function(){return t.apply(e,arguments)}},u={}.hasOwnProperty,p=function(t,e){function s(){this.constructor=t}for(var r in e)u.call(e,r)&&(t[r]=e[r]);return s.prototype=e.prototype,t.prototype=new s,t.__super__=e.prototype,t},c=[].indexOf||function(t){for(var e=0,s=this.length;s>e;e++)if(e in this&&this[e]===t)return e;return-1};l=this,a=function(){var t,e,s,r,i;for(t={},i="Boolean Number String Function Array Date RegExp Undefined Null".split(" "),s=0,r=i.length;r>s;s++)e=i[s],t["[object "+e+"]"]=e.toLowerCase();return function(e){var s;return s=Object.prototype.toString.call(e),t[s]||"object"}}(),t=function(){function t(t){this._gotResponse=h(this._gotResponse,this);var e,s,r,i,n,o,a,u,p,c;this._debug=!1,"undefined"==typeof process||null===process||"undefined"!=typeof window&&null!==window?null!=l.XMLHttpRequest&&(e=l.XMLHttpRequest):e=require("xmlhttprequest").XMLHttpRequest,this.XHRClass=e,this._xhr=null,this._find=null,this._fields=[],this._sort={_ValidFrom:1},this._startIndex=0,this._pageSize=1e5,this._callback=null,this.headers={},this.headers["X-RallyIntegrationLibrary"]="rally_analytics-0.1.0","undefined"!=typeof navigator&&null!==navigator?(n=navigator.appName+" "+navigator.appVersion,i=navigator.platform):"undefined"!=typeof process&&null!==process&&(n="Node.js (or some other non-browser) "+process.version,i=process.platform),this.headers["X-RallyIntegrationPlatform"]=n,this.headers["X-RallyIntegrationOS"]=i,a=t.additionalHeaders;for(r in a)o=a[r],this.headers[r]=o;if(s=function(e,s){if(null!=t[s])return e[s]=t[s];throw Error("Must include config["+s+"] header when instantiating this rally_analytics.AnalyticsQuery object")},s(this.headers,"X-RallyIntegrationName"),s(this.headers,"X-RallyIntegrationVendor"),s(this.headers,"X-RallyIntegrationVersion"),null!=t.workspaceOID)this.workspaceOID=t.workspaceOID;else{if(!("undefined"!=typeof process&&null!==process?null!=(u=process.env)?u.RALLY_WORKSPACE:void 0:void 0))throw Error("Must provide a config.workspaceOID or set environment variable RALLY_WORKSPACE");this.workspaceOID=process.env.RALLY_WORKSPACE}this.username=null!=t.username?t.username:("undefined"!=typeof process&&null!==process?null!=(p=process.env)?p.RALLY_USER:void 0:void 0)?process.env.RALLY_USER:void 0,this.password=null!=t.password?t.password:("undefined"!=typeof process&&null!==process?null!=(c=process.env)?c.RALLY_PASSWORD:void 0:void 0)?process.env.RALLY_PASSWORD:void 0,this.protocol="https",this.server="rally1.rallydev.com",this.service="analytics",this.version="v2.0",this.endpoint="artifact/snapshot/query.js",this._firstPage=!0,this.ETLDate=null,this.lastResponseText="",this.lastResponse={},this.lastMeta={},this.allResults=[],this.allMeta=[]}return t.prototype.resetFind=function(){return this._find=null},t.prototype.find=function(t){return this._find=t,this},t.prototype.sort=function(t){return this._sort=t,this},t.prototype.fields=function(t){return this._fields=this._fields.concat(t),this},t.prototype.hydrate=function(t){return this._hydrate=t,this},t.prototype.start=function(t){return this._startIndex=t,this},t.prototype.startIndex=function(t){return this._startIndex=t,this},t.prototype.pagesize=function(t){return this._pageSize=t,this},t.prototype.pageSize=function(t){return this._pageSize=t,this},t.prototype.auth=function(t,e){return this.username=t,this.password=e,this},t.prototype.debug=function(){return this._debug=!0},t.prototype.getBaseURL=function(){return this.protocol+"://"+[this.server,this.service,this.version,"service/rally/workspace",this.workspaceOID,this.endpoint].join("/")},t.prototype.getQueryString=function(){var t,e;if(t=JSON.stringify(this._find),null!=this._find&&t.length>2)return e=[],e.push("find="+t),null!=this._sort&&e.push("sort="+JSON.stringify(this._sort)),null!=this._fields&&(this._fields[0]===!0?e.push("fields=true"):this._fields.length>0&&e.push("fields="+JSON.stringify(this._fields))),null!=this._hydrate&&e.push("hydrate="+JSON.stringify(this._hydrate)),e.push("start="+this._startIndex),e.push("pagesize="+this._pageSize),e.join("&");throw Error("find clause not set")},t.prototype.getURL=function(){var t;return t=this.getBaseURL()+"?"+this.getQueryString(),this._debug&&(console.log("\nfind: ",this._find),console.log("\nurl: ",t)),encodeURI(t)},t.prototype.getAll=function(t){var e,s,r;if(this._callback=t,null==this._find)throw Error("Must set find clause before calling getAll");if(null==this.XHRClass)throw Error("Must set XHRClass");this._xhr=new this.XHRClass,this._xhr.onreadystatechange=this._gotResponse,this._xhr.open("GET",this.getURL(),!0,this.username,this.password),r=this.headers;for(e in r)s=r[e],this._xhr.setRequestHeader(e,s);return this._xhr.send(),this},t.prototype._gotResponse=function(){var t,e,s,r,i,n,o,a,l,h,u=this;if(this._debug&&console.log("readyState: ",this._xhr.readyState),4===this._xhr.readyState){if(h=function(){return u._firstPage=!0,u._startIndex=0,u._callback.call(u)},this.lastResponseText=this._xhr.responseText,this._debug&&(console.log("headers: "+this._xhr.getAllResponseHeaders()),console.log("status: "+this._xhr.status),console.log("lastResponseText: "+this.lastResponseText),console.log("lastResponseJSON: "+JSON.stringify(JSON.parse(this.lastResponseText),void 0,2))),this.lastResponse=JSON.parse(this.lastResponseText),this.lastResponse.Errors.length>0)return console.log("Errors\n"+JSON.stringify(this.lastResponse.Errors)),h();for(this._firstPage&&(this._firstPage=!1,this.allResults=[],this.allMeta=[],this.ETLDate=this.lastResponse.ETLDate,this._pageSize=this.lastResponse.PageSize,e={$and:[this._find,{_ValidFrom:{$lte:this.ETLDate}}]},this._find=e),o=this.lastResponse.Results,i=0,n=o.length;n>i;i++)s=o[i],this.allResults.push(s);this.lastMeta={},a=this.lastResponse;for(t in a)r=a[t],"Results"!==t&&(this.lastMeta[t]=r);if(this.allMeta.push(this.lastMeta),this.lastResponse.Results.length+this.lastResponse.StartIndex>=this.lastResponse.TotalResultCount)return h();this._startIndex+=this._pageSize,this._xhr=new this.XHRClass,this._xhr.onreadystatechange=this._gotResponse,this._xhr.open("GET",this.getURL(),!0,this.username,this.password),l=this.headers;for(t in l)r=l[t],this._xhr.setRequestHeader(t,r);return this._xhr.send()}},t}(),i=function(t){function e(t){e.__super__.constructor.call(this,t),this._scope={},this._type=null,this._additionalCriteria=[]}return p(e,t),e.prototype.generateFind=function(){var t,e,s,r,i,n;if(e=[],!(JSON.stringify(this._scope).length>2))throw Error("Must set scope first.");for(e.push(this._scope),null!=this._type&&e.push(this._type),i=this._additionalCriteria,s=0,r=i.length;r>s;s++)t=i[s],e.push(t);return(n=e.length)>0&&2>n?e[0]:{$and:e}},e.prototype.find=function(){if(arguments.length>0)throw Error("Do not call find() directly to set query. Use scope(), type(), and additionalCriteria()");return e.__super__.find.call(this,this.generateFind()),this},e.prototype.resetScope=function(){return this._scope={}},e.prototype.scope=function(t,e){var s,r,i,n=this;if(s=function(t,e){var s;if("ItemHierarchy"===t&&(t="_ItemHierarchy"),"Tag"===t&&(t="Tags"),"ProjectHierarchy"===t&&(t="_ProjectHierarchy"),s=["Project","_ProjectHierarchy","Iteration","Release","Tags","_ItemHierarchy"],0>c.call(s,t))throw Error("Key for scope() call must be one of "+s);return n._scope[t]="array"===a(e)?{$in:e}:e},"object"===a(t))for(r in t)i=t[r],s(r,i);else{if(2!==arguments.length)throw Error("Must provide an Object in first parameter or two parameters (key, value).");s(t,e)}return this},e.prototype.resetType=function(){return this._type=null},e.prototype.type=function(t){return this._type={_TypeHierarchy:t},this},e.prototype.resetAdditionalCriteria=function(){return this._additionalCriteria=[]},e.prototype.additionalCriteria=function(t){return this._additionalCriteria.push(t),this},e.prototype.leafOnly=function(){return this.additionalCriteria({$or:[{_TypeHierarchy:"HierarchicalRequirement",Children:null},{_TypeHierarchy:"PortfolioItem",Children:null,UserStories:null}]}),this},e.prototype.getAll=function(t){return this.find(),e.__super__.getAll.call(this,t)},e}(t),e=function(t){function e(t,s){if(e.__super__.constructor.call(this,t),null==s)throw Error("Must provide a zuluDateString when instantiating an AtAnalyticsQuery.");this._additionalCriteria.push({_At:s})}return p(e,t),e}(i),s=function(t){function e(t){throw e.__super__.constructor.call(this,t),Error("AtArrayAnalyticsQuery is not yet implemented")}return p(e,t),e}(i),r=function(t){function e(t,s,r){var i;if(e.__super__.constructor.call(this,t),null==s||null==r)throw Error("Must provide two zulu data strings when instantiating a BetweenAnalyticsQuery.");i={_ValidFrom:{$lt:r},_ValidTo:{$gt:s}},this._additionalCriteria.push(i),this.sort({_ValidFrom:1})}return p(e,t),e}(i),n=function(t){function e(t,s){if(e.__super__.constructor.call(this,t),null==s)throw Error("Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.");this._additionalCriteria.push(s),this.fields(["ObjectID","_ValidFrom","_ValidTo"]),this.sort({_ValidFrom:1})}return p(e,t),e}(i),o=function(t){function e(t){throw e.__super__.constructor.call(this,t),Error("Not yet implemented")}return p(e,t),e}(i),l.AnalyticsQuery=t,l.GuidedAnalyticsQuery=i,l.AtAnalyticsQuery=e,l.AtArrayAnalyticsQuery=s,l.BetweenAnalyticsQuery=r,l.TimeInStateAnalyticsQuery=n,l.TransitionsAnalyticsQuery=o}).call(this);
-</script> 
+(function(){var t,e,s,r,i,n,o,a,l,h=function(t,e){return function(){return t.apply(e,arguments)}},u={}.hasOwnProperty,p=function(t,e){function s(){this.constructor=t}for(var r in e)u.call(e,r)&&(t[r]=e[r]);return s.prototype=e.prototype,t.prototype=new s,t.__super__=e.prototype,t},c=[].indexOf||function(t){for(var e=0,s=this.length;s>e;e++)if(e in this&&this[e]===t)return e;return-1};l=this,a=function(){var t,e,s,r,i;for(t={},i="Boolean Number String Function Array Date RegExp Undefined Null".split(" "),s=0,r=i.length;r>s;s++)e=i[s],t["[object "+e+"]"]=e.toLowerCase();return function(e){var s;return s=Object.prototype.toString.call(e),t[s]||"object"}}(),t=function(){function t(t,e){var s,r,i,n,o,a,u,p,c,d;this.upToDate=e,this._gotResponse=h(this._gotResponse,this),this._debug=!1,"undefined"==typeof process||null===process||"undefined"!=typeof window&&null!==window?null!=l.XMLHttpRequest&&(s=l.XMLHttpRequest):s=require("xmlhttprequest").XMLHttpRequest,this.XHRClass=s,this._xhr=null,this._find=null,this._fields=[],this._sort={_ValidFrom:1},this._startIndex=0,this._pageSize=1e5,this._callback=null,this.headers={},this.headers["X-RallyIntegrationLibrary"]="rally_analytics-0.1.0","undefined"!=typeof navigator&&null!==navigator?(o=navigator.appName+" "+navigator.appVersion,n=navigator.platform):"undefined"!=typeof process&&null!==process&&(o="Node.js (or some other non-browser) "+process.version,n=process.platform),this.headers["X-RallyIntegrationPlatform"]=o,this.headers["X-RallyIntegrationOS"]=n,u=t.additionalHeaders;for(i in u)a=u[i],this.headers[i]=a;if(r=function(e,s){if(null!=t[s])return e[s]=t[s];throw Error("Must include config["+s+"] header when instantiating this rally_analytics.AnalyticsQuery object")},r(this.headers,"X-RallyIntegrationName"),r(this.headers,"X-RallyIntegrationVendor"),r(this.headers,"X-RallyIntegrationVersion"),null!=t.workspaceOID)this.workspaceOID=t.workspaceOID;else{if(!("undefined"!=typeof process&&null!==process?null!=(p=process.env)?p.RALLY_WORKSPACE:void 0:void 0))throw Error("Must provide a config.workspaceOID or set environment variable RALLY_WORKSPACE");this.workspaceOID=process.env.RALLY_WORKSPACE}this.username=null!=t.username?t.username:("undefined"!=typeof process&&null!==process?null!=(c=process.env)?c.RALLY_USER:void 0:void 0)?process.env.RALLY_USER:void 0,this.password=null!=t.password?t.password:("undefined"!=typeof process&&null!==process?null!=(d=process.env)?d.RALLY_PASSWORD:void 0:void 0)?process.env.RALLY_PASSWORD:void 0,this.protocol="https",this.server="rally1.rallydev.com",this.service="analytics",this.version="v2.0",this.endpoint="artifact/snapshot/query.js",this._hasMorePages=!0,this._firstPage=!0,this.ETLDate=null,this.lastResponseText="",this.lastResponse={},this.lastPageResults=[],this.allResults=[],this.lastPageMeta={},this.allMeta=[]}return t.prototype.resetFind=function(){return this._find=null},t.prototype.find=function(t){return this._find=t,this},t.prototype.sort=function(){throw Error("Sort must be {_ValidFrom: 1}.")},t.prototype._setSort=function(t){return this._sort=t,this},t.prototype.fields=function(t){return this._fields=this._fields.concat(t),this},t.prototype.hydrate=function(t){return this._hydrate=t,this},t.prototype.start=function(t){return this._startIndex=t,this},t.prototype.startIndex=function(t){return this._startIndex=t,this},t.prototype.pagesize=function(t){return this._pageSize=t,this},t.prototype.pageSize=function(t){return this._pageSize=t,this},t.prototype.auth=function(t,e){return this.username=t,this.password=e,this},t.prototype.debug=function(){return this._debug=!0},t.prototype.getBaseURL=function(){return this.protocol+"://"+[this.server,this.service,this.version,"service/rally/workspace",this.workspaceOID,this.endpoint].join("/")},t.prototype.getQueryString=function(){var t,e;if(t=JSON.stringify(this._find),null!=this._find&&t.length>2)return e=[],e.push("find="+t),null!=this._sort&&e.push("sort="+JSON.stringify(this._sort)),null!=this._fields&&(this._fields[0]===!0?e.push("fields=true"):this._fields.length>0&&e.push("fields="+JSON.stringify(this._fields))),null!=this._hydrate&&e.push("hydrate="+JSON.stringify(this._hydrate)),e.push("start="+this._startIndex),e.push("pagesize="+this._pageSize),e.join("&");throw Error("find clause not set")},t.prototype.getURL=function(){var t;return t=this.getBaseURL()+"?"+this.getQueryString(),this._debug&&(console.log("\nfind: ",this._find),console.log("\nurl:"),console.log(t)),encodeURI(t)},t.prototype.getAll=function(){throw Error("getAll() not supported in this version of AnalyticsQuery.")},t.prototype.hasMorePages=function(){return this._hasMorePages},t.prototype.getPage=function(t){var e,s,r;if(this._callback=t,null==this._find)throw Error("Must set find clause before calling getPage");if(null==this.XHRClass)throw Error("Must set XHRClass");if(!this._hasMorePages)throw Error("All pages retrieved. Inspect AnalyticsQuery.allResults and AnalyticsQuery.allMeta for results.");if(null==this.upToDate)throw Error("Must set property upToDate before calling getPage");this._xhr=new this.XHRClass,this._xhr.onreadystatechange=this._gotResponse,this._xhr.open("GET",this.getURL(),!0,this.username,this.password),r=this.headers;for(e in r)s=r[e],this._xhr.setRequestHeader(e,s);return this._xhr.send(),this},t.prototype._gotResponse=function(){var t,e,s,r,i,n,o,a,l,h;if(this._debug&&console.log("\nreadyState: ",this._xhr.readyState),4===this._xhr.readyState){if(this.lastResponseText=this._xhr.responseText,this.lastResponse=JSON.parse(this.lastResponseText),this._debug&&(console.log("\nresponse headers:\n"),console.log(this._xhr.getAllResponseHeaders()),console.log("\nstatus: ",this._xhr.status),"string"==typeof this.lastResponse?console.log("\nlastResponseText: ",this.lastResponseText):console.log("\nlastResponseJSON: ",this.lastResponse)),this.lastResponse.Errors.length>0)return console.log("Errors\n"+JSON.stringify(this.lastResponse.Errors)),_return();if(this._firstPage)this._firstPage=!1,this.allResults=[],this.allMeta=[],this.ETLDate=this.lastResponse.ETLDate,this._pageSize=this.lastResponse.PageSize,s={$and:[this._find,{_ValidFrom:{$lte:this.ETLDate}}]},this._find=s;else if(this.lastResponse.PageSize!==this._pageSize)throw Error("Pagesize changed after first page which is unexpected.");for(this.lastPageResults=[],i=this.lastResponse.Results,a=0,l=i.length;l>a;a++)r=i[a],this.lastPageResults.push(r);this.allResults=this.allResults.concat(this.lastPageResults),this.lastPageMeta={},h=this.lastResponse;for(e in h)o=h[e],"Results"!==e&&(this.lastPageMeta[e]=o);return this.allMeta.push(this.lastPageMeta),this.lastResponse.Results.length+this.lastResponse.StartIndex>=this.lastResponse.TotalResultCount?(this._hasMorePages=!1,t=this.ETLDate):(this._hasMorePages=!0,this._startIndex+=this._pageSize,t=this.lastPageResults[this.lastPageResults.length-1]._ValidFrom),n=this.upToDate,this.upToDate=t,this._callback(this.lastPageResults,n,t,this)}},t}(),i=function(t){function e(t,s){e.__super__.constructor.call(this,t,s),this._scope={},this._type=null,this._additionalCriteria=[]}return p(e,t),e.prototype.generateFind=function(){var t,e,s,r,i,n;if(e=[],!(JSON.stringify(this._scope).length>2))throw Error("Must set scope first.");for(e.push(this._scope),null!=this._type&&e.push(this._type),i=this._additionalCriteria,s=0,r=i.length;r>s;s++)t=i[s],e.push(t);return(n=e.length)>0&&2>n?e[0]:{$and:e}},e.prototype.find=function(){if(arguments.length>0)throw Error("Do not call find() directly to set query. Use scope(), type(), and additionalCriteria()");return e.__super__.find.call(this,this.generateFind()),this},e.prototype.resetScope=function(){return this._scope={}},e.prototype.scope=function(t,e){var s,r,i,n=this;if(s=function(t,e){var s;if("ItemHierarchy"===t&&(t="_ItemHierarchy"),"Tag"===t&&(t="Tags"),"ProjectHierarchy"===t&&(t="_ProjectHierarchy"),s=["Project","_ProjectHierarchy","Iteration","Release","Tags","_ItemHierarchy"],0>c.call(s,t))throw Error("Key for scope() call must be one of "+s);return n._scope[t]="array"===a(e)?{$in:e}:e},"object"===a(t))for(r in t)i=t[r],s(r,i);else{if(2!==arguments.length)throw Error("Must provide an Object in first parameter or two parameters (key, value).");s(t,e)}return this},e.prototype.resetType=function(){return this._type=null},e.prototype.type=function(t){return this._type={_TypeHierarchy:t},this},e.prototype.resetAdditionalCriteria=function(){return this._additionalCriteria=[]},e.prototype.additionalCriteria=function(t){return this._additionalCriteria.push(t),this},e.prototype.leafOnly=function(){return this.additionalCriteria({$or:[{_TypeHierarchy:"HierarchicalRequirement",Children:null},{_TypeHierarchy:"PortfolioItem",Children:null,UserStories:null}]}),this},e.prototype.getPage=function(t){return this.find(),e.__super__.getPage.call(this,t)},e}(t),e=function(t){function e(t,s,r){if(e.__super__.constructor.call(this,t,s),null==r)throw Error("Must provide a zuluDateString when instantiating an AtAnalyticsQuery.");this._additionalCriteria.push({_At:r})}return p(e,t),e}(i),s=function(t){function e(t,s){throw e.__super__.constructor.call(this,t,s),Error("AtArrayAnalyticsQuery is not yet implemented")}return p(e,t),e}(i),r=function(t){function e(t,s,r){var i;if(e.__super__.constructor.call(this,t,s),null==s||null==r)throw Error("Must provide two zulu data strings when instantiating a BetweenAnalyticsQuery.");i={_ValidFrom:{$lt:r},_ValidTo:{$gt:s}},this._additionalCriteria.push(i)}return p(e,t),e}(i),n=function(t){function e(t,s,r){if(e.__super__.constructor.call(this,t,s),null==r)throw Error("Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.");this._additionalCriteria.push(r),this._additionalCriteria.push({_ValidTo:{$gt:s}}),this.fields(["ObjectID","_ValidFrom","_ValidTo"])}return p(e,t),e}(i),o=function(t){function e(t,s){throw e.__super__.constructor.call(this,t,s),Error("Not yet implemented")}return p(e,t),e}(i),l.AnalyticsQuery=t,l.GuidedAnalyticsQuery=i,l.AtAnalyticsQuery=e,l.AtArrayAnalyticsQuery=s,l.BetweenAnalyticsQuery=r,l.TimeInStateAnalyticsQuery=n,l.TransitionsAnalyticsQuery=o}).call(this);
+</script>
+
+        <!-- md5 -->
+        
+<script type="text/javascript">
+(function(){function t(t,r,e){return t&r|~t&e}function r(t,r,e){return t&e|r&~e}function e(t,r,e){return t^r^e}function s(t,r,e){return r^(t|~e)}function i(t){return String.fromCharCode(255&t)+String.fromCharCode(255&t>>>8)+String.fromCharCode(255&t>>>16)+String.fromCharCode(255&t>>>24)}function n(t){for(;0>t;)t+=4294967296;for(;t>4294967295;)t-=4294967296;return t}function a(t,r,e,s,i){var a,o,l,u,p,c,y,f,d;a=s[0],o=s[1],l=s[2],u=s[3],p=i[0],c=i[1],y=i[2],d=e(r[o],r[l],r[u]),f=r[a]+d+t[p]+h[y],f=n(f),f=f<<c|f>>>32-c,f+=r[o],r[a]=n(f)}function o(t){var r,e,s,o,l,h,u,p,c,y,d,_,g;if(s=Array(1732584193,4023233417,2562383102,271733878),l=t.length,h=63&l,u=56>h?56-h:120-h,u>0)for(t+="",y=0;u-1>y;y++)t+="\0";for(t+=i(8*l),t+=i(0),l+=u+8,r=Array(0,1,2,3),e=Array(16),o=Array(4),_=0;l>_;_+=64){for(y=0,d=_;16>y;y++,d+=4)e[y]=t.charCodeAt(d)|t.charCodeAt(d+1)<<8|t.charCodeAt(d+2)<<16|t.charCodeAt(d+3)<<24;for(y=0;4>y;y++)o[y]=s[y];for(y=0;4>y;y++)for(p=f[y][0],c=f[y][1],d=0;16>d;d++)a(e,o,p,r,c[d]),g=r[0],r[0]=r[3],r[3]=r[2],r[2]=r[1],r[1]=g;for(y=0;4>y;y++)s[y]+=o[y],s[y]=n(s[y])}return i(s[0])+i(s[1])+i(s[2])+i(s[3])}function l(t){var r,e,s,i;for(i=o(t),e="",r=0;16>r;r++)s=i.charCodeAt(r),e+="0123456789abcdef".charAt(15&s>>4),e+="0123456789abcdef".charAt(15&s);return e}var h=Array(0,3614090360,3905402710,606105819,3250441966,4118548399,1200080426,2821735955,4249261313,1770035416,2336552879,4294925233,2304563134,1804603682,4254626195,2792965006,1236535329,4129170786,3225465664,643717713,3921069994,3593408605,38016083,3634488961,3889429448,568446438,3275163606,4107603335,1163531501,2850285829,4243563512,1735328473,2368359562,4294588738,2272392833,1839030562,4259657740,2763975236,1272893353,4139469664,3200236656,681279174,3936430074,3572445317,76029189,3654602809,3873151461,530742520,3299628645,4096336452,1126891415,2878612391,4237533241,1700485571,2399980690,4293915773,2240044497,1873313359,4264355552,2734768916,1309151649,4149444226,3174756917,718787259,3951481745),u=Array(Array(0,7,1),Array(1,12,2),Array(2,17,3),Array(3,22,4),Array(4,7,5),Array(5,12,6),Array(6,17,7),Array(7,22,8),Array(8,7,9),Array(9,12,10),Array(10,17,11),Array(11,22,12),Array(12,7,13),Array(13,12,14),Array(14,17,15),Array(15,22,16)),p=Array(Array(1,5,17),Array(6,9,18),Array(11,14,19),Array(0,20,20),Array(5,5,21),Array(10,9,22),Array(15,14,23),Array(4,20,24),Array(9,5,25),Array(14,9,26),Array(3,14,27),Array(8,20,28),Array(13,5,29),Array(2,9,30),Array(7,14,31),Array(12,20,32)),c=Array(Array(5,4,33),Array(8,11,34),Array(11,16,35),Array(14,23,36),Array(1,4,37),Array(4,11,38),Array(7,16,39),Array(10,23,40),Array(13,4,41),Array(0,11,42),Array(3,16,43),Array(6,23,44),Array(9,4,45),Array(12,11,46),Array(15,16,47),Array(2,23,48)),y=Array(Array(0,6,49),Array(7,10,50),Array(14,15,51),Array(5,21,52),Array(12,6,53),Array(3,10,54),Array(10,15,55),Array(1,21,56),Array(8,6,57),Array(15,10,58),Array(6,15,59),Array(13,21,60),Array(4,6,61),Array(11,10,62),Array(2,15,63),Array(9,21,64)),f=Array(Array(t,u),Array(r,p),Array(e,c),Array(s,y));this.md5=l}).call(this);
+</script>
         
         <!-- my calculator for this chart (optional) -->
         
+<script type="text/javascript">
+(function(){var t;t=function(){function t(r,e,s){var i;this.directoryForNodeJSCache=null!=r?r:"./local-storage-cache",this.quotaForNodeJSCache=null!=e?e:5242880,this.keyForMetaData=null!=s?s:"local-storage-cache-key-for-meta-data","undefined"!=typeof localStorage&&null!==localStorage?t.localStorage=localStorage:(i=require("node-localstorage").LocalStorage,t.localStorage=new i(this.directoryForNodeJSCache,this.quotaForNodeJSCache)),null==t.meta&&(t.meta=this.getItem(this.keyForMetaData),null==t.meta&&(t.meta={}))}return t.meta=null,t.localStorage=null,t.prototype.setItem=function(r,e){for(var s,i,a,o,n,l,h;;)try{t.localStorage.setItem(r,JSON.stringify(e));break}catch(u){if("QUOTA_EXCEEDED_ERR"!==u.name)throw u;n=(new Date).getTime(),o=null,l=t.meta;for(i in l)a=l[i],n>a.lastUpdated&&(o=i,n=a.lastUpdated);this.removeItem(o)}for(s={},s.lastUpdated=(new Date).getTime(),t.meta[r]=s;;)try{t.localStorage.setItem(this.keyForMetaData,JSON.stringify(t.meta));break}catch(u){if("QUOTA_EXCEEDED_ERR"!==u.name)throw u;n=(new Date).getTime(),o=null,h=t.meta;for(i in h)a=h[i],n>a.lastUpdated&&(o=i,n=a.lastUpdated);this.removeItem(o)}return this},t.prototype.getItem=function(r){var e;return e=t.localStorage.getItem(r),null!=e?JSON.parse(e):void 0},t.prototype.removeItem=function(r){return t.localStorage.removeItem(r),delete t.meta[r],t.localStorage.setItem(this.keyForMetaData,JSON.stringify(t.meta)),this},t.prototype.clear=function(){var r,e,s;s=t.meta;for(r in s)e=s[r],t.localStorage.removeItem(r);return t.meta={},t.localStorage.setItem(this.keyForMetaData,JSON.stringify(t.meta)),this},t}(),"undefined"!=typeof exports&&this.exports!==exports?exports.LocalCache=t:this.LocalCache=t}).call(this);
+</script> 
+        
+<script type="text/javascript">
+(function(){var t,e,r,i=function(t,e){return function(){return t.apply(e,arguments)}};e="undefined"!=typeof exports&&null!==exports?require("../lib/Lumenize"):require("/lumenize"),r=e.utils,t=function(){function t(t,e,s){this.visualizations=t,this.userConfig=e,this.createVisualizationCB=s,this.onSnapshotsReceieved=i(this.onSnapshotsReceieved,this),this.config=r.clone(this.userConfig),this.timeoutHandle=null,this.cache=new LocalCache,null==this.config.debug&&(this.config.debug=!1),this.getProjectAndWorkspaceScope()}return t.prototype.getProjectAndWorkspaceScope=function(){var t,e,r,i,s,a,o=this;return top===self?(s=41529001,r=!1,e=!0,t=81147451):(s=__WORKSPACE_OID__,r=__PROJECT_SCOPING_UP__,e=__PROJECT_SCOPING_DOWN__,t=__PROJECT_OID__),i={workspaceOID:s,projectScopingUp:r,projectScopingDown:e,projectOID:t},a=function(t){return o.projectAndWorkspaceScope=t,o.getWorkspaceConfiguration()},a(i)},t.prototype.getWorkspaceConfiguration=function(){var t,e,r=this;return t={DateFormat:"MM/dd/yyyy",DateTimeFormat:"MM/dd/yyyy hh:mm:ss a",IterationEstimateUnitName:"Points",ReleaseEstimateUnitName:"Points",TaskUnitName:"Hours",TimeTrackerEnabled:!0,TimeZone:"America/Denver",WorkDays:"Monday,Tuesday,Wednesday,Thursday,Friday"},e=function(t){return r.workspaceConfiguration=t,r.initialize(),r.onConfigOrScopeUpdated()},e(t)},t.prototype.onConfigOrScopeUpdated=function(){var t;return t=this.cache.getItem(this.getHashForCache()),null!=t?(this.lumenizeCalculator=this.LumenizeCalculatorClass.newFromSavedState(t),this.upToDate=this.lumenizeCalculator.upToDate):(this.lumenizeCalculator=new this.LumenizeCalculatorClass(this.config.lumenizeCalculatorConfig),this.upToDate=null),this.createOrUpdateVisualization(),this.onNewDataAvailable()},t.prototype.onSnapshotsReceieved=function(t,e,r,i){return null==i&&(i=null),this.dirty=t.length>0?!0:!1,this.lastQueryReceivedMilliseconds=(new Date).getTime(),this.upToDate=r,this.deriveFields(t),this.updateCalculator(t,e,r),this.createOrUpdateVisualization(),this.analyticsQuery.hasMorePages()?this.onNewDataAvailable():this.newDataExpected(void 0,this.config.refreshIntervalMilliseconds)},t.prototype.newDataExpected=function(t,e){var r;return null==t&&(t=3e4),null==e&&(e=18e5),r=e+t,null!=this.timeoutHandle&&clearTimeout(this.timeoutHandle),this.timeoutHandle=setTimeout(this.onNewDataAvailable,r)},t.prototype.removeFromCacheAndRecalculate=function(){return this.upToDate=null,this.cache.removeItem(this.getHashForCache()),this.onConfigOrScopeUpdated()},t.prototype.updateCalculator=function(t,e,r){var i;return this.lumenizeCalculator.addSnapshots(t,e,r),i=this.lumenizeCalculator.getStateForSaving(),this.cache.setItem(this.getHashForCache(),i)},t.prototype.initialize=function(){return null==this.config.lumenizeCalculatorConfig&&(this.config.lumenizeCalculatorConfig={}),this.config.lumenizeCalculatorConfig.workDays=this.workspaceConfiguration.WorkDays,this.config.lumenizeCalculatorConfig.tz=null!=this.userConfig.tz?this.userConfig.tz:this.workspaceConfiguration.TimeZone},t.prototype.deriveFields=function(t){return null!=this.config.deriveFieldsConfig?Lumenize.deriveFields(t,this.config.deriveFieldsConfig):void 0},t.prototype.onNewDataAvailable=function(){return this.analyticsQuery.getPage(this.onSnapshotsReceieved)},t.prototype.createOrUpdateVisualization=function(){},t.prototype.getHashForCache=function(){},t}(),this.ChartCalculatorBase=t}).call(this);
+</script> 
+        
+<script type="text/javascript">
+(function(){var t,e,r,i=function(t,e){return function(){return t.apply(e,arguments)}},s={}.hasOwnProperty,o=function(t,e){function r(){this.constructor=t}for(var i in e)s.call(e,i)&&(t[i]=e[i]);return r.prototype=e.prototype,t.prototype=new r,t.__super__=e.prototype,t},a=[].indexOf||function(t){for(var e=0,r=this.length;r>e;e++)if(e in this&&this[e]===t)return e;return-1};e="undefined"!=typeof exports&&null!==exports?require("../lib/lumenize"):require("/lumenize"),r=e.utils,t=function(t){function s(){return this.onNewDataAvailable=i(this.onNewDataAvailable,this),s.__super__.constructor.apply(this,arguments)}return o(s,t),s.prototype.initialize=function(){var t,i,o,n,l,u,h;for(s.__super__.initialize.call(this),this.config.toolTipFieldNames=[],u=this.config.showTheseFieldsInToolTip,n=0,l=u.length;l>n;n++)i=u[n],t="string"===r.type(i)?i:i.field,this.config.toolTipFieldNames.push(t);return o=["_ValidTo"].concat(this.config.toolTipFieldNames),h=this.config.radiusField.field,0>a.call(o,h)&&o.push(this.config.radiusField.field),this.config.lumenizeCalculatorConfig.trackLastValueForTheseFields=o,this.config.lumenizeCalculatorConfig.granularity="hour",this.config.lumenizeCalculatorConfig.workDayStartOn=this.config.workDayStartOn,this.config.lumenizeCalculatorConfig.workDayEndBefore=this.config.workDayEndBefore,this.config.lumenizeCalculatorConfig.holidays=this.config.holidays,this.config.lumenizeCalculatorConfig.workDays=this.config.workDays,this.LumenizeCalculatorClass=e.TimeInStateCalculator},s.prototype.onNewDataAvailable=function(){var t;return t={"X-RallyIntegrationName":"TIP Chart (prototype)","X-RallyIntegrationVendor":"Rally Red Pill","X-RallyIntegrationVersion":"0.2.0",workspaceOID:this.projectAndWorkspaceScope.workspaceOID},null==this.upToDate&&(this.upToDate="2011-12-01T00:00:00.000Z"),this.analyticsQuery=new TimeInStateAnalyticsQuery(t,this.upToDate,this.config.statePredicate),this.projectAndWorkspaceScope.projectScopingDown?this.analyticsQuery.scope("_ProjectHierarchy",this.projectAndWorkspaceScope.projectOID):this.analyticsQuery.scope("Project",this.projectAndWorkspaceScope.projectOID),this.analyticsQuery.type(this.config.type).fields(this.config.toolTipFieldNames),this.config.leafOnly&&this.analyticsQuery.leafOnly(),this.config.debug&&(this.analyticsQuery.debug(),console.log("Requesting data...")),this.analyticsQuery.getPage(this.onSnapshotsReceieved)},s.prototype.getHashForCache=function(){var t,e,i,s,o;return t={},o=r.clone(this.userConfig),delete o.debug,delete o.daysToShow,delete o.showStillInProgress,t.userConfig=o,t.projectAndWorkspaceScope=this.projectAndWorkspaceScope,t.workspaceConfiguration=this.workspaceConfiguration,s="v0.2.62",e=JSON.stringify(t),i=md5(e+s)},s.prototype.createOrUpdateVisualization=function(){var t,r,i,s,o,a,n,l,u,h,c,p,f,y,d,g,_,m,A,C,v,S,R,w,D,T,I,O,P;if(s=this.lumenizeCalculator.getResults(),0===s.length)return this.visualizationData=null,this.createVisualizationCB(this.visualizationData),void 0;if(this.dirty){for(g=[],f=(new Date).getTime(),p=24*60*60*1e3*this.userConfig.daysToShow,C=0,w=s.length;w>C;C++)y=s[C],c=new e.Time(y._ValidTo_lastValue,"millisecond").getJSDate(this.config.lumenizeCalculatorConfig.tz).getTime(),y.x=c>f?f:c,y.x-=60*60*1e3*Math.random(),null!=this.config.radiusField&&(y.marker={radius:this.config.radiusField.f(y[this.config.radiusField.field+"_lastValue"])}),(this.userConfig.showStillInProcess||f>c)&&p>f-y.x&&g.push(y);if(g.length>0){for(d=60*this.config.workDayStartOn.hour,(null!=(O=this.config.workDayStartOn)?O.minute:void 0)&&(d+=this.config.workDayStartOn.minute),n=60*this.config.workDayEndBefore.hour,(null!=(P=this.config.workDayEndBefore)?P.minute:void 0)&&(n+=this.config.workDayEndBefore.minute),n>d?A=n-d:(A=1440-d,A+=n),m=A/60,v=0,D=g.length;D>v;v++)y=g[v],y.days=y.ticks/m;if(h=e.histogram(g,"days"),null!=h){for(i=h.buckets,o=h.chartMax,_=h.valueMax,r=h.bucketSize,a=h.clipped,S=0,T=g.length;T>S;S++)y=g[S],y.y=y.clippedChartValue;for(this.config.debug&&console.log(g),l=[],u=[],R=0,I=i.length;I>R;R++)t=i[R],l.push(t.label),u.push(t.count);this.visualizationData={timeInState:g,histogramResults:h,histogramCategories:l,histogramData:u},this.createVisualizationCB(this.visualizationData)}}}},s}(ChartCalculatorBase),this.TIPChartCalculator=t}).call(this);
+</script>
+        
         <script type="text/javascript">
-        
-            if (top == self) {
-              var workspaceOID = 41529001;
-              var projectScopingUp = false;
-              var projectScopingDown = true;
-              var projectOID = 279050021; // A-Team
-              // var projectOID = 81147451; // RallyDev
-            } else {                
-              var workspaceOID = __WORKSPACE_OID__;
-              var projectScopingUp = __PROJECT_SCOPING_UP__;
-              var projectScopingDown = __PROJECT_SCOPING_DOWN__;
-              var projectOID = __PROJECT_OID__;                
-            };
-        
-            var lumenize = require('/lumenize');
-            var ChartTime = lumenize.ChartTime;
-            var ChartTimeRange = lumenize.ChartTimeRange;
-            var histogram = lumenize.histogram;
-            var nameLookup = {};
-            
-            // Step 1. Gather the parameters you'll need to specify the visualization
-            // Step 1a. Gather some info from Rally's standard WSAPI.
-            //          In this example, we are hard coding a workspaceConfiguration object but ideally, we'll get this from Rally
+            (function() {
 
-            var workspaceConfiguration = {  // Need to grab from Rally for this user
-              DateFormat: 'MM/dd/yyyy',
-              DateTimeFormat: 'MM/dd/yyyy hh:mm:ss a',
-              IterationEstimateUnitName: 'Points',
-              ReleaseEstimateUnitName: 'Points',
-              TaskUnitName: 'Hours',
-              TimeTrackerEnabled: true,
-              TimeZone: 'America/Denver',
-              WorkDays: 'Monday,Tuesday,Wednesday,Thursday,Friday' // They work on Sundays
-            };
-            
-            
-            // Step 1b. Gather some info from the user.
-            //          Here to, we are hard coding some parameters for the chart but this could be in a UI for the user to specify.
-   
-            var mainConfig = {
-              endJSDate: new Date(),
-              daysBack: 90,
-              // startJSDate: ????  // Not used but could specify start and pastEnd instead of now - n days
-            };
-            
-            var rangeSpec, i1, r1;
-            
-            // Step 2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
-
-            $(document).ready(function() {
-                        
-              config = {
-                'X-RallyIntegrationName': 'Time In State Insight (prototype)',
-                'X-RallyIntegrationVendor': 'Rally The A-Team',
-                'X-RallyIntegrationVersion': '0.1.0',
-                workspaceOID: workspaceOID
-              };
-
-              query = new TimeInStateAnalyticsQuery(config, 
-                {$and:[{ScheduleState:{$lt:"Accepted"}}, {ScheduleState:{$gte:"In-Progress"}}]});
-
-/*
-              query = new TimeInStateAnalyticsQuery(config, 
-                {$and:[{ScheduleState:{$lt:"Accepted"}}, {ScheduleState:{$gte:"In-Progress"}}, {Blocked:true}]});
-*/
-
-              
-              if (projectScopingUp) {
-                alert('Scoping up not yet supported');
-              } else {
-                if (projectScopingDown) {
-                  query.scope('_ProjectHierarchy', projectOID)
-                } else {
-                  query.scope('Project', projectOID)
-                };
-              };
-              
-              query.debug();
-            
-              query
-                .type('HierarchicalRequirement')
-                .additionalCriteria({_ValidFrom:{$gte:"2011-11-15TZ"}})
-                .leafOnly()
-                .fields(['Name']);
-            
-              // query.fields(['ObjectID', '_ValidFrom', '_ValidTo']); default for TimeInStateAnalyticsQuery
-            
-              query.find() // Only called here to set _find for debugging
-              console.log('Query\n' + JSON.stringify(query._find, undefined, 2));
-              console.log('Requesting data...');
-              
-              query.getAll(callback);
-              
-            });
-            
-            // Step 3. Perform some calculation/manipulation/aggregation of the snapshot data
-
-            callback = function() {
-
-                console.log('Got data. Received ' + this.allResults.length + ' snapshots.');
-                console.log('Calculating TimeInState...');
-                            
-                snapshots = this.allResults;
+                var charts = {};
+                var calculator;
                 
-                var s, _i, _len;
-                for (_i = 0, _len = snapshots.length; _i < _len; _i++) {
-                  s = snapshots[_i];
-                  nameLookup[s.ObjectID] = s.Name;
-                }
+                createVisualization = function(visualizationData) {
                 
-                var uniqueIDField = 'ObjectID';
-                var granularity = 'hour';
-                var startCT, pastEndCT;
+                  if (typeof visualizationData !== "undefined" && visualizationData !== null) {
+                    
+                    timeInState = visualizationData.timeInState;
+                    histogramResults = visualizationData.histogramResults;
+                    histogramCategories = visualizationData.histogramCategories;
+                    histogramData = visualizationData.histogramData;
+                    
+                    bucketSize = histogramResults.bucketSize;
+                    chartMax = histogramResults.chartMax;
+                    buckets = histogramResults.buckets;
+                    clipped = histogramResults.clipped;
+                    valueMax = histogramResults.valueMax;
                 
-                pastEndCT = new ChartTime(mainConfig.endJSDate, granularity);
-                pastEndCT.addInPlace(1, 'day');
-                
-                startCT = new ChartTime(snapshots[0]._ValidFrom, granularity);
-                startCT.addInPlace(-1, 'day');
-                
-                rangeSpec = {
-                  granularity: granularity,
-                  start: startCT,
-                  pastEnd: pastEndCT,
-                  startWorkTime: {
-                    hour: 9,
-                    minute: 0
-                  },
-                  pastEndWorkTime: {
-                    hour: 17,
-                    minute: 0
-                  }
-                };
-              
-                r1 = new ChartTimeRange(rangeSpec);
-              
-                i1 = r1.getIterator('ChartTime');
-                
-                isc1 = i1.getChartTimeInStateCalculator(workspaceConfiguration.TimeZone);
-                timeInState = isc1.timeInState(snapshots, '_ValidFrom', '_ValidTo', uniqueIDField);
-                var row;
-                
-                // calculating workHours from startWorkTime and pastEndWorkTime
-                var workMinutes;
-                if (r1.startWorkMinutes < r1.pastEndWorkMinutes) {
-                  workMinutes = r1.pastEndWorkMinutes - r1.startWorkMinutes;
-                } else {
-                  workMinutes = 24 * 60 - r1.startWorkMinutes;
-                  workMinutes += r1.pastEndWorkMinutes;
-                }
-                var workHours = workMinutes / 60;
-                            
-                // converting ticks (hours) into days
-                var _i, _len;
-                for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
-                  row = timeInState[_i];
-                  row.days = row.ticks / workHours;
-                }
-                
-                // -- summary panel calculations
-                // print analysis
-                printAnalysis = function(values, exponent) {
-                  var mean = lumenize.functions.$average(values);
-                  var stdDev = lumenize.functions.$standardDeviation(values);
-                  console.log('Mean              : ' + Math.pow(mean, exponent));
-                  console.log('Standard Deviation: ' + Math.pow(stdDev, exponent));
-                  console.log('Mean + 1*stdDev   : ' + Math.pow((mean + stdDev), exponent));
-                  var p84 = lumenize.percentileCreator(84.1);
-                  console.log('P84.1             : ' + Math.pow(p84(values), exponent));
-                  console.log('Mean + 2*stdDev   : ' + Math.pow((mean + 2 * stdDev), exponent));
-                  var p98 = lumenize.percentileCreator(97.7);
-                  console.log('P97.7             : ' + Math.pow(p98(values), exponent));                  
-                };
-                
-                log10 = function(val) {
-                  return Math.log(val) / Math.log(10);
-                }
-                
-                // pull out timeInStates to an array
-                var bareValues = [];
-                for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
-                  row = timeInState[_i];
-                  bareValues.push(row.days);
-                }
-                console.log('Analysis with bare values...');
-                printAnalysis(bareValues, 1);
-                
-                
-                // moving range Shewhart
-                var range = []
-                for (_i = 1, _len = bareValues.length; _i < _len; _i++) {
-                  range.push(Math.abs(bareValues[_i] - bareValues[_i-1]));
-                }
-                var averageMovingRange = lumenize.functions.$average(range);
-                var mean = lumenize.functions.$average(bareValues);
-                console.log('Shewhart upper limit: ' + (mean + 2.66 * averageMovingRange));
-                
-                
-                // log10
-                var log10Values = [];
-                for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
-                  row = timeInState[_i];
-                  log10Values.push(log10(row.days + 1));
-                }
-                console.log('Analysis with log10...');
-                printAnalysis(log10Values, 10);
-                
-                // natural log
-                var logValues = [];
-                for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
-                  row = timeInState[_i];
-                  logValues.push(Math.log(row.days + 1));
-                }
-                console.log('Analysis with natural log...');
-                printAnalysis(logValues, Math.E);
-                
-                console.log(bareValues.length);
-                
-                // -- end summary panel calculations                   
-               
-                // calling lumenize.histogram
-                var histogramField = 'days';
-                var histogramResults = histogram(timeInState, histogramField);
-                if (! histogramResults) {
-                  return;
-                }
-                var buckets = histogramResults.buckets;
-                var chartMax = histogramResults.chartMax;
-                var valueMax = histogramResults.valueMax;
-                var bucketSize = histogramResults.bucketSize;
-                var clipped = histogramResults.clipped;
-                
-                // Step 4. Render the data as a chart using some library like HighCharts
-
-                // creating data and tooltipLookup for HighCharts
-                var data = [];
-                var tooltipLookup = {};
-                for (_i = 0, _len = timeInState.length; _i < _len; _i++) {
-                  row = timeInState[_i];
-                  milliseconds = new ChartTime(row.finalEventAt, 'millisecond').getJSDate(workspaceConfiguration.TimeZone).getTime();
-                  while (tooltipLookup[milliseconds]) {  // Hack so we get different index
-                    milliseconds++;
-                  };
-                  data.push([milliseconds, row.clippedChartValue]);
-                  tooltipLookup[milliseconds] = row;
-                }
-                          
-                // formatting for HighCharts             
-                var histogramCategories = [];
-                var histogramData = [];
-                var b, idx, _len2;
-                for (idx = 0, _len2 = buckets.length; idx < _len2; idx++) {
-                  b = buckets[idx];
-                  histogramCategories.push(b.label);
-                  histogramData.push(b.count);
-                }
-                
-                scatter = new Highcharts.Chart({
-                    chart: {
-                        renderTo: 'scatter-container',
-                        defaultSeriesType: 'scatter',
-                        zoomType: 'x'
-                    },
-                    legend: {
-                        enabled: false
-                    },
-                    credits: {
-                        enabled: false
-                    },
-                    title: {
-                        text: 'Time In Process'
-                    },
-                    subtitle: {
-                        text: ''
-                    },
-                    xAxis: {
-                        startOnTick: false,
-                        tickmarkPlacement: 'on',
-                        title: {
-                            enabled: false
-                        },
-                        type: 'datetime'
-                    },
-                    yAxis: [
-                        {
-                            title: {
-                                text: 'Time In State (Work Days)'
-                            },
-                            opposite: false,
-                            endOnTick: false,
-                            tickInterval: bucketSize,
-                            labels: {
-                                formatter: function() {
-                                    // console.log(JSON.stringify(this, undefined, 2));
-                                    if (this.value != 0) {
-                                        if (this.value == chartMax) {
-                                          if (clipped) {
-                                            return '' + valueMax + '*';
-                                          } else {
-                                            return chartMax;
-                                          }
-                                        } else {
-                                          return this.value / 1;
-                                        }
-                                    }
-                                }
-                            },
-                            min: 0,
-                            max: chartMax
-                        },
-                        {
-                            title: {
-                                text: null
-                            },
-                            opposite: true,
-                            // endOnTick: true,
-                            tickInterval: 1,
-                            labels: {
-                                formatter: function() {
-                                    if (this.value != 0) {
+                    charts.scatterChart = new Highcharts.Chart({
+                      chart: {
+                         renderTo: 'scatter-container',
+                         defaultSeriesType: 'scatter',
+                         zoomType: 'x'
+                      },
+                      legend: {
+                         enabled: false
+                      },
+                      plotOptions: {
+                         scatter: {
+                            marker: {
+                               states: {
+                                  hover: {
+                                     enabled: false
+                                  }
+                               }
+                            }
+                         }
+                      },
+                      credits: {
+                         enabled: false
+                      },
+                      title: {
+                         text: 'Time In Process'
+                      },
+                      subtitle: {
+                         text: userConfig.subTitle
+                      },
+                      xAxis: {
+                         startOnTick: false,
+                         tickmarkPlacement: 'on',
+                         title: {
+                             enabled: false
+                         },
+                         type: 'datetime'
+                      },
+                      yAxis: [
+                         {
+                             title: {
+                                 text: 'Time In Process (Work Days)'
+                             },
+                             opposite: false,
+                             endOnTick: false,
+                             tickInterval: bucketSize,
+                             labels: {
+                               formatter: function() {
+                                   if (this.value !== 0) {
+                                     if (this.value == chartMax) {
+                                       if (clipped) {
+                                         return '' + valueMax + '*';
+                                       } else {
+                                         return chartMax;
+                                       }
+                                     } else {
+                                       return this.value;
+                                     }
+                                   }
+                                 }
+                               
+                             },
+                             min: 0,
+                             max: chartMax
+                         },
+                         {
+                             title: {
+                                 text: null
+                             },
+                             opposite: true,
+                             // endOnTick: true,
+                             tickInterval: 1,
+                             labels: {
+                                 formatter: function() {
+                                    if (this.value !== 0) {
                                       return Highcharts.numberFormat(buckets[this.value - 1].percentile * 100, 1) + "%";
                                     } else {
-                                      return "0.0%"
+                                      return "0.0%";
                                     }
+                                  }
+                             },
+                             min: 0,
+                             max: buckets.length                        
+                         }
+                      
+                      ],                      
+                      tooltip: {
+                         formatter: function() {
+                             var point = this.point;
+                             tooltip = 'ObjectID: ' + point.ObjectID + '<br />';  // !TODO: Upgrade to link to revisions page in Rally
+                             tooltip += this.series.name + ': <b>' + Highcharts.numberFormat(point.days, 1) + '</b> work days';
+                             var t, _i, _len, _ref, f, field, as;
+                             _ref = userConfig.showTheseFieldsInToolTip;
+                             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                                t = _ref[_i];
+                                if (typeof t === 'string') {
+                                  field = t;
+                                  f = function(value) {
+                                    return value;
+                                  };
+                                  as = t;
+                                } else {
+                                  field = t.field;
+                                  if (t.f != null) {
+                                    f = t.f;
+                                  } else {
+                                    f = function(value) {
+                                      return value;
+                                    };
+                                  }
+                                  if (t.as != null) {
+                                    as = t.as;
+                                  } else {
+                                    as = t.field;
+                                  }
                                 }
-                            },
-                            min: 0,
-                            max: buckets.length                        
-                        }
-
-                    ],                      
-                    tooltip: {
-                        formatter: function() {
-                            var lookupRow = tooltipLookup[this.x];
-                            return uniqueIDField + ': ' + lookupRow[uniqueIDField] + '<br />' + // !TODO: Upgrade to link to revisions page in Rally
-                              nameLookup[lookupRow[uniqueIDField]] + '<br />' +
-                              this.series.name + ': <b>' + Highcharts.numberFormat(lookupRow[histogramField], 1) + '</b> work days';
-                        }
-                    },
-              		  series: [
-                  		  {
-                      			name: 'Time in state',
-                      			data: data,
-                      			yAxis: 0
-                        },
-                    		{
-                      		  name: 'Percentile',
-                      		  data: [],
-                      		  yAxis: 1
-                    		}
-                    ]
-                }, function(chart) {
-              	     if (clipped) {
-                       chart.renderer.text('* non-linear', 57, 55).add();
-                     };
-                });
- 
+                                tooltip += '<br />' + as + ': ' + f(point[field + "_lastValue"]);
+                             }
+                             return tooltip;
+                         }
+                      },
+                      series: [
+                      	  {
+                       			name: 'Time in process',
+                       			data: timeInState,
+                       			yAxis: 0
+                          },
+                      		{
+                       		  name: 'Percentile',
+                       		  data: [],
+                       		  yAxis: 1
+                      		}
+                      ]
+                    }, function(chart) {
+                         if (clipped) {
+                          chart.renderer.text('* non-linear', 57, 55).add();
+                        };
+                    });  // end of scatterChart
+              
+                    charts.histogramChart = new Highcharts.Chart({
+                   		chart: {
+                   			renderTo: 'histogram-container',
+                   			type: 'bar'
+                   		},
+                       legend: {
+                         enabled: false
+                       },
+                       credits: {
+                           enabled: false
+                       },
+                   		title: {
+                   			text: 'Histogram'
+                   		},
+                   		subtitle: {
+                   			text: ''
+                   		},
+                   		xAxis: [{ // mirror axis on right side
+                   			opposite: false,
+                   			reversed: false,
+                   			categories: histogramCategories,
+                   		}],
+                   		yAxis: {
+                   			title: {
+                   				text: null
+                   			},
+                         labels: {
+                   				formatter: function(){
+                   					return Math.abs(this.value);
+                   				}
+                   			},
+                   			min: 0
+                   		},
+                   		plotOptions: {
+                   			series: {
+                   				stacking: 'normal'
+                   			}
+                   		},
+                   		tooltip: {
+                   			formatter: function(){
+                   				return '' + this.point.category +' work days: <b>' + Highcharts.numberFormat(Math.abs(this.point.y), 0) + '</b>';
+                   			}
+                   		},
+                   		series: [{
+                   			name: 'Time in process',
+                   			data: histogramData
+                   		}]
+                   	}, function(chart) {
+                   	     if (false) {
+                            chart.renderer.text('* non-linear', 200, 65).add();
+                          };
+                    });  // end of histogramChart
+                    
+                  } else {
+                    // Put a spinner in the chart containers until first fetch returns
+                    $('#scatter-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
+                    $('#histogram-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
+                  };  // end of if visualizationData?
                 
-                
-                histogram = new Highcharts.Chart({
-              		chart: {
-              			renderTo: 'histogram-container',
-              			type: 'bar'
-              		},
-                  legend: {
-                    enabled: false
-                  },
-                  credits: {
-                      enabled: false
-                  },
-              		title: {
-              			text: 'Histogram'
-              		},
-              		subtitle: {
-              			text: ''
-              		},
-              		xAxis: [{ // mirror axis on right side
-              			opposite: false,
-              			reversed: false,
-              			categories: histogramCategories,
-              		}],
-              		yAxis: {
-              			title: {
-              				text: null
-              			},
-                    labels: {
-              				formatter: function(){
-              					return Math.abs(this.value);
-              				}
-              			},
-              			min: 0
-              		},
-              		plotOptions: {
-              			series: {
-              				stacking: 'normal'
-              			}
-              		},
-              		tooltip: {
-              			formatter: function(){
-              				return '' + this.point.category +' work days: <b>' + Highcharts.numberFormat(Math.abs(this.point.y), 0) + '</b>';
-              			}
-              		},
-              		series: [{
-              			name: 'Time in state',
-              			data: histogramData
-              		}]
-              	}, function(chart) {
-              	     if (false) {
-                       chart.renderer.text('* non-linear', 200, 65).add();
-                     };
+                };  // end of createVisualization  
+                  
+    
+                $(document).ready(function() {
+                  calculator = new TIPChartCalculator(charts, userConfig, createVisualization);
                 });
-
-            };
+            
+            })();
+            
                 
         </script>
+
         
     </head>
     <body>

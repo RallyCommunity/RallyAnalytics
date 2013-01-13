@@ -1,5 +1,4 @@
-# !TODO: Add support for progress updates once each page
-# !TODO: Add a lot more debug support. Include round trip time.
+# !TODO: Add round trip time.
 # !TODO: Deal with errors in the form of...
 #   {
 #     _rallyAPIMajor: "1"

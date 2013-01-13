@@ -28,10 +28,10 @@ else
 
 {utils} = lumenize
 
-class ChartCalculatorBase  # maybe extends Observable
+class VisualizerBase  # maybe extends Observable
   ###
-  @class ChartCalculatorBase
-    This is intended to the be the base class for ChartCalculators. It assumes a template method pattern where the parts
+  @class ChartVisualizerBase
+    This is intended to the be the base class for ChartVisualizers. It assumes a template method pattern where the parts
     of the algorithm that have to do with saving to and restoring from the LocalCache (using localStorage API) and
     providing events for config changes or data updates.
 
@@ -41,9 +41,9 @@ class ChartCalculatorBase  # maybe extends Observable
     You may wish to override:
       * deriveFields(snapshots)
 
-  @cfg {Number} [refreshIntervalMilliseconds = 5 * 60 * 1000]
+  @cfg {Number} [refreshIntervalMilliseconds = 30 * 60 * 1000] Defaults to 30 minutes
 
-  @property {Object} userConfig Useful for creating the cache hash. The contents of this will be ChartCalculator specific
+  @property {Object} userConfig Useful for creating the cache hash. The contents of this will be visualizer specific
 
   @property {Object} config Starts with all the values in userConfig but more may be added
   @property {Number} [config.refreshIntervalMilliseconds = 5 * 60 * 1000] The chart will automatically refresh after this many milliseconds
@@ -62,7 +62,7 @@ class ChartCalculatorBase  # maybe extends Observable
   @property {Lumenize.iCalculator} LumenizeCalculatorClass Must be set; typically in your initialize() method
 
   @property {Object} visualizationData This is where you store the data that you want to communicate to your visualizations.
-    It will be passed into visualizationCreateCB and visualizationUpdateCB.
+    It will be passed into createVisualizationCB.
 
   @property {iAnalyticsQuery} analyticsQuery Instantiate this in your onNewDataAvailable() method.
 
@@ -101,7 +101,7 @@ class ChartCalculatorBase  # maybe extends Observable
       workspaceOID = 41529001
       projectScopingUp = false
       projectScopingDown = true
-#      projectOID = 279050021  # A-Team
+#       projectOID = 279050021  # A-Team
       projectOID = 81147451  # RallyDev
     else
       workspaceOID = __WORKSPACE_OID__
@@ -155,15 +155,18 @@ class ChartCalculatorBase  # maybe extends Observable
       @dirty = false
     @lastQueryReceivedMilliseconds = new Date().getTime()
     @upToDate = endBefore
-    @deriveFields(snapshots)
+    @deriveFieldsOnSnapshots(snapshots)
+    if @asOfISOString < endBefore
+      endBefore = @asOfISOString
     @updateCalculator(snapshots, startOn, endBefore)  # This should also update the cache
     @createOrUpdateVisualization()
-    if @analyticsQuery.hasMorePages()
-      @onNewDataAvailable()
-    else
-      @newDataExpected(undefined, @config.refreshIntervalMilliseconds)
+    unless @config.asOf? and @upToDate < @config.asOf
+      if @analyticsQuery.hasMorePages()
+        @onNewDataAvailable()  # This is intentionally calling @onNewDataAvailable rather than getPage(). Your @onNewDataAvailable could just call getPage() or it can do something else like the TIP Chart requires.
+      else
+        @newDataExpected(undefined, @config.refreshIntervalMilliseconds)
 
-  newDataExpected: (paddingDelay = 30 * 1000, etlDelay = 5 * 60 * 1000) ->  # Register this as event handler for when data on the page changes. Need to adjust padding based upon usage
+  newDataExpected: (paddingDelay = 30 * 1000, etlDelay = 30 * 60 * 1000) ->  # Register this as event handler for when data on the page changes. Need to adjust padding based upon usage
     delay = etlDelay + paddingDelay
     if @timeoutHandle?
       clearTimeout(@timeoutHandle)
@@ -202,10 +205,10 @@ class ChartCalculatorBase  # maybe extends Observable
       @config.lumenizeCalculatorConfig.tz = @workspaceConfiguration.TimeZone  # You may want to override this with the user timezone
     # Set holidays here once they are avaialable from Rally data model
 
-  deriveFields: (snapshots) ->
-    # Optionally override if you need to do something special. Otherwise, it will use @config.deriveFieldsConfig
-    if @config.deriveFieldsConfig?
-      Lumenize.deriveFields(snapshots, @config.deriveFieldsConfig)
+  deriveFieldsOnSnapshots: (snapshots) ->
+    # Optionally override if you need to do something special. Otherwise, it will use @config.deriveFieldsOnSnapshotsConfig
+    if @config.deriveFieldsOnSnapshotsConfig?
+      Lumenize.deriveFields(snapshots, @config.deriveFieldsOnSnapshotsConfig)
 
   # You are expected to override the following methods
 
@@ -234,12 +237,12 @@ class ChartCalculatorBase  # maybe extends Observable
 
   getHashForCache: () ->
     # override
-    # Use config parameters, scope, whatever to provide a unique hash for cached instances of this calculator.
+    # Use config parameters, scope, whatever to provide a unique hash for cached instances of this visualizer.
     # You do not want any information about the current time to creep into this hash because this is meant to
     # be incrementally updateable. However, if there is an absolute time like '2011-12-01' (the first full month after
     # the Lookback API started capturing data), that's OK to be included. You may wish to add the version of your
-    # calculator (or even the Lumenize version) as salt to this cache, which would force a recalculation whenever
+    # visualizer (or even the Lumenize version) as salt to this cache, which would force a recalculation whenever
     # the version updated.
 
 
-this.ChartCalculatorBase = ChartCalculatorBase
+this.VisualizerBase = VisualizerBase
