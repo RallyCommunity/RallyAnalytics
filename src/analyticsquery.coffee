@@ -678,9 +678,13 @@ class TransitionsAnalyticsQuery extends GuidedAnalyticsQuery
   console.log(JSON.stringify(query._find, undefined, 2))
   # 
   ###
-  constructor: (config, upToDate, arrayOfZuluDates) ->
+  constructor: (config, upToDate, predicate) ->
     super(config, upToDate)
-    throw new Error('Not yet implemented')
+    unless predicate?
+      throw new Error('Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.')
+    @_additionalCriteria.push(predicate)
+    @_additionalCriteria.push({"_ValidFrom": {$gte: upToDate}})
+    @fields(['ObjectID', '_ValidFrom', '_ValidTo'])
 
 root.AnalyticsQuery = AnalyticsQuery
 root.GuidedAnalyticsQuery = GuidedAnalyticsQuery

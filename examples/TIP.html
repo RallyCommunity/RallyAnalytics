@@ -6,11 +6,8 @@
             var userConfig = {
                 subTitle: 'Stories In-Progress to Accepted',
                 debug: false,
-                daysToShow: 90,
-                // asOf: "2012-10-01T00:00:00.000Z",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
-                // !TODO: If showStillInProgress is true AND you prove an asOf date, you'll get work that is in progress NOW in 
-                // addition to work that was in progress on the asOf date. Sorry. To fix this, I'll have to keep track of 
-                // _ValidFrom_firstValue and I don't even have the 'firstValue' function.
+                daysToShow: 105,
+                asOf: "2012-10-15",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
                 showStillInProcess: false,
                 statePredicate: {ScheduleState:{$lt:"Accepted", $gte:"In-Progress"}},
                 type: 'HierarchicalRequirement',
@@ -31,7 +28,7 @@
             
             // Feature Aging
             userConfig.subTitle = 'Features In Dev and less than 100% done'
-            userConfig.showStillInProcess = true,
+            userConfig.showStillInProcess = false,
             userConfig.statePredicate = {"State":"In Dev", "PercentDoneByStoryCount":{$lt:1,$gt:0}}
             userConfig.type = 'PortfolioItem/Feature'
             userConfig.leafOnly = false
@@ -61,7 +58,7 @@
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.5.1/deploy/Lumenize-min.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.5.2/deploy/Lumenize-min.js"></script>
         
         <!-- rally_analytics -->
         <script type="text/javascript" src="../lib/analyticsquery.js"></script>

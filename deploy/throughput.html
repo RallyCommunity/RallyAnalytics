@@ -1,0 +1,165 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <script type="text/javascript"">
+            var userConfig = {
+                subTitle: 'Features moving out of "In Dev"',
+                debug: false,
+                // asOf: "2012-10-15",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
+                granularity: 'month',
+                numberOfPeriodsToShow: 13,
+                // fieldsToSum: ['LeafStoryCount']  // Not supported yet. Defaults to count.
+                transitionsPredicate: {"State":{$gt:"In Dev"},"_PreviousValues.State":{$lte:"In Dev",$exists:true}},
+                transitionsToSubtractPredicate: {"_PreviousValues.State":{$gt:"In Dev"},"State":{$lte:"In Dev",$exists:true}},
+                type: 'PortfolioItem/Feature',
+                // deriveFieldsOnSnapshotsConfig:
+                seriesNames: ['Features'],
+                fieldNames: ['count']
+            }
+            
+        </script>
+        
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Throughput</title>
+        
+        <!-- HighCharts -->
+        <script type="text/javascript" src="https://people.rallydev.com/js/jquery.min.js"></script>
+        <script type="text/javascript" src="https://people.rallydev.com/js/highcharts.js"></script>
+        <script type="text/javascript" src="https://people.rallydev.com/js/exporting.js"></script>
+        <!-- a theme file
+            <script type="text/javascript" src="../js/themes/gray.js"></script>
+        -->
+        
+        <!-- Lumenize -->
+        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/v0.5.3/deploy/Lumenize-min.js"></script>
+        
+        <!-- rally_analytics -->
+        
+<script type="text/javascript">
+(function(){var t,e,s,r,i,n,o,a,l,h=function(t,e){return function(){return t.apply(e,arguments)}},u={}.hasOwnProperty,p=function(t,e){function s(){this.constructor=t}for(var r in e)u.call(e,r)&&(t[r]=e[r]);return s.prototype=e.prototype,t.prototype=new s,t.__super__=e.prototype,t},c=[].indexOf||function(t){for(var e=0,s=this.length;s>e;e++)if(e in this&&this[e]===t)return e;return-1};l=this,a=function(){var t,e,s,r,i;for(t={},i="Boolean Number String Function Array Date RegExp Undefined Null".split(" "),s=0,r=i.length;r>s;s++)e=i[s],t["[object "+e+"]"]=e.toLowerCase();return function(e){var s;return s=Object.prototype.toString.call(e),t[s]||"object"}}(),t=function(){function t(t,e){var s,r,i,n,o,a,u,p,c,d;this.upToDate=e,this._gotResponse=h(this._gotResponse,this),this._debug=!1,"undefined"==typeof process||null===process||"undefined"!=typeof window&&null!==window?null!=l.XMLHttpRequest&&(s=l.XMLHttpRequest):s=require("xmlhttprequest").XMLHttpRequest,this.XHRClass=s,this._xhr=null,this._find=null,this._fields=[],this._sort={_ValidFrom:1},this._startIndex=0,this._pageSize=1e5,this._callback=null,this.headers={},this.headers["X-RallyIntegrationLibrary"]="rally_analytics-0.1.0","undefined"!=typeof navigator&&null!==navigator?(o=navigator.appName+" "+navigator.appVersion,n=navigator.platform):"undefined"!=typeof process&&null!==process&&(o="Node.js (or some other non-browser) "+process.version,n=process.platform),this.headers["X-RallyIntegrationPlatform"]=o,this.headers["X-RallyIntegrationOS"]=n,u=t.additionalHeaders;for(i in u)a=u[i],this.headers[i]=a;if(r=function(e,s){if(null!=t[s])return e[s]=t[s];throw Error("Must include config["+s+"] header when instantiating this rally_analytics.AnalyticsQuery object")},r(this.headers,"X-RallyIntegrationName"),r(this.headers,"X-RallyIntegrationVendor"),r(this.headers,"X-RallyIntegrationVersion"),null!=t.workspaceOID)this.workspaceOID=t.workspaceOID;else{if(!("undefined"!=typeof process&&null!==process?null!=(p=process.env)?p.RALLY_WORKSPACE:void 0:void 0))throw Error("Must provide a config.workspaceOID or set environment variable RALLY_WORKSPACE");this.workspaceOID=process.env.RALLY_WORKSPACE}this.username=null!=t.username?t.username:("undefined"!=typeof process&&null!==process?null!=(c=process.env)?c.RALLY_USER:void 0:void 0)?process.env.RALLY_USER:void 0,this.password=null!=t.password?t.password:("undefined"!=typeof process&&null!==process?null!=(d=process.env)?d.RALLY_PASSWORD:void 0:void 0)?process.env.RALLY_PASSWORD:void 0,this.protocol="https",this.server="rally1.rallydev.com",this.service="analytics",this.version="v2.0",this.endpoint="artifact/snapshot/query.js",this._hasMorePages=!0,this._firstPage=!0,this.ETLDate=null,this.lastResponseText="",this.lastResponse={},this.lastPageResults=[],this.allResults=[],this.lastPageMeta={},this.allMeta=[]}return t.prototype.resetFind=function(){return this._find=null},t.prototype.find=function(t){return this._find=t,this},t.prototype.sort=function(){throw Error("Sort must be {_ValidFrom: 1}.")},t.prototype._setSort=function(t){return this._sort=t,this},t.prototype.fields=function(t){return this._fields=this._fields.concat(t),this},t.prototype.hydrate=function(t){return this._hydrate=t,this},t.prototype.start=function(t){return this._startIndex=t,this},t.prototype.startIndex=function(t){return this._startIndex=t,this},t.prototype.pagesize=function(t){return this._pageSize=t,this},t.prototype.pageSize=function(t){return this._pageSize=t,this},t.prototype.auth=function(t,e){return this.username=t,this.password=e,this},t.prototype.debug=function(){return this._debug=!0},t.prototype.getBaseURL=function(){return this.protocol+"://"+[this.server,this.service,this.version,"service/rally/workspace",this.workspaceOID,this.endpoint].join("/")},t.prototype.getQueryString=function(){var t,e;if(t=JSON.stringify(this._find),null!=this._find&&t.length>2)return e=[],e.push("find="+t),null!=this._sort&&e.push("sort="+JSON.stringify(this._sort)),null!=this._fields&&(this._fields[0]===!0?e.push("fields=true"):this._fields.length>0&&e.push("fields="+JSON.stringify(this._fields))),null!=this._hydrate&&e.push("hydrate="+JSON.stringify(this._hydrate)),e.push("start="+this._startIndex),e.push("pagesize="+this._pageSize),e.join("&");throw Error("find clause not set")},t.prototype.getURL=function(){var t;return t=this.getBaseURL()+"?"+this.getQueryString(),this._debug&&(console.log("\nfind: ",this._find),console.log("\nurl:"),console.log(t)),encodeURI(t)},t.prototype.getAll=function(){throw Error("getAll() not supported in this version of AnalyticsQuery.")},t.prototype.hasMorePages=function(){return this._hasMorePages},t.prototype.getPage=function(t){var e,s,r;if(this._callback=t,null==this._find)throw Error("Must set find clause before calling getPage");if(null==this.XHRClass)throw Error("Must set XHRClass");if(!this._hasMorePages)throw Error("All pages retrieved. Inspect AnalyticsQuery.allResults and AnalyticsQuery.allMeta for results.");if(null==this.upToDate)throw Error("Must set property upToDate before calling getPage");this._xhr=new this.XHRClass,this._xhr.onreadystatechange=this._gotResponse,this._xhr.open("GET",this.getURL(),!0,this.username,this.password),r=this.headers;for(e in r)s=r[e],this._xhr.setRequestHeader(e,s);return this._xhr.send(),this},t.prototype._gotResponse=function(){var t,e,s,r,i,n,o,a,l,h;if(this._debug&&console.log("\nreadyState: ",this._xhr.readyState),4===this._xhr.readyState){if(this.lastResponseText=this._xhr.responseText,this.lastResponse=JSON.parse(this.lastResponseText),this._debug&&(console.log("\nresponse headers:\n"),console.log(this._xhr.getAllResponseHeaders()),console.log("\nstatus: ",this._xhr.status),"string"==typeof this.lastResponse?console.log("\nlastResponseText: ",this.lastResponseText):console.log("\nlastResponseJSON: ",this.lastResponse)),this.lastResponse.Errors.length>0)return console.log("Errors\n"+JSON.stringify(this.lastResponse.Errors)),_return();if(this._firstPage)this._firstPage=!1,this.allResults=[],this.allMeta=[],this.ETLDate=this.lastResponse.ETLDate,this._pageSize=this.lastResponse.PageSize,s={$and:[this._find,{_ValidFrom:{$lte:this.ETLDate}}]},this._find=s;else if(this.lastResponse.PageSize!==this._pageSize)throw Error("Pagesize changed after first page which is unexpected.");for(this.lastPageResults=[],i=this.lastResponse.Results,a=0,l=i.length;l>a;a++)r=i[a],this.lastPageResults.push(r);this.allResults=this.allResults.concat(this.lastPageResults),this.lastPageMeta={},h=this.lastResponse;for(e in h)o=h[e],"Results"!==e&&(this.lastPageMeta[e]=o);return this.allMeta.push(this.lastPageMeta),this.lastResponse.Results.length+this.lastResponse.StartIndex>=this.lastResponse.TotalResultCount?(this._hasMorePages=!1,t=this.ETLDate):(this._hasMorePages=!0,this._startIndex+=this._pageSize,t=this.lastPageResults[this.lastPageResults.length-1]._ValidFrom),n=this.upToDate,this.upToDate=t,this._callback(this.lastPageResults,n,t,this)}},t}(),i=function(t){function e(t,s){e.__super__.constructor.call(this,t,s),this._scope={},this._type=null,this._additionalCriteria=[]}return p(e,t),e.prototype.generateFind=function(){var t,e,s,r,i,n;if(e=[],!(JSON.stringify(this._scope).length>2))throw Error("Must set scope first.");for(e.push(this._scope),null!=this._type&&e.push(this._type),i=this._additionalCriteria,s=0,r=i.length;r>s;s++)t=i[s],e.push(t);return(n=e.length)>0&&2>n?e[0]:{$and:e}},e.prototype.find=function(){if(arguments.length>0)throw Error("Do not call find() directly to set query. Use scope(), type(), and additionalCriteria()");return e.__super__.find.call(this,this.generateFind()),this},e.prototype.resetScope=function(){return this._scope={}},e.prototype.scope=function(t,e){var s,r,i,n=this;if(s=function(t,e){var s;if("ItemHierarchy"===t&&(t="_ItemHierarchy"),"Tag"===t&&(t="Tags"),"ProjectHierarchy"===t&&(t="_ProjectHierarchy"),s=["Project","_ProjectHierarchy","Iteration","Release","Tags","_ItemHierarchy"],0>c.call(s,t))throw Error("Key for scope() call must be one of "+s);return n._scope[t]="array"===a(e)?{$in:e}:e},"object"===a(t))for(r in t)i=t[r],s(r,i);else{if(2!==arguments.length)throw Error("Must provide an Object in first parameter or two parameters (key, value).");s(t,e)}return this},e.prototype.resetType=function(){return this._type=null},e.prototype.type=function(t){return this._type={_TypeHierarchy:t},this},e.prototype.resetAdditionalCriteria=function(){return this._additionalCriteria=[]},e.prototype.additionalCriteria=function(t){return this._additionalCriteria.push(t),this},e.prototype.leafOnly=function(){return this.additionalCriteria({$or:[{_TypeHierarchy:"HierarchicalRequirement",Children:null},{_TypeHierarchy:"PortfolioItem",Children:null,UserStories:null}]}),this},e.prototype.getPage=function(t){return this.find(),e.__super__.getPage.call(this,t)},e}(t),e=function(t){function e(t,s,r){if(e.__super__.constructor.call(this,t,s),null==r)throw Error("Must provide a zuluDateString when instantiating an AtAnalyticsQuery.");this._additionalCriteria.push({_At:r})}return p(e,t),e}(i),s=function(t){function e(t,s){throw e.__super__.constructor.call(this,t,s),Error("AtArrayAnalyticsQuery is not yet implemented")}return p(e,t),e}(i),r=function(t){function e(t,s,r){var i;if(e.__super__.constructor.call(this,t,s),null==s||null==r)throw Error("Must provide two zulu data strings when instantiating a BetweenAnalyticsQuery.");i={_ValidFrom:{$lt:r},_ValidTo:{$gt:s}},this._additionalCriteria.push(i)}return p(e,t),e}(i),n=function(t){function e(t,s,r){if(e.__super__.constructor.call(this,t,s),null==r)throw Error("Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.");this._additionalCriteria.push(r),this._additionalCriteria.push({_ValidTo:{$gt:s}}),this.fields(["ObjectID","_ValidFrom","_ValidTo"])}return p(e,t),e}(i),o=function(t){function e(t,s,r){if(e.__super__.constructor.call(this,t,s),null==r)throw Error("Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.");this._additionalCriteria.push(r),this._additionalCriteria.push({_ValidFrom:{$gte:s}}),this.fields(["ObjectID","_ValidFrom","_ValidTo"])}return p(e,t),e}(i),l.AnalyticsQuery=t,l.GuidedAnalyticsQuery=i,l.AtAnalyticsQuery=e,l.AtArrayAnalyticsQuery=s,l.BetweenAnalyticsQuery=r,l.TimeInStateAnalyticsQuery=n,l.TransitionsAnalyticsQuery=o}).call(this);
+</script>
+
+        <!-- md5 -->
+        
+<script type="text/javascript">
+(function(){function t(t,e,r){return t&e|~t&r}function e(t,e,r){return t&r|e&~r}function r(t,e,r){return t^e^r}function s(t,e,r){return e^(t|~r)}function i(t){return String.fromCharCode(255&t)+String.fromCharCode(255&t>>>8)+String.fromCharCode(255&t>>>16)+String.fromCharCode(255&t>>>24)}function n(t){for(;0>t;)t+=4294967296;for(;t>4294967295;)t-=4294967296;return t}function o(t,e,r,s,i){var o,a,l,u,p,c,d,f,y;o=s[0],a=s[1],l=s[2],u=s[3],p=i[0],c=i[1],d=i[2],y=r(e[a],e[l],e[u]),f=e[o]+y+t[p]+h[d],f=n(f),f=f<<c|f>>>32-c,f+=e[a],e[o]=n(f)}function a(t){var e,r,s,a,l,h,u,p,c,d,y,g,_;if(s=Array(1732584193,4023233417,2562383102,271733878),l=t.length,h=63&l,u=56>h?56-h:120-h,u>0)for(t+="",d=0;u-1>d;d++)t+="\0";for(t+=i(8*l),t+=i(0),l+=u+8,e=Array(0,1,2,3),r=Array(16),a=Array(4),g=0;l>g;g+=64){for(d=0,y=g;16>d;d++,y+=4)r[d]=t.charCodeAt(y)|t.charCodeAt(y+1)<<8|t.charCodeAt(y+2)<<16|t.charCodeAt(y+3)<<24;for(d=0;4>d;d++)a[d]=s[d];for(d=0;4>d;d++)for(p=f[d][0],c=f[d][1],y=0;16>y;y++)o(r,a,p,e,c[y]),_=e[0],e[0]=e[3],e[3]=e[2],e[2]=e[1],e[1]=_;for(d=0;4>d;d++)s[d]+=a[d],s[d]=n(s[d])}return i(s[0])+i(s[1])+i(s[2])+i(s[3])}function l(t){var e,r,s,i;for(i=a(t),r="",e=0;16>e;e++)s=i.charCodeAt(e),r+="0123456789abcdef".charAt(15&s>>4),r+="0123456789abcdef".charAt(15&s);return r}var h=Array(0,3614090360,3905402710,606105819,3250441966,4118548399,1200080426,2821735955,4249261313,1770035416,2336552879,4294925233,2304563134,1804603682,4254626195,2792965006,1236535329,4129170786,3225465664,643717713,3921069994,3593408605,38016083,3634488961,3889429448,568446438,3275163606,4107603335,1163531501,2850285829,4243563512,1735328473,2368359562,4294588738,2272392833,1839030562,4259657740,2763975236,1272893353,4139469664,3200236656,681279174,3936430074,3572445317,76029189,3654602809,3873151461,530742520,3299628645,4096336452,1126891415,2878612391,4237533241,1700485571,2399980690,4293915773,2240044497,1873313359,4264355552,2734768916,1309151649,4149444226,3174756917,718787259,3951481745),u=Array(Array(0,7,1),Array(1,12,2),Array(2,17,3),Array(3,22,4),Array(4,7,5),Array(5,12,6),Array(6,17,7),Array(7,22,8),Array(8,7,9),Array(9,12,10),Array(10,17,11),Array(11,22,12),Array(12,7,13),Array(13,12,14),Array(14,17,15),Array(15,22,16)),p=Array(Array(1,5,17),Array(6,9,18),Array(11,14,19),Array(0,20,20),Array(5,5,21),Array(10,9,22),Array(15,14,23),Array(4,20,24),Array(9,5,25),Array(14,9,26),Array(3,14,27),Array(8,20,28),Array(13,5,29),Array(2,9,30),Array(7,14,31),Array(12,20,32)),c=Array(Array(5,4,33),Array(8,11,34),Array(11,16,35),Array(14,23,36),Array(1,4,37),Array(4,11,38),Array(7,16,39),Array(10,23,40),Array(13,4,41),Array(0,11,42),Array(3,16,43),Array(6,23,44),Array(9,4,45),Array(12,11,46),Array(15,16,47),Array(2,23,48)),d=Array(Array(0,6,49),Array(7,10,50),Array(14,15,51),Array(5,21,52),Array(12,6,53),Array(3,10,54),Array(10,15,55),Array(1,21,56),Array(8,6,57),Array(15,10,58),Array(6,15,59),Array(13,21,60),Array(4,6,61),Array(11,10,62),Array(2,15,63),Array(9,21,64)),f=Array(Array(t,u),Array(e,p),Array(r,c),Array(s,d));this.md5=l}).call(this);
+</script>
+        
+        <!-- my visualizer for this chart (optional) -->
+        
+<script type="text/javascript">
+(function(){var t;t=function(){function t(e,r,s,i){var n;if(this.directoryForNodeJSCache=null!=e?e:"./local-storage-cache",this.quotaForNodeJSCache=null!=r?r:5242880,this.keyForMetaData=null!=s?s:"local-storage-cache-key-for-meta-data",null!=i)t.localStorage=null!=i.setItem&&null!=i.getItem&&null!=i.removeItem?i:null;else if("undefined"!=typeof localStorage&&null!==localStorage)t.localStorage=localStorage;else try{n=require("node-localstorage").LocalStorage,t.localStorage=new n(this.directoryForNodeJSCache,this.quotaForNodeJSCache)}catch(o){t.localStorage=null}null==t.meta&&(t.meta=this.getItem(this.keyForMetaData),null==t.meta&&(t.meta={}))}return t.meta=null,t.localStorage=null,t.prototype.setItem=function(e,r){var s,i,n,o,a,l,h;if(null!=t.localStorage){for(;;)try{t.localStorage.setItem(e,JSON.stringify(r));break}catch(u){if("QUOTA_EXCEEDED_ERR"!==u.name)throw u;a=(new Date).getTime(),o=null,l=t.meta;for(i in l)n=l[i],a>n.lastUpdated&&(o=i,a=n.lastUpdated);this.removeItem(o)}for(s={},s.lastUpdated=(new Date).getTime(),t.meta[e]=s;;)try{t.localStorage.setItem(this.keyForMetaData,JSON.stringify(t.meta));break}catch(u){if("QUOTA_EXCEEDED_ERR"!==u.name)throw u;a=(new Date).getTime(),o=null,h=t.meta;for(i in h)n=h[i],a>n.lastUpdated&&(o=i,a=n.lastUpdated);this.removeItem(o)}}return this},t.prototype.getItem=function(e){var r;return null!=t.localStorage?(r=t.localStorage.getItem(e),null!=r?JSON.parse(r):void 0):void 0},t.prototype.removeItem=function(e){return null!=t.localStorage&&(t.localStorage.removeItem(e),delete t.meta[e],t.localStorage.setItem(this.keyForMetaData,JSON.stringify(t.meta))),this},t.prototype.clear=function(){var e,r,s;if(null!=t.localStorage){s=t.meta;for(e in s)r=s[e],t.localStorage.removeItem(e);t.meta={},t.localStorage.setItem(this.keyForMetaData,JSON.stringify(t.meta))}return this},t}(),"undefined"!=typeof exports&&this.exports!==exports?exports.LocalCache=t:this.LocalCache=t}).call(this);
+</script> 
+        
+<script type="text/javascript">
+(function(){var t,e,r,s=function(t,e){return function(){return t.apply(e,arguments)}},i=[].slice;e="undefined"!=typeof exports&&null!==exports?require("../lib/Lumenize"):require("/lumenize"),r=e.utils,t=function(){function t(t,e,i){this.visualizations=t,this.userConfig=e,this.createVisualizationCB=i,this.onSnapshotsReceieved=s(this.onSnapshotsReceieved,this),this.config=r.clone(this.userConfig),this.timeoutHandle=null,this.cache=new LocalCache,null==this.config.debug&&(this.config.debug=!1),this.getProjectAndWorkspaceScope()}return t.prototype.getProjectAndWorkspaceScope=function(){var t,e,r,s,i,n,o=this;return top===self?(i=41529001,r=!1,e=!0,t=81147451):(i=__WORKSPACE_OID__,r=__PROJECT_SCOPING_UP__,e=__PROJECT_SCOPING_DOWN__,t=__PROJECT_OID__),s={workspaceOID:i,projectScopingUp:r,projectScopingDown:e,projectOID:t},n=function(t){return o.projectAndWorkspaceScope=t,o.getWorkspaceConfiguration()},n(s)},t.prototype.getWorkspaceConfiguration=function(){var t,e,r=this;return t={DateFormat:"MM/dd/yyyy",DateTimeFormat:"MM/dd/yyyy hh:mm:ss a",IterationEstimateUnitName:"Points",ReleaseEstimateUnitName:"Points",TaskUnitName:"Hours",TimeTrackerEnabled:!0,TimeZone:"America/Denver",WorkDays:"Monday,Tuesday,Wednesday,Thursday,Friday"},e=function(t){return r.workspaceConfiguration=t,r.initialize(),r.onConfigOrScopeUpdated()},e(t)},t.prototype.onConfigOrScopeUpdated=function(){var t;return t=this.cache.getItem(this.getHashForCache()),null!=t?(this.lumenizeCalculator=this.LumenizeCalculatorClass.newFromSavedState(t),this.upToDate=this.lumenizeCalculator.upToDate):(this.lumenizeCalculator=new this.LumenizeCalculatorClass(this.config.lumenizeCalculatorConfig),this.upToDate=null),this.createOrUpdateVisualization(),this.onNewDataAvailable()},t.prototype.onSnapshotsReceieved=function(t,e,r,s){return null==s&&(s=null),this.dirty=t.length>0?!0:!1,this.lastQueryReceivedMilliseconds=(new Date).getTime(),this.upToDate=r,this.deriveFieldsOnSnapshots(t),r>this.asOfISOString&&(r=this.asOfISOString),this.updateCalculator(t,e,r),this.createOrUpdateVisualization(),null!=this.config.asOf&&this.upToDate<this.config.asOf?void 0:this.analyticsQuery.hasMorePages()?this.onNewDataAvailable():this.newDataExpected(void 0,this.config.refreshIntervalMilliseconds)},t.prototype.newDataExpected=function(t,e){var r;return null==t&&(t=3e4),null==e&&(e=18e5),r=e+t,null!=this.timeoutHandle&&clearTimeout(this.timeoutHandle),this.timeoutHandle=setTimeout(this.onNewDataAvailable,r)},t.prototype.removeFromCacheAndRecalculate=function(){return this.upToDate=null,this.cache.removeItem(this.getHashForCache()),this.onConfigOrScopeUpdated()},t.prototype.updateCalculator=function(){var t,e,r,s,n,o;return s=arguments[0],n=arguments[1],t=arguments[2],e=arguments.length>=4?i.call(arguments,3):[],(o=this.lumenizeCalculator).addSnapshots.apply(o,[s,n,t].concat(i.call(e))),r=this.lumenizeCalculator.getStateForSaving(),this.cache.setItem(this.getHashForCache(),r)},t.prototype.initialize=function(){return null==this.config.lumenizeCalculatorConfig&&(this.config.lumenizeCalculatorConfig={}),this.config.lumenizeCalculatorConfig.workDays=this.workspaceConfiguration.WorkDays,null!=this.userConfig.tz?this.config.lumenizeCalculatorConfig.tz=this.userConfig.tz:(this.config.tz=this.workspaceConfiguration.TimeZone,this.config.lumenizeCalculatorConfig.tz=this.workspaceConfiguration.TimeZone),this.asOfISOString=null!=this.config.asOf?new e.Time(this.config.asOf,"millisecond").getISOStringInTZ(this.config.lumenizeCalculatorConfig.tz):null},t.prototype.deriveFieldsOnSnapshots=function(t){return null!=this.config.deriveFieldsOnSnapshotsConfig?Lumenize.deriveFields(t,this.config.deriveFieldsOnSnapshotsConfig):void 0},t.prototype.onNewDataAvailable=function(){return this.analyticsQuery.getPage(this.onSnapshotsReceieved)},t.prototype.createOrUpdateVisualization=function(){},t.prototype.getHashForCache=function(){},t}(),this.VisualizerBase=t}).call(this);
+</script> 
+        
+<script type="text/javascript">
+(function(){var t,e,r,s,i=function(t,e){return function(){return t.apply(e,arguments)}},n={}.hasOwnProperty,o=function(t,e){function r(){this.constructor=t}for(var s in e)n.call(e,s)&&(t[s]=e[s]);return r.prototype=e.prototype,t.prototype=new r,t.__super__=e.prototype,t};r="undefined"!=typeof exports&&null!==exports?require("../lib/lumenize"):require("/lumenize"),s=r.utils,e=r.Time,t=function(t){function n(){return this.onSnapshotsReceieved=i(this.onSnapshotsReceieved,this),this._gotSnapshotsToSubtract=i(this._gotSnapshotsToSubtract,this),this._gotSnapshots=i(this._gotSnapshots,this),this.onNewDataAvailable=i(this.onNewDataAvailable,this),n.__super__.constructor.apply(this,arguments)}return o(n,t),n.prototype.initialize=function(){return n.__super__.initialize.call(this),null==this.config.validFromField&&(this.config.validFromField="_ValidFrom"),this.config.lumenizeCalculatorConfig.validFromField=this.config.validFromField,this.config.lumenizeCalculatorConfig.validToField=this.config.validToField,this.config.lumenizeCalculatorConfig.uniqueIDField=this.config.uniqueIDField,this.config.lumenizeCalculatorConfig.granularity=this.config.granularity,this.config.lumenizeCalculatorConfig.fieldsToSum=this.config.fieldsToSum,this.config.lumenizeCalculatorConfig.asterixToDateTimePeriod=!1,this.LumenizeCalculatorClass=r.TransitionsCalculator},n.prototype.onNewDataAvailable=function(){var t,e;return e={"X-RallyIntegrationName":"ThroughputVisualizer (prototype)","X-RallyIntegrationVendor":"Rally Red Pill","X-RallyIntegrationVersion":"0.1.0",workspaceOID:this.projectAndWorkspaceScope.workspaceOID},null==this.upToDate&&(this.upToDate="2011-12-01T00:00:00.000Z"),this.analyticsQuery=new TransitionsAnalyticsQuery(e,this.upToDate,this.config.transitionsPredicate),this.analyticsQueryToSubtract=new TransitionsAnalyticsQuery(e,this.upToDate,this.config.transitionsToSubtractPredicate),this.projectAndWorkspaceScope.projectScopingDown?(this.analyticsQuery.scope("_ProjectHierarchy",this.projectAndWorkspaceScope.projectOID),this.analyticsQueryToSubtract.scope("_ProjectHierarchy",this.projectAndWorkspaceScope.projectOID)):(this.analyticsQuery.scope("Project",this.projectAndWorkspaceScope.projectOID),this.analyticsQueryToSubtract.scope("Project",this.projectAndWorkspaceScope.projectOID)),this.analyticsQuery.type(this.config.type),this.analyticsQueryToSubtract.type(this.config.type),null!=this.config.asOf&&(t={},t[this.config.validFromField]={$lt:this.asOfISOString},this.analyticsQuery.additionalCriteria(t),this.analyticsQueryToSubtract.additionalCriteria(t)),this.config.debug&&(this.analyticsQuery.debug(),this.analyticsQueryToSubtract.debug(),console.log("Requesting data...")),this.gotSnapshots=!1,this.gotSnapshotsToSubtract=!1,this.analyticsQuery.getPage(this._gotSnapshots),this.analyticsQueryToSubtract.getPage(this._gotSnapshotsToSubtract)},n.prototype._gotSnapshots=function(t,e,r){return this.snapshots=t,this.startOn=e,this.endBefore=r,this.gotSnapshots=!0,this.onSnapshotsReceieved()},n.prototype._gotSnapshotsToSubtract=function(t){return this.snapshotsToSubtract=t,this.gotSnapshotsToSubtract=!0,this.onSnapshotsReceieved()},n.prototype.onSnapshotsReceieved=function(t,e,r,s,i){if(null==s&&(s=null),this.gotSnapshots&&this.gotSnapshotsToSubtract&&(t=this.snapshots,i=this.snapshotsToSubtract,e=this.startOn,r=this.endBefore,this.dirty=t.length>0||i>0?!0:!1,this.lastQueryReceivedMilliseconds=(new Date).getTime(),this.upToDate=r,this.deriveFieldsOnSnapshots(t),this.deriveFieldsOnSnapshots(i),r>this.asOfISOString&&(r=this.asOfISOString),this.updateCalculator(t,e,r,i),this.createOrUpdateVisualization(),!(null!=this.config.asOf&&this.upToDate<this.config.asOf))){if(!this.analyticsQuery.hasMorePages()&&!this.analyticsQueryToSubtract.hasMorePages())return this.newDataExpected(void 0,this.config.refreshIntervalMilliseconds);if(this.analyticsQuery.hasMorePages()&&(this.gotSnapshots=!1,this.analyticsQuery.getPage(this._gotSnapshots)),this.analyticsQueryToSubtract.hasMorePages())return this.gotSnapshotsToSubtract=!1,this.analyticsQueryToSubtract.getPage(this._gotSnapshotsToSubtract)}},n.prototype.getHashForCache=function(){var t,e,r,i,n;return t={},n=s.clone(this.userConfig),delete n.debug,delete n.periodsToShow,t.userConfig=n,t.projectAndWorkspaceScope=this.projectAndWorkspaceScope,t.workspaceConfiguration=this.workspaceConfiguration,i="Throughput v0.2.70",i=""+Math.random(),e=JSON.stringify(t),r=md5(e+i)},n.prototype.createOrUpdateVisualization=function(){var t,r,s,i,n,o,a,l,h,u,c,p,d,f,y,g,_,m,S;if(t=this.lumenizeCalculator.getResults(),0===t.length)return this.visualizationData=null,this.createVisualizationCB(this.visualizationData),void 0;if(this.dirty){for(this.config.debug&&console.log(t),o=null!=this.config.asOf?this.asOfISOString:e.getISOStringFromJSDate(),l=""+new e(o,this.config.granularity,this.config.tz).addInPlace(-1*this.config.numberOfPeriodsToShow+1),n=""+new e(o,this.config.granularity,this.config.tz),r=[],u=[],c=0,f=t.length;f>c;c++)h=t[c],(_=h.timePeriod)>=l&&n>=_&&r.push(h.timePeriod);for(r[r.length-1]+="*",m=this.config.fieldNames,a=p=0,y=m.length;y>p;a=++p){for(i=m[a],s=[],d=0,g=t.length;g>d;d++)h=t[d],(S=h.timePeriod)>=l&&n>=S&&s.push(h[i]);u.push({name:this.config.seriesNames[a],data:s})}this.visualizationData={categories:r,series:u},this.createVisualizationCB(this.visualizationData)}},n}(VisualizerBase),this.ThroughputVisualizer=t}).call(this);
+</script>
+        
+        <script type="text/javascript">
+            (function() {
+
+                var charts = {};
+                var visualizer;
+                
+                createVisualization = function(visualizationData) {
+                  
+                  if (typeof visualizationData !== "undefined" && visualizationData !== null) {
+                    categories = visualizationData.categories
+                    series = visualizationData.series
+                    
+                    charts.columnChart = new Highcharts.Chart({
+                      chart: {
+                         renderTo: 'chart-container',
+                         defaultSeriesType: 'column',
+                         zoomType: 'x'
+                      },
+                      legend: {
+                         enabled: false
+                      },
+                      credits: {
+                         enabled: false
+                      },
+                      title: {
+                         text: 'Throughput'
+                      },
+                      subtitle: {
+                         text: userConfig.subTitle
+                      },
+                      xAxis: {
+                         startOnTick: false,
+                         tickmarkPlacement: 'on',
+                         title: {
+                             text: userConfig.granularity.slice(0, 1).toUpperCase() + userConfig.granularity.slice(1) + 's'
+                         },
+                         categories: categories
+                      },
+                      yAxis: [
+                         {
+                             title: {
+                                 text: 'Count'
+                             },
+                             opposite: false,
+                             endOnTick: false
+                         }
+                      
+                      ],
+                      tooltip: {
+                         formatter: function() {
+                             point = this.point
+                             s = point.series.name + ': <b>' + point.y + '</b><br \>';
+                             if (point.x == point.series.data.length - 1) {
+                                 s += point.category.slice(0, point.category.length - 1) + ' to-date';
+                             } else {
+                                 s += point.category;
+                             };
+                             return s;
+                         }
+                      },                    
+                      series: series
+                    });  // end of chart
+                    
+                  } else {
+                    // Put a spinner in the chart containers until first fetch returns
+                    $('#chart-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
+/*
+                    $('#summary-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
+*/
+                  };  // end of if visualizationData?
+                
+                };  // end of createVisualization  
+                  
+    
+                $(document).ready(function() {
+                  visualizer = new ThroughputVisualizer(charts, userConfig, createVisualization);
+                });
+            
+            })();
+            
+                
+        </script>
+
+        
+    </head>
+    <body>
+        
+        <!-- 3. Add the containers -->
+        <table cellpading="0px" cellspacing="0px" width="98%" height="98%">
+          <tr>
+            <td width="100%"><div id="chart-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+            <td width="0%"><div id="summary-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+          </tr>
+        </table>
+                
+    </body>
+</html>
+
+

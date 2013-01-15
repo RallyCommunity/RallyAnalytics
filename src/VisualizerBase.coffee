@@ -1,3 +1,5 @@
+# !TODO: Add support for deriveFieldsOnResults
+
 ###
 The general structure of an incrementally update-able visualization follows these steps:
 
@@ -43,7 +45,7 @@ class VisualizerBase  # maybe extends Observable
 
   @cfg {Number} [refreshIntervalMilliseconds = 30 * 60 * 1000] Defaults to 30 minutes
 
-  @property {Object} userConfig Useful for creating the cache hash. The contents of this will be visualizer specific
+  @property {Object} userConfig This is whatever the users passes in under the @userConfig parameter in the constructor. It is useful for creating the cache hash. The contents of this will be visualizer specific
 
   @property {Object} config Starts with all the values in userConfig but more may be added
   @property {Number} [config.refreshIntervalMilliseconds = 5 * 60 * 1000] The chart will automatically refresh after this many milliseconds
@@ -94,6 +96,7 @@ class VisualizerBase  # maybe extends Observable
     @cache = new LocalCache()
     unless @config.debug?
       @config.debug = false
+
     @getProjectAndWorkspaceScope()
 
   getProjectAndWorkspaceScope: () ->
@@ -145,6 +148,7 @@ class VisualizerBase  # maybe extends Observable
     else
       @lumenizeCalculator = new @LumenizeCalculatorClass(@config.lumenizeCalculatorConfig)
       @upToDate = null
+
     @createOrUpdateVisualization()
     @onNewDataAvailable()
 
@@ -177,7 +181,7 @@ class VisualizerBase  # maybe extends Observable
     @cache.removeItem(@getHashForCache())
     @onConfigOrScopeUpdated()
 
-  updateCalculator: (snapshots, startOn, endBefore) ->
+  updateCalculator: (snapshots, startOn, endBefore, rest...) ->
     ###
     @method updateCalculator
       Allows you to incrementally add snapshots to this calculator. It will also update the cache.
@@ -187,7 +191,7 @@ class VisualizerBase  # maybe extends Observable
     @param {String} endBefore A ISOString (e.g. '2012-01-01T12:34:56.789Z') indicating the moment just past the time
       period of interest. This should be the ETLDate from the results of your query to the Lookback API.
     ###
-    @lumenizeCalculator.addSnapshots(snapshots, startOn, endBefore)
+    @lumenizeCalculator.addSnapshots(snapshots, startOn, endBefore, rest...)
     savedState = @lumenizeCalculator.getStateForSaving()
     @cache.setItem(@getHashForCache(), savedState)
 
@@ -202,11 +206,19 @@ class VisualizerBase  # maybe extends Observable
     if @userConfig.tz?
       @config.lumenizeCalculatorConfig.tz = @userConfig.tz
     else
+      @config.tz = @workspaceConfiguration.TimeZone
       @config.lumenizeCalculatorConfig.tz = @workspaceConfiguration.TimeZone  # You may want to override this with the user timezone
     # Set holidays here once they are avaialable from Rally data model
 
+    if @config.asOf?
+      @asOfISOString = new lumenize.Time(@config.asOf, 'millisecond').getISOStringInTZ(@config.lumenizeCalculatorConfig.tz)
+    else
+      @asOfISOString = null
+
+
   deriveFieldsOnSnapshots: (snapshots) ->
     # Optionally override if you need to do something special. Otherwise, it will use @config.deriveFieldsOnSnapshotsConfig
+    # !TODO: Just pass the config into the TimeInStateCalculator once it's upgraded to support this
     if @config.deriveFieldsOnSnapshotsConfig?
       Lumenize.deriveFields(snapshots, @config.deriveFieldsOnSnapshotsConfig)
 

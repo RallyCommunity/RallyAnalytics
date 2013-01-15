@@ -1,0 +1,150 @@
+<!DOCTYPE HTML>
+
+<html>
+    <head>
+        <script type="text/javascript"">
+            var userConfig = {
+                subTitle: 'Features moving out of "In Dev"',
+                debug: false,
+                // asOf: "2012-10-15",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
+                granularity: 'month',
+                numberOfPeriodsToShow: 13,
+                // fieldsToSum: ['LeafStoryCount']  // Not supported yet. Defaults to count.
+                transitionsPredicate: {"State":{$gt:"In Dev"},"_PreviousValues.State":{$lte:"In Dev",$exists:true}},
+                transitionsToSubtractPredicate: {"_PreviousValues.State":{$gt:"In Dev"},"State":{$lte:"In Dev",$exists:true}},
+                type: 'PortfolioItem/Feature',
+                // deriveFieldsOnSnapshotsConfig:
+                seriesNames: ['Features'],
+                fieldNames: ['count']
+            }
+            
+        </script>
+        
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Throughput</title>
+        
+        <!-- HighCharts -->
+        <script type="text/javascript" src="../lib/jquery.min.js" deploy_src="https://people.rallydev.com/js/jquery.min.js"></script>
+        <script type="text/javascript" src="../lib/highcharts/js/highcharts.js" deploy_src="https://people.rallydev.com/js/highcharts.js"></script>
+        <script type="text/javascript" src="../lib/highcharts/js/modules/exporting.js" deploy_src="https://people.rallydev.com/js/exporting.js"></script>
+        <!-- a theme file
+            <script type="text/javascript" src="../js/themes/gray.js"></script>
+        -->
+        
+        <!-- Lumenize -->
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.5.3/deploy/Lumenize-min.js"></script>
+        
+        <!-- rally_analytics -->
+        <script type="text/javascript" src="../lib/analyticsquery.js"></script>
+
+        <!-- md5 -->
+        <script type="text/javascript" src="../lib/md5.js"></script>
+        
+        <!-- my visualizer for this chart (optional) -->
+        <script type="text/javascript" src="../lib/localcache/LocalCache.js"></script> 
+        <script type="text/javascript" src="../lib/VisualizerBase.js"></script> 
+        <script type="text/javascript" src="../lib/ThroughputVisualizer.js"></script>
+        
+        <script type="text/javascript">
+            (function() {
+
+                var charts = {};
+                var visualizer;
+                
+                createVisualization = function(visualizationData) {
+                  
+                  if (typeof visualizationData !== "undefined" && visualizationData !== null) {
+                    categories = visualizationData.categories
+                    series = visualizationData.series
+                    
+                    charts.columnChart = new Highcharts.Chart({
+                      chart: {
+                         renderTo: 'chart-container',
+                         defaultSeriesType: 'column',
+                         zoomType: 'x'
+                      },
+                      legend: {
+                         enabled: false
+                      },
+                      credits: {
+                         enabled: false
+                      },
+                      title: {
+                         text: 'Throughput'
+                      },
+                      subtitle: {
+                         text: userConfig.subTitle
+                      },
+                      xAxis: {
+                         startOnTick: false,
+                         tickmarkPlacement: 'on',
+                         title: {
+                             text: userConfig.granularity.slice(0, 1).toUpperCase() + userConfig.granularity.slice(1) + 's'
+                         },
+                         categories: categories
+                      },
+                      yAxis: [
+                         {
+                             title: {
+                                 text: 'Count'
+                             },
+                             opposite: false,
+                             endOnTick: false
+                         }
+                      
+                      ],
+                      tooltip: {
+                         formatter: function() {
+                             point = this.point
+                             s = point.series.name + ': <b>' + point.y + '</b><br \>';
+                             if (point.x == point.series.data.length - 1) {
+                                 s += point.category.slice(0, point.category.length - 1) + ' to-date';
+                             } else {
+                                 s += point.category;
+                             };
+                             return s;
+                         }
+                      },                    
+                      series: series
+                    });  // end of chart
+                    
+                  } else {
+                    // Put a spinner in the chart containers until first fetch returns
+                    $('#chart-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
+/*
+                    $('#summary-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
+*/
+                  };  // end of if visualizationData?
+                
+                };  // end of createVisualization  
+                  
+    
+                $(document).ready(function() {
+                  visualizer = new ThroughputVisualizer(charts, userConfig, createVisualization);
+                });
+            
+            })();
+            
+                
+        </script>
+
+        
+    </head>
+    <body>
+        
+        <!-- 3. Add the containers -->
+        <table cellpading="0px" cellspacing="0px" width="98%" height="98%">
+          <tr>
+            <td width="100%"><div id="chart-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+            <td width="0%"><div id="summary-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+          </tr>
+        </table>
+                
+    </body>
+</html>
+
+

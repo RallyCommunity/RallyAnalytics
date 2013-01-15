@@ -24,11 +24,6 @@ class TIPVisualizer extends VisualizerBase
     unless @config.radiusField.field in trackLastValueForTheseFields
       trackLastValueForTheseFields.push(@config.radiusField.field)
 
-    if @config.asOf?
-      @asOfISOString = new lumenize.Time(@config.asOf, 'millisecond').getISOStringInTZ(@config.lumenizeCalculatorConfig.tz)
-    else
-      @asOfISOString = null
-
     @config.lumenizeCalculatorConfig.trackLastValueForTheseFields = trackLastValueForTheseFields
     @config.lumenizeCalculatorConfig.granularity = 'hour'
     @config.lumenizeCalculatorConfig.workDayStartOn = @config.workDayStartOn
@@ -80,7 +75,7 @@ class TIPVisualizer extends VisualizerBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'v0.2.70'
+    salt = 'TIP v0.2.72'
 #    salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)
