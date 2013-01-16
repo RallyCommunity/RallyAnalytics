@@ -5,8 +5,9 @@
         <script type="text/javascript"">
             var userConfig = {
                 subTitle: 'Features moving out of "In Dev"',
-                debug: false,
-                // asOf: "2012-10-15",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
+                // debug: true,
+                // trace: true,
+                // asOf: "2012-11-01",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
                 granularity: 'month',
                 numberOfPeriodsToShow: 13,
                 // fieldsToSum: ['LeafStoryCount']  // Not supported yet. Defaults to count.
@@ -54,10 +55,12 @@
                 createVisualization = function(visualizationData) {
                   
                   if (typeof visualizationData !== "undefined" && visualizationData !== null) {
-                    categories = visualizationData.categories
-                    series = visualizationData.series
+                    categories = visualizationData.categories;
+                    series = visualizationData.series;
+                    ids = visualizationData.ids;
+                    countValues = visualizationData.countValues;
                     
-                    charts.columnChart = new Highcharts.Chart({
+                    charts.chart = new Highcharts.Chart({
                       chart: {
                          renderTo: 'chart-container',
                          defaultSeriesType: 'column',
@@ -102,6 +105,10 @@
                              } else {
                                  s += point.category;
                              };
+                             if (userConfig.debug) {
+                                 console.log(ids[point.x]);
+                                 console.log(countValues[point.x]);
+                             }
                              return s;
                          }
                       },                    

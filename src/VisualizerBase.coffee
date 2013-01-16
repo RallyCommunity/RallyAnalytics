@@ -28,7 +28,7 @@ if exports?
 else
   lumenize = require('/lumenize')  # in the browser
 
-{utils} = lumenize
+{utils, Time} = lumenize
 
 class VisualizerBase  # maybe extends Observable
   ###
@@ -68,7 +68,7 @@ class VisualizerBase  # maybe extends Observable
 
   @property {iAnalyticsQuery} analyticsQuery Instantiate this in your onNewDataAvailable() method.
 
-  @property {String} upToDate A ISOString (e.g. '2012-01-01T12:34:56.789Z') indicating the last moment that this chart is
+  @property {String} upToDateISOString A ISOString (e.g. '2012-01-01T12:34:56.789Z') indicating the last moment that this chart is
     up to date. You should not set this but you can read from it. It will be set when new snapshots are added or it's
     restored from the cache.
   @readonly
@@ -79,6 +79,35 @@ class VisualizerBase  # maybe extends Observable
   # @property {Lumenize.iCalculator} lumenizeCalculator
   # @property {Function} createVisualizationCB function that takes one parameter @visualizationData
   # @property {Boolen} dirty Flag to know whether or not to refresh the visualizations
+  ###
+  Sequence diagram below can be edited here: http://www.asciiflow.com/#Draw2041780197906655348/1887977824
+  +----------------------+ +-----------------------+ +---------------------+ +------------------+ +-------------------+ +-----------------------+ +-------------------+ +---------------------+ +---------------+
+  |initialize and before | |onConfigOrScopeUpdated | |createVisualization  | |onNewDataAvailable| |onSnapshotsReceived| |deriveFieldsOnSnapshots| |updateCalculator   | |updateVisualization  | |newDataExpected|
+  |----------------------| |-----------------------| |---------------------| |------------------| |-------------------| |-----------------------| |-------------------| |---------------------| |---------------|
+  |@userConfig           | |@lumenizeCalculator    | |@visualizationData   | |@upToDateISOString| |@upToDateISOString | |snapshots              | |@lumenizeCalculator| |@visualizationData   | |               |
+  |@config               | |@upToDateISOString     | | via call to         | | = '2011-12-01...'| | = endBefore       | |                       | |@cache             | | via call to         | |               |
+  |@cache                | | (null if not restored)| | @updateVisualizatio-| | if null          | |                   | |                       | |                   | | @updateVisualizatio-| |               |
+  |@createVisualizationCB| |                       | | nData()             | |@analyticsQuery   | |                   | |                       | |                   | | nData()             | |               |
+  +----------------------+ +-----------------------+ +---------------------+ +------------------+ +-------------------+ +-----------------------+ +-------------------+ +-----------+---------+ +---------------+
+         |                            |                           |                  |                      |                       |                     |                        |                    |
+         +--------------------------->|                           |                  |                      |                       |                     |                        |                    |
+         |                            +-------------------------->|                  |                      |                       |                     |                        |                    |
+         |                            |                           +----------------->|                      |                       |                     |                        |                    |
+         |                            |                           |                  +--------------------->|                       |                     |                        |                    |
+         |                            |                           |                  |                      +---------------------->|                     |                        |                    |
+         |                            |                           |                  |                      |                       +-------------------->|                        |                    |
+         |                            |                           |                  |                      |                       |                     +----------------------->|                    |
+         |                            |                           |                  |                      |                       |                     |                        +------------------->|
+         |                            |                           |                  |                      |                       |                     |                        |                    |
+         |                            |                           |                  |<----------------------------- @timeoutHandle = setTimeout(@onNewDataAvailable, delay) ---------------------------+<-+
+         |                            |                           |                  |                      |                       |                     |                        |                    |  |
+         |                            |                           |                  +--------------------->|                       |                     |                        |                    |  |
+         |                            |                           |                  |                      +---------------------->|                     |                        |                    |  |
+         |                            |                           |                  |                      |                       +-------------------->|                        |                    |  |
+         |                            |                           |                  |                      |                       |                     +----------------------->|                    |  |
+         |                            |                           |                  |                      |                       |                     |                        +------------------->+--+
+         |                            |                           |                  |                      |                       |                     |                        |                    |
+  ###
 
   constructor: (@visualizations, @userConfig, @createVisualizationCB) ->
     ###
@@ -92,7 +121,8 @@ class VisualizerBase  # maybe extends Observable
     ```
     ###
     @config = utils.clone(@userConfig)
-    @timeoutHandle = null
+    if @config.trace
+      console.log('in VisualizerBase.constructor')
     @cache = new LocalCache()
     unless @config.debug?
       @config.debug = false
@@ -100,6 +130,8 @@ class VisualizerBase  # maybe extends Observable
     @getProjectAndWorkspaceScope()
 
   getProjectAndWorkspaceScope: () ->
+    if @config.trace
+      console.log('in VisualizerBase.getProjectAndWorkspaceScope')
     if top == self
       workspaceOID = 41529001
       projectScopingUp = false
@@ -121,6 +153,8 @@ class VisualizerBase  # maybe extends Observable
     _callback(scope)  # !TODO: Delete this line once a real query and callback is added
 
   getWorkspaceConfiguration: () ->
+    if @config.trace
+      console.log('in VisualizerBase.getWorkspaceConfiguration')
     workspaceConfiguration = {
       DateFormat: 'MM/dd/yyyy',
       DateTimeFormat: 'MM/dd/yyyy hh:mm:ss a',
@@ -141,43 +175,58 @@ class VisualizerBase  # maybe extends Observable
     _callback(workspaceConfiguration)  # !TODO: Delete this line once a real query and callback is added
 
   onConfigOrScopeUpdated: () ->  # register this as the callback for events where the configuration changes
+    if @config.trace
+      console.log('in VisualizerBase.onConfigOrScopeUpdated')
     savedState = @cache.getItem(@getHashForCache())
     if savedState?
       @lumenizeCalculator = @LumenizeCalculatorClass.newFromSavedState(savedState)
-      @upToDate = @lumenizeCalculator.upToDate
+      @upToDateISOString = @lumenizeCalculator.upToDateISOString
     else
       @lumenizeCalculator = new @LumenizeCalculatorClass(@config.lumenizeCalculatorConfig)
-      @upToDate = null
+      @upToDateISOString = null
 
-    @createOrUpdateVisualization()
+    @createVisualization()
     @onNewDataAvailable()
 
+  getAsOfISOString: () ->
+    if @config.asOf?
+      @asOfISOString = new Time(@config.asOf, 'millisecond').getISOStringInTZ(@config.lumenizeCalculatorConfig.tz)
+    else
+      @asOfISOString = Time.getISOStringFromJSDate()
+
   onSnapshotsReceieved: (snapshots, startOn, endBefore, queryInstance = null) =>
+    if @config.trace
+      console.log('in VisualizerBase.onSnapshotsReceieved')
     if snapshots.length > 0
       @dirty = true
     else
       @dirty = false
-    @lastQueryReceivedMilliseconds = new Date().getTime()
-    @upToDate = endBefore
+    # @lastQueryReceivedMilliseconds = new Date().getTime()
+    @upToDateISOString = endBefore
     @deriveFieldsOnSnapshots(snapshots)
-    if @asOfISOString < endBefore
-      endBefore = @asOfISOString
+    asOfISOString = @getAsOfISOString()
+    if asOfISOString < endBefore
+      endBefore = asOfISOString
     @updateCalculator(snapshots, startOn, endBefore)  # This should also update the cache
-    @createOrUpdateVisualization()
-    unless @config.asOf? and @upToDate < @config.asOf
+    @updateVisualization()
+    unless @config.asOf? and @upToDateISOString < @config.asOf
       if @analyticsQuery.hasMorePages()
         @onNewDataAvailable()  # This is intentionally calling @onNewDataAvailable rather than getPage(). Your @onNewDataAvailable could just call getPage() or it can do something else like the TIP Chart requires.
       else
         @newDataExpected(undefined, @config.refreshIntervalMilliseconds)
 
   newDataExpected: (paddingDelay = 30 * 1000, etlDelay = 30 * 60 * 1000) ->  # Register this as event handler for when data on the page changes. Need to adjust padding based upon usage
+    if @config.trace
+      console.log('in VisualizerBase.newDataExpected')
     delay = etlDelay + paddingDelay
     if @timeoutHandle?
       clearTimeout(@timeoutHandle)
     @timeoutHandle = setTimeout(@onNewDataAvailable, delay)
 
   removeFromCacheAndRecalculate: () ->
-    @upToDate = null
+    if @config.trace
+      console.log('in VisualizerBase.removeFromCacheAndRecalculate')
+    @upToDateISOString = null
     @cache.removeItem(@getHashForCache())
     @onConfigOrScopeUpdated()
 
@@ -191,6 +240,8 @@ class VisualizerBase  # maybe extends Observable
     @param {String} endBefore A ISOString (e.g. '2012-01-01T12:34:56.789Z') indicating the moment just past the time
       period of interest. This should be the ETLDate from the results of your query to the Lookback API.
     ###
+    if @config.trace
+      console.log('in VisualizerBase.updateCalculator')
     @lumenizeCalculator.addSnapshots(snapshots, startOn, endBefore, rest...)
     savedState = @lumenizeCalculator.getStateForSaving()
     @cache.setItem(@getHashForCache(), savedState)
@@ -200,6 +251,8 @@ class VisualizerBase  # maybe extends Observable
   initialize: () ->
     # Optionally override. This is called after the @workspaceConfiguration and @projectAndWorkspaceScope is set in case
     # you need those values in your initialization.
+    if @config.trace
+      console.log('in VisualizerBase.initialize')
     unless @config.lumenizeCalculatorConfig?
       @config.lumenizeCalculatorConfig = {}
     @config.lumenizeCalculatorConfig.workDays = @workspaceConfiguration.WorkDays
@@ -210,17 +263,29 @@ class VisualizerBase  # maybe extends Observable
       @config.lumenizeCalculatorConfig.tz = @workspaceConfiguration.TimeZone  # You may want to override this with the user timezone
     # Set holidays here once they are avaialable from Rally data model
 
-    if @config.asOf?
-      @asOfISOString = new lumenize.Time(@config.asOf, 'millisecond').getISOStringInTZ(@config.lumenizeCalculatorConfig.tz)
-    else
-      @asOfISOString = null
-
-
   deriveFieldsOnSnapshots: (snapshots) ->
     # Optionally override if you need to do something special. Otherwise, it will use @config.deriveFieldsOnSnapshotsConfig
     # !TODO: Just pass the config into the TimeInStateCalculator once it's upgraded to support this
+    if @config.trace
+      console.log('in VisualizerBase.deriveFieldsOnSnapshots')
     if @config.deriveFieldsOnSnapshotsConfig?
       Lumenize.deriveFields(snapshots, @config.deriveFieldsOnSnapshotsConfig)
+
+  createVisualization: () ->
+    # maybe override
+    # send previously calculated @visualizatoinData to the @createVisualizationCB that came from the HTML
+    if @config.trace
+      console.log('in VisualizerBase.createVisualization')
+    @updateVisualizationData()
+    @createVisualizationCB(@visualizationData)
+
+  updateVisualization: () ->
+    # most likely override. The default here is to just recreate it again but you should try to update the HighCharts
+    # Objects in @visualizations.
+    if @config.trace
+      console.log('in VisualizerBase.updateVisualization')
+    @updateVisualizationData()
+    @createVisualizationCB(@visualizationData)
 
   # You are expected to override the following methods
 
@@ -237,15 +302,20 @@ class VisualizerBase  # maybe extends Observable
     #
     # example code might look like this:
     # queryConfig = {<your_query_config_settings}
-    # @analyticsQuery = new AnalyticsQuery(queryConfig, @upToDate, <other_parameters>)
+    # @analyticsQuery = new AnalyticsQuery(queryConfig, @upToDateISOString, <other_parameters>)
     # # set parameters of query
     # @analyticsQuery.getPage(@onSnapshotsReceieved)
+    if @config.trace
+      console.log('in VisualizerBase.onNewDataAvailable')
 
     @analyticsQuery.getPage(@onSnapshotsReceieved)  # must be last line of this method
 
-  createOrUpdateVisualization: () ->
+  updateVisualizationData: () ->
     # override
-    # Transform the data into whatever form your visualization expects from the data in the @lumenizeCalculator
+    # Transform the data into whatever form your visualization expects from the data in the @lumenizeCalculator and store
+    # in @visualizationData
+    if @config.trace
+      console.log('in VisualizerBase.updateVisualizationData')
 
   getHashForCache: () ->
     # override
@@ -255,6 +325,7 @@ class VisualizerBase  # maybe extends Observable
     # the Lookback API started capturing data), that's OK to be included. You may wish to add the version of your
     # visualizer (or even the Lumenize version) as salt to this cache, which would force a recalculation whenever
     # the version updated.
-
+    if @config.trace
+      console.log('in VisualizerBase.getHashForCache')
 
 this.VisualizerBase = VisualizerBase

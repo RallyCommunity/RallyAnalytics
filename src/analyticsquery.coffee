@@ -9,16 +9,14 @@
 #     Warnings: [ ]
 #   }
 
+if exports?
+  lumenize = require('../lib/lumenize')  # in node.js
+else
+  lumenize = require('/lumenize')  # in the browser
+
+{utils, Time} = lumenize
+
 root = this
-
-jsType = do ->  # from http://arcturo.github.com/library/coffeescript/07_the_bad_parts.html
-  classToType = {}
-  for name in "Boolean Number String Function Array Date RegExp Undefined Null".split(" ")
-    classToType["[object " + name + "]"] = name.toLowerCase()
-
-  (obj) ->
-    strType = Object::toString.call(obj)
-    classToType[strType] or "object"
 
 class AnalyticsQuery
   ###
@@ -252,6 +250,14 @@ class AnalyticsQuery
     
   getAll: (callback) ->
     throw new Error('getAll() not supported in this version of AnalyticsQuery.')
+#    if @virgin
+#      @allCallback = callback
+#      @virgin = false
+#      @upToDate = '2011-12-01T00:00:00.000Z'
+#    if @hasMorePages()
+#      @getPage(@getAll)
+#    else
+#      @allCallback.call(this)
 
   hasMorePages: () ->
     return @_hasMorePages
@@ -332,6 +338,8 @@ class AnalyticsQuery
           @_hasMorePages = true
           @_startIndex += @_pageSize
           endBefore = @lastPageResults[@lastPageResults.length - 1]._ValidFrom
+        # both _ValidFrom and ETLDate are inclusive of the last result so to have a true endBefore, we need to add 1ms
+        endBefore = new Time(endBefore, Time.MILLISECOND, 'GMT').addInPlace(1).getISOStringInTZ('GMT')
         startOn = @upToDate
         @upToDate = endBefore
 
@@ -481,12 +489,12 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
       okKeys = ['Project', '_ProjectHierarchy', 'Iteration', 'Release', 'Tags', '_ItemHierarchy']
       unless k in okKeys
         throw new Error("Key for scope() call must be one of #{okKeys}")
-      if jsType(v) == 'array'
+      if utils.type(v) == 'array'
         @_scope[k] = {'$in': v}  # Note, even for _ItemHierarchy/_ProjectHierarchy this behaves as expected {_ItemHierarchy: {$in:[1, 2]}} will bring back the decendants of 1 and the decendants of 2.
       else
         @_scope[k] = v
       
-    if jsType(key) == 'object'
+    if utils.type(key) == 'object'
       for k, v of key
         addToScope(k, v)
     else if arguments.length == 2

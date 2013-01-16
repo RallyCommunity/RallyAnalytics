@@ -10,6 +10,8 @@ class TIPVisualizer extends VisualizerBase
   ###
 
   initialize: () ->
+    if @config.trace
+      console.log('in TIPVisualizer.initialize')
     super()
 
     @config.toolTipFieldNames = []
@@ -33,16 +35,18 @@ class TIPVisualizer extends VisualizerBase
     @LumenizeCalculatorClass = lumenize.TimeInStateCalculator
 
   onNewDataAvailable: () =>
+    if @config.trace
+      console.log('in TIPVisualizer.onNewDataAvailable')
     queryConfig = {
       'X-RallyIntegrationName': 'TIP Chart (prototype)',
       'X-RallyIntegrationVendor': 'Rally Red Pill',
       'X-RallyIntegrationVersion': '0.2.0',
       workspaceOID: @projectAndWorkspaceScope.workspaceOID
     }
-    unless @upToDate?
-      @upToDate = '2011-12-01T00:00:00.000Z'  # The first full month of the Lookback API
+    unless @upToDateISOString?
+      @upToDateISOString = '2011-12-01T00:00:00.000Z'  # The first full month of the Lookback API
 
-    @analyticsQuery = new TimeInStateAnalyticsQuery(queryConfig, @upToDate, @config.statePredicate)
+    @analyticsQuery = new TimeInStateAnalyticsQuery(queryConfig, @upToDateISOString, @config.statePredicate)
 
     if @projectAndWorkspaceScope.projectScopingDown
       @analyticsQuery.scope('_ProjectHierarchy', @projectAndWorkspaceScope.projectOID)
@@ -57,8 +61,8 @@ class TIPVisualizer extends VisualizerBase
     if @config.leafOnly
       @analyticsQuery.leafOnly()
 
-    if @asOfISOString?
-      @analyticsQuery.additionalCriteria({_ValidFrom:{$lt:@asOfISOString}})
+    if @config.asOf?
+      @analyticsQuery.additionalCriteria({_ValidFrom:{$lt:@getAsOfISOString()}})
 
     if @config.debug
       @analyticsQuery.debug()
@@ -67,6 +71,8 @@ class TIPVisualizer extends VisualizerBase
     @analyticsQuery.getPage(@onSnapshotsReceieved)
 
   getHashForCache: () ->
+    if @config.trace
+      console.log('in TIPVisualizer.getHashForCache')
     hashObject = {}
     userConfig = utils.clone(@userConfig)
     delete userConfig.debug
@@ -75,27 +81,28 @@ class TIPVisualizer extends VisualizerBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'TIP v0.2.72'
+    salt = 'TIP v0.2.75'
 #    salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)
     return out
 
-  createOrUpdateVisualization: () ->
+  updateVisualizationData: () ->
     # override
     # Transform the data into whatever form your visualization expects from the data in the @lumenizeCalculator
     # Store your calculations into @visualizationData, which will be sent to the visualization create and update callbacks.
     # Try to fully populate the x-axis based upon today even if you have no data for later dates yet.
+    if @config.trace
+      console.log('in TIPVisualizer.createOrUpdateVisualization')
 
     calculatorResults = @lumenizeCalculator.getResults()
 
     if calculatorResults.length == 0
       @visualizationData = null
-      @createVisualizationCB(@visualizationData)
       return
 
-    unless @dirty
-      return
+#    unless @dirty
+#      return
 
     timeInState = []
     if @config.asOf?
@@ -160,9 +167,7 @@ class TIPVisualizer extends VisualizerBase
 
     # For almost all other charts, we'll be able to simply update the data but this TIP chart controls the tickInterval
     # which cannot be updated at run time according to HighCharts support so we have to recreate it each time.
-    @createVisualizationCB(@visualizationData)
 
-    return
   
 this.TIPVisualizer = TIPVisualizer
   
