@@ -48,7 +48,9 @@ class TIPVisualizer extends VisualizerBase
 
     @analyticsQuery = new TimeInStateAnalyticsQuery(queryConfig, @upToDateISOString, @config.statePredicate)
 
-    if @projectAndWorkspaceScope.projectScopingDown
+    if @projectAndWorkspaceScope.projectScopingUp
+      @analyticsQuery.scope('Project', @projectAndWorkspaceScope.projectOIDsInScope)
+    else if @projectAndWorkspaceScope.projectScopingDown
       @analyticsQuery.scope('_ProjectHierarchy', @projectAndWorkspaceScope.projectOID)
     else
       @analyticsQuery.scope('Project', @projectAndWorkspaceScope.projectOID)
@@ -81,7 +83,7 @@ class TIPVisualizer extends VisualizerBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'TIP v0.2.75'
+    salt = 'TIP v0.2.76'
 #    salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)

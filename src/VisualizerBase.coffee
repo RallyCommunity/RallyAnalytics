@@ -138,12 +138,14 @@ class VisualizerBase  # maybe extends Observable
       projectScopingDown = true
 #       projectOID = 279050021  # A-Team
       projectOID = 81147451  # RallyDev
+      projectOIDsInScope = [projectOID]  # This is not correct because it would scope down for real but good enough for testing
     else
       workspaceOID = __WORKSPACE_OID__
       projectScopingUp = __PROJECT_SCOPING_UP__
       projectScopingDown = __PROJECT_SCOPING_DOWN__
       projectOID = __PROJECT_OID__
-    scope = {workspaceOID, projectScopingUp, projectScopingDown, projectOID}
+      projectOIDsInScope = [ __PROJECT_OIDS_IN_SCOPE__ ]
+    scope = {workspaceOID, projectScopingUp, projectScopingDown, projectOID, projectOIDsInScope}
 
     _callback = (projectAndWorkspaceScope) =>
       @projectAndWorkspaceScope = projectAndWorkspaceScope

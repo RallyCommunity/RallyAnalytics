@@ -314,23 +314,13 @@ class AnalyticsQuery
           if @lastResponse.PageSize != @_pageSize
             throw new Error('Pagesize changed after first page which is unexpected.')
 
-        # if last page, unset @_hasMorePages
-        startOn = @upToDate
-        if @lastResponse.Results.length + @lastResponse.StartIndex >= @lastResponse.TotalResultCount
-          @_hasMorePages = false
-          @upToDate = @ETLDate
-        else
-          @_hasMorePages = true
-          @upToDate = @lastResponse.Results[@lastResponse.Results.length - 1]._ValidFrom
-
         # populate @lastPageResults
         @lastPageResults = []
         results = @lastResponse.Results
         for o in results
-          unless o._ValidFrom == @upToDate  # Filtered out because of note below
-            @lastPageResults.push(o)
+          @lastPageResults.push(o)
 
-        @_startIndex += @lastPageResults.length  # Changed from adding @_pageSize because of note below
+        # See big note at end of this function. I would have to filter out all lastPageResults where the _ValidTo equaled the @upToDate (ETLDate or
 
         # populate @allResults
         @allResults = @allResults.concat(@lastPageResults)
@@ -343,16 +333,30 @@ class AnalyticsQuery
         # populate @allMeta
         @allMeta.push(@lastPageMeta)
 
-        # Why do we not include results in @lastPageResults that match the @upToDate? How can the page size vary?
-        # The @upToDate that gets set above is either the ETLDate (if this is the last page) or the _ValidFrom of last
-        # result (if there are more pages). The problem with using this as the boundary is when you have two snapshots that occur on
-        # exact same millisecond AND one falls on one side of a page boundary and the other falls on the other side of a
-        # page boundary. I'm not even sure the LBAPI makes a guarantee that there won't be future snapshots that have
-        # the exact same milliseconds as the ETLDate. Since, the ETLDate is ever advancing the full results will always
-        # clear themselves up eventually with future LBAPI calls but the page boundary one we'd be stuck with forever
-        # assuming someone makes the exact same query with the exact same page size (as a report would).
-        # To fix this, we filter out all results that match this @upToDate value.
-        # Then when submitting future calls for additional data/pages, we can say $gte (previously we'd we say $gt).
+        # if last page, unset @_hasMorePages
+        startOn = @upToDate
+        if @lastResponse.Results.length + @lastResponse.StartIndex >= @lastResponse.TotalResultCount
+          @_hasMorePages = false
+          @upToDate = @ETLDate
+        else
+          @_hasMorePages = true
+          @_startIndex += @_pageSize
+#          @_startIndex += @lastPageResults.length  # Changed from adding @_pageSize because of below
+          @upToDate = @lastPageResults[@lastPageResults.length - 1]._ValidFrom
+
+        # The @upToDate that gets set above is the ETLDate (if this is the last page) or the last result.
+        # The problem with this approach is if you have two snapshots that occur on exact same millisecond AND
+        # one falls on one side of a page boundary and the other falls on the other side of a page boundary.
+        # Chances of that happening: 1/10,000 (number of snapshots in a page) * 1/1000 (you have to pull back roughly
+        # 1000 snapshots to find two with the exact same millisecond _ValidFrom). Roughly 1 in a million.
+        # The cost associated with this is also relatively low. 99/100 times the user won't notice such an off-by-one
+        # error and they can recalculate the chart with a different page size to avoid.
+        # We might even have this problem with last page results. I'm not sure the LBAPI makes a guarantee that
+        # no snapshots with the exact same _ValidFrom can come later. We should confirm this about the LBAPI.
+        # To fix this, we could remove all results that matched this @upToDate value... change it to a true
+        # endBefore value. Then when submitting future calls for additional data/pages, we could say $gte (now we say $gt).
+        # If I fix this here, make sure to switch the TransitionsQuery to $gte, and maybe some others.
+        # Be sure to make sure that the @_startIndex is only incremented by the true result size rather than @_pageSize
 
         @_callback(@lastPageResults, startOn, @upToDate, this)
 
@@ -532,9 +536,8 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
   leafOnly: () ->
     @additionalCriteria({
       '$or': [
-        {_TypeHierarchy: -51038, Children: null},
-        {_TypeHierarchy: -51078, Children: null, UserStories: null},
-        {_TypeHierarchy:{$nin: [-51038, -51078]}}
+        {_TypeHierarchy: "HierarchicalRequirement", Children: null},
+        {_TypeHierarchy:"PortfolioItem", Children: null, UserStories: null}
       ]
     })
     return this
@@ -703,7 +706,7 @@ class TransitionsAnalyticsQuery extends GuidedAnalyticsQuery
     unless predicate?
       throw new Error('Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.')
     @_additionalCriteria.push(predicate)
-    @_additionalCriteria.push({"_ValidFrom": {$gte: upToDate}})
+    @_additionalCriteria.push({"_ValidFrom": {$gt: upToDate}})
     @fields(['ObjectID', '_ValidFrom', '_ValidTo'])
 
 root.AnalyticsQuery = AnalyticsQuery

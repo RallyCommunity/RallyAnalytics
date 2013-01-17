@@ -44,7 +44,10 @@ class ThroughputVisualizer extends VisualizerBase
     @analyticsQuery = new TransitionsAnalyticsQuery(queryConfig, @upToDateISOString, @config.transitionsPredicate)
     @analyticsQueryToSubtract = new TransitionsAnalyticsQuery(queryConfig, @upToDateISOString, @config.transitionsToSubtractPredicate)
 
-    if @projectAndWorkspaceScope.projectScopingDown
+    if @projectAndWorkspaceScope.projectScopingUp
+      @analyticsQuery.scope('Project', @projectAndWorkspaceScope.projectOIDsInScope)
+      @analyticsQueryToSubtract.scope('Project', @projectAndWorkspaceScope.projectOIDsInScope)
+    else if @projectAndWorkspaceScope.projectScopingDown
       @analyticsQuery.scope('_ProjectHierarchy', @projectAndWorkspaceScope.projectOID)
       @analyticsQueryToSubtract.scope('_ProjectHierarchy', @projectAndWorkspaceScope.projectOID)
     else
@@ -56,7 +59,7 @@ class ThroughputVisualizer extends VisualizerBase
 
 #    @analyticsQuery.leafOnly()
 
-    @analyticsQuery.pagesize(30)  # For debugging incremental update
+    @analyticsQuery.pagesize(300)  # For debugging incremental update
 
     if @config.asOf?
       criteria = {}
