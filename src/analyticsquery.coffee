@@ -162,6 +162,7 @@ class AnalyticsQuery
     @version = "v2.0"  # !TODO: Set automatically
     @endpoint = "artifact/snapshot/query.js"
 
+    @virgin = true
     @_hasMorePages = true
     @_firstPage = true
     @ETLDate = null
@@ -249,15 +250,14 @@ class AnalyticsQuery
     return encodeURI(url)  # !TODO: May need to look into altnerative (maybe encodeURIComponent?) because won't encode '+', '=', and '&' in values correctly
     
   getAll: (callback) ->
-    throw new Error('getAll() not supported in this version of AnalyticsQuery.')
-#    if @virgin
-#      @allCallback = callback
-#      @virgin = false
-#      @upToDate = '2011-12-01T00:00:00.000Z'
-#    if @hasMorePages()
-#      @getPage(@getAll)
-#    else
-#      @allCallback.call(this)
+    if @virgin
+      @allCallback = callback
+      @virgin = false
+      @upToDate = '2011-12-01T00:00:00.000Z'
+    if @hasMorePages()
+      @getPage(@getAll)
+    else
+      @allCallback.call(this)
 
   hasMorePages: () ->
     return @_hasMorePages

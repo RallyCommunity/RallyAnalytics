@@ -1,7 +1,7 @@
 root = this
 
 lumenize = require('/lumenize')
-{timeSeriesGroupByCalculator, ChartTime} = lumenize
+{timeSeriesGroupByCalculator, Time} = lumenize
 utils = lumenize.utils
 
 cfdCalculator = (results, config) ->
@@ -13,7 +13,7 @@ cfdCalculator = (results, config) ->
   # Find the last day for this CFD
   
   lastTrackingDate = results[results.length - 1]._ValidFrom
-  lastTrackingCT = new ChartTime(lastTrackingDate, 'day', config.timezone).add(1)
+  lastTrackingCT = new Time(lastTrackingDate, 'day', config.timezone).add(1)
   
   # Find the first record where something moves into the `startTrackingGroupByFieldValue`.
   firstTrackingDate = ''  # !TODO: Upgrade this to match timeSeriesCalculator
@@ -24,23 +24,23 @@ cfdCalculator = (results, config) ->
   if firstTrackingDate == ''
     throw new Error("Couldn't find any data whose #{config.groupByField} transitioned into groupByFieldValue #{config.startTrackingGroupByFieldValue}")
     
-  firstTrackingCT = new ChartTime(firstTrackingDate, 'day', config.timezone)
+  firstTrackingCT = new Time(firstTrackingDate, 'day', config.timezone)
   
   if config.maxDaysBack?
     maxDaysBackCT = lastTrackingCT.add(-1 * config.maxDaysBack, 'day')
-    if firstTrackingCT.$lt(maxDaysBackCT)
+    if firstTrackingCT.lessThan(maxDaysBackCT)
       firstTrackingCT = maxDaysBackCT
     
-  rangeSpec =
+  timelineConfig =
     workDays: config.workDays
     holidays: config.holidays
-    start: firstTrackingCT
-    pastEnd: lastTrackingCT
+    startOn: firstTrackingCT
+    endBefore: lastTrackingCT
   
-  console.log('RangeSpec:\n' + JSON.stringify(rangeSpec, undefined, 4))
+  console.log('timelineConfig:\n' + JSON.stringify(timelineConfig, undefined, 4))
     
   timeSeriesGroupByCalculatorConfig = 
-    rangeSpec: rangeSpec
+    timelineConfig: timelineConfig
     timezone: config.timezone
     groupByField: config.groupByField
     groupByFieldValues: config.groupByFieldValues
@@ -51,8 +51,10 @@ cfdCalculator = (results, config) ->
     snapshotValidToField: '_ValidTo'
     snapshotUniqueID: 'ObjectID'
 
+  console.log('before call to timeSeriesGroupByCalculator')
   {listOfAtCTs, groupByAtArray, uniqueValues} = timeSeriesGroupByCalculator(results, timeSeriesGroupByCalculatorConfig)
-  
+  console.log('after call to timeSeriesGroupByCalculator')
+
   # Get it into HighCharts form
   if config.useAllGroupByFieldValues
     series = lumenize.groupByAtArray_To_HighChartsSeries(groupByAtArray, config.groupByField, 'GroupBy')
@@ -67,7 +69,7 @@ cfdCalculator = (results, config) ->
   # find the min for the last state
   lowestValueInLastState = null
   unless config.useAllGroupByFieldValues
-    lowestValueInLastState = lumenize.functions.$min(series[series.length-1].data)
+    lowestValueInLastState = lumenize.functions.min(series[series.length-1].data)
 
   return {series, categories, drillDownObjectIDs, lowestValueInLastState}
   

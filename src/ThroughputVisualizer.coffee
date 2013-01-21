@@ -143,7 +143,7 @@ class ThroughputVisualizer extends VisualizerBase
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
     salt = 'Throughput v0.2.75'
-    salt = Math.random().toString()
+#    salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)
     return out
