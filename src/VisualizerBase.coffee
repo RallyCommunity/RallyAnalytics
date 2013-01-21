@@ -81,32 +81,33 @@ class VisualizerBase  # maybe extends Observable
   # @property {Boolen} dirty Flag to know whether or not to refresh the visualizations
   ###
   Sequence diagram below can be edited here: http://www.asciiflow.com/#Draw2041780197906655348/1887977824
-  +----------------------+ +-----------------------+ +---------------------+ +------------------+ +-------------------+ +-----------------------+ +-------------------+ +---------------------+ +---------------+
-  |initialize and before | |onConfigOrScopeUpdated | |createVisualization  | |onNewDataAvailable| |onSnapshotsReceived| |deriveFieldsOnSnapshots| |updateCalculator   | |updateVisualization  | |newDataExpected|
-  |----------------------| |-----------------------| |---------------------| |------------------| |-------------------| |-----------------------| |-------------------| |---------------------| |---------------|
-  |@userConfig           | |@lumenizeCalculator    | |@visualizationData   | |@upToDateISOString| |@upToDateISOString | |snapshots              | |@lumenizeCalculator| |@visualizationData   | |               |
-  |@config               | |@upToDateISOString     | | via call to         | | = '2011-12-01...'| | = endBefore       | |                       | |@cache             | | via call to         | |               |
-  |@cache                | | (null if not restored)| | @updateVisualizatio-| | if null          | |                   | |                       | |                   | | @updateVisualizatio-| |               |
-  |@createVisualizationCB| |                       | | nData()             | |@analyticsQuery   | |                   | |                       | |                   | | nData()             | |               |
-  +----------------------+ +-----------------------+ +---------------------+ +------------------+ +-------------------+ +-----------------------+ +-------------------+ +-----------+---------+ +---------------+
-         |                            |                           |                  |                      |                       |                     |                        |                    |
-         +--------------------------->|                           |                  |                      |                       |                     |                        |                    |
-         |                            +-------------------------->|                  |                      |                       |                     |                        |                    |
-         |                            |                           +----------------->|                      |                       |                     |                        |                    |
-         |                            |                           |                  +--------------------->|                       |                     |                        |                    |
-         |                            |                           |                  |                      +---------------------->|                     |                        |                    |
-         |                            |                           |                  |                      |                       +-------------------->|                        |                    |
-         |                            |                           |                  |                      |                       |                     +----------------------->|                    |
-         |                            |                           |                  |                      |                       |                     |                        +------------------->|
-         |                            |                           |                  |                      |                       |                     |                        |                    |
-         |                            |                           |                  |<----------------------------- @timeoutHandle = setTimeout(@onNewDataAvailable, delay) ---------------------------+<-+
-         |                            |                           |                  |                      |                       |                     |                        |                    |  |
-         |                            |                           |                  +--------------------->|                       |                     |                        |                    |  |
-         |                            |                           |                  |                      +---------------------->|                     |                        |                    |  |
-         |                            |                           |                  |                      |                       +-------------------->|                        |                    |  |
-         |                            |                           |                  |                      |                       |                     +----------------------->|                    |  |
-         |                            |                           |                  |                      |                       |                     |                        +------------------->+--+
-         |                            |                           |                  |                      |                       |                     |                        |                    |
+ +----------------------+ +-----------------------+ +---------------------+ +--------------------+ +-------------------+ +-----------------------+ +-------------------+ +---------------------+ +---------------+
+ |initialize and before | |onConfigOrScopeUpdated | |createVisualization  | |onNewDataAvailable  | |onSnapshotsReceived| |deriveFieldsOnSnapshots| |updateCalculator   | |updateVisualization  | |newDataExpected|
+ |----------------------| |-----------------------| |---------------------| |--------------------| |-------------------| |-----------------------| |-------------------| |---------------------| |---------------|
+ |@userConfig           | |@lumenizeCalculator    | |@visualizationData   | |@upToDateISOString  | |@upToDateISOString | |snapshots              | |@lumenizeCalculator| |@visualizationData   | |               |
+ |@config               | |@upToDateISOString     | | via call to         | | = '2011-12-01...'  | | = endBefore       | |                       | |@cache             | | via call to         | |               |
+ |@cache                | | (null if not restored)| | @updateVisualizatio-| | if null            | |@fetchPending      | |                       | |                   | | @updateVisualizatio-| |               |
+ |@createVisualizationCB| |@fetchPending = true   | | nData()             | |@analyticsQuery     | |                   | |                       | |                   | | nData()             | |               |
+ |                      | |                       | |                     | |@fetchPending = true| |                   | |                       | |                   | |                     | |               |
+ +----------------------+ +-----------------------+ +---------------------+ +--------------------+ +-------------------+ +-----------------------+ +-------------------+ +---------------------+ +---------------+
+         |                            |                           |                  |                        |                       |                     |                        |                    |
+         +--------------------------->|                           |                  |                        |                       |                     |                        |                    |
+         |                            +-------------------------->|                  |                        |                       |                     |                        |                    |
+         |                            |                           +----------------->|                        |                       |                     |                        |                    |
+         |                            |                           |                  +----------------------->|                       |                     |                        |                    |
+         |                            |                           |                  |                        +---------------------->|                     |                        |                    |
+         |                            |                           |                  |                        |                       +-------------------->|                        |                    |
+         |                            |                           |                  |                        |                       |                     +----------------------->|                    |
+         |                            |                           |                  |                        |                       |                     |                        +------------------->|
+         |                            |                           |                  |                        |                       |                     |                        |                    |
+         |                            |                           |                  |<------------------------------- @timeoutHandle = setTimeout(@onNewDataAvailable, delay) ---------------------------+<-+
+         |                            |                           |                  |                        |                       |                     |                        |                    |  |
+         |                            |                           |                  +----------------------->|                       |                     |                        |                    |  |
+         |                            |                           |                  |                        +---------------------->|                     |                        |                    |  |
+         |                            |                           |                  |                        |                       +-------------------->|                        |                    |  |
+         |                            |                           |                  |                        |                       |                     +----------------------->|                    |  |
+         |                            |                           |                  |                        |                       |                     |                        +------------------->+--+
+         |                            |                           |                  |                        |                       |                     |                        |                    |
   ###
 
   constructor: (@visualizations, @userConfig, @createVisualizationCB) ->
@@ -136,8 +137,11 @@ class VisualizerBase  # maybe extends Observable
       workspaceOID = 41529001
       projectScopingUp = false
       projectScopingDown = true
-#       projectOID = 279050021  # A-Team
+#      projectOID = 279050021  # A-Team
       projectOID = 81147451  # RallyDev
+#      projectOID = 2883988702  # Pain In The Arch
+#      projectOID = 6895507658  # Crazy Train
+#      projectOID = 7689966656  # Apps
       projectOIDsInScope = [projectOID]  # This is not correct because it would scope down for real but good enough for testing
     else
       workspaceOID = __WORKSPACE_OID__
@@ -181,13 +185,21 @@ class VisualizerBase  # maybe extends Observable
       console.log('in VisualizerBase.onConfigOrScopeUpdated')
     savedState = @cache.getItem(@getHashForCache())
     if savedState?
+      if @config.debug
+        console.log('Found a saved state in cache. Restoring from savedState. Size:', JSON.stringify(savedState).length)
+        console.log(savedState)
       @lumenizeCalculator = @LumenizeCalculatorClass.newFromSavedState(savedState)
       @upToDateISOString = @lumenizeCalculator.upToDateISOString
     else
+      if @config.debug
+        console.log('Did not find a saved state in cache. Calculating from scratch.')
       @lumenizeCalculator = new @LumenizeCalculatorClass(@config.lumenizeCalculatorConfig)
       @upToDateISOString = null
 
+    @fetchPending = true
+
     @createVisualization()
+    @dirty = false
     @onNewDataAvailable()
 
   getAsOfISOString: () ->
@@ -199,7 +211,7 @@ class VisualizerBase  # maybe extends Observable
   onSnapshotsReceieved: (snapshots, startOn, endBefore, queryInstance = null) =>
     if @config.trace
       console.log('in VisualizerBase.onSnapshotsReceieved')
-    if snapshots.length > 0
+    if snapshots.length > 0 and (new Time(endBefore).getJSDate('GMT').getTime() - new Time(startOn).getJSDate('GMT').getTime()) > 5 * 60 * 1000
       @dirty = true
     else
       @dirty = false
@@ -210,7 +222,17 @@ class VisualizerBase  # maybe extends Observable
     if asOfISOString < endBefore
       endBefore = asOfISOString
     @updateCalculator(snapshots, startOn, endBefore)  # This should also update the cache
+
+    if @config.asOf? and @upToDateISOString < @config.asOf
+      @fetchPending = false
+    else
+      if @analyticsQuery.hasMorePages()
+        @fetchPending = true
+      else
+        @fetchPending = false
+
     @updateVisualization()
+
     unless @config.asOf? and @upToDateISOString < @config.asOf
       if @analyticsQuery.hasMorePages()
         @onNewDataAvailable()  # This is intentionally calling @onNewDataAvailable rather than getPage(). Your @onNewDataAvailable could just call getPage() or it can do something else like the TIP Chart requires.
@@ -253,6 +275,8 @@ class VisualizerBase  # maybe extends Observable
   initialize: () ->
     # Optionally override. This is called after the @workspaceConfiguration and @projectAndWorkspaceScope is set in case
     # you need those values in your initialization.
+    @dirty = true
+    @virgin = true
     if @config.trace
       console.log('in VisualizerBase.initialize')
     unless @config.lumenizeCalculatorConfig?
@@ -277,7 +301,7 @@ class VisualizerBase  # maybe extends Observable
     # maybe override
     # send previously calculated @visualizatoinData to the @createVisualizationCB that came from the HTML
     if @config.trace
-      console.log('in VisualizerBase.createVisualization')
+      console.log('in VisualizerBase.createVisualization. @dirty: ', @dirty)
     @updateVisualizationData()
     @createVisualizationCB(@visualizationData)
 
@@ -285,9 +309,12 @@ class VisualizerBase  # maybe extends Observable
     # most likely override. The default here is to just recreate it again but you should try to update the HighCharts
     # Objects in @visualizations.
     if @config.trace
-      console.log('in VisualizerBase.updateVisualization')
+      console.log('in VisualizerBase.updateVisualization. @dirty: ', @dirty)
     @updateVisualizationData()
-    @createVisualizationCB(@visualizationData)
+    if @dirty or @virgin
+      @dirty = false
+      @virgin = false
+      @createVisualizationCB(@visualizationData)
 
   # You are expected to override the following methods
 
@@ -309,6 +336,8 @@ class VisualizerBase  # maybe extends Observable
     # @analyticsQuery.getPage(@onSnapshotsReceieved)
     if @config.trace
       console.log('in VisualizerBase.onNewDataAvailable')
+
+    @fetchPending = true
 
     @analyticsQuery.getPage(@onSnapshotsReceieved)  # must be last line of this method
 

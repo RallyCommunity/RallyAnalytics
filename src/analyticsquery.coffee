@@ -10,7 +10,7 @@
 #   }
 
 if exports?
-  lumenize = require('../lib/lumenize')  # in node.js
+  lumenize = require('../lib/Lumenize')  # in node.js
 else
   lumenize = require('/lumenize')  # in the browser
 

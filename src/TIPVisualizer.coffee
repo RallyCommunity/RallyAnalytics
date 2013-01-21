@@ -49,10 +49,16 @@ class TIPVisualizer extends VisualizerBase
     @analyticsQuery = new TimeInStateAnalyticsQuery(queryConfig, @upToDateISOString, @config.statePredicate)
 
     if @projectAndWorkspaceScope.projectScopingUp
+      if @config.debug
+        console.log('Project scoping up. OIDs in scope: ', @projectAndWorkspaceScope.projectOIDsInScope)
       @analyticsQuery.scope('Project', @projectAndWorkspaceScope.projectOIDsInScope)
     else if @projectAndWorkspaceScope.projectScopingDown
+      if @config.debug
+        console.log('Project scoping down. Setting _ProjectHierarchy to: ', @projectAndWorkspaceScope.projectOID)
       @analyticsQuery.scope('_ProjectHierarchy', @projectAndWorkspaceScope.projectOID)
     else
+      if @config.debug
+        console.log('Project with no up or down scoping. Setting Project to: ', @projectAndWorkspaceScope.projectOID)
       @analyticsQuery.scope('Project', @projectAndWorkspaceScope.projectOID)
 
     @analyticsQuery
@@ -70,6 +76,8 @@ class TIPVisualizer extends VisualizerBase
       @analyticsQuery.debug()
       console.log('Requesting data...')
 
+    @fetchPending = true
+
     @analyticsQuery.getPage(@onSnapshotsReceieved)
 
   getHashForCache: () ->
@@ -83,7 +91,7 @@ class TIPVisualizer extends VisualizerBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'TIP v0.2.76'
+    salt = 'TIP v0.2.88'
 #    salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)
@@ -95,69 +103,83 @@ class TIPVisualizer extends VisualizerBase
     # Store your calculations into @visualizationData, which will be sent to the visualization create and update callbacks.
     # Try to fully populate the x-axis based upon today even if you have no data for later dates yet.
     if @config.trace
-      console.log('in TIPVisualizer.createOrUpdateVisualization')
+      console.log('in TIPVisualizer.updateVisualizationData')
 
     calculatorResults = @lumenizeCalculator.getResults()
 
     if calculatorResults.length == 0
-      @visualizationData = null
-      return
-
-#    unless @dirty
-#      return
-
-    timeInState = []
-    if @config.asOf?
-      asOfMilliseconds = new lumenize.Time(@config.asOf, 'millisecond').getJSDate(@config.lumenizeCalculatorConfig.tz).getTime()
-    else
-      asOfMilliseconds = new Date().getTime()
-    millisecondsToShow = @userConfig.daysToShow * 1000 * 60 * 60 * 24
-    startMilliseconds = asOfMilliseconds - millisecondsToShow
-    for row in calculatorResults
-      jsDateMilliseconds = new lumenize.Time(row._ValidTo_lastValue, 'millisecond').getJSDate(@config.lumenizeCalculatorConfig.tz).getTime()
-      if jsDateMilliseconds > asOfMilliseconds
-        row.x = asOfMilliseconds
+      if @config.debug
+        console.log('No calculatorResults.')
+      if @fetchPending
+        if @config.debug
+          console.log('fetchPending is true so returning with visualizationData = null.')
+        @visualizationData = null
+        return
       else
-        row.x = jsDateMilliseconds
-      row.x -= Math.random() * 1000 * 60 * 60  # Separate data points that show up on top of each other
-      if @config.radiusField?
-        row.marker = {radius: @config.radiusField.f(row[@config.radiusField.field + "_lastValue"])}
-      if (@userConfig.showStillInProcess or jsDateMilliseconds < asOfMilliseconds) and jsDateMilliseconds > startMilliseconds
-        timeInState.push(row)
-
-    unless timeInState.length > 0
-      return
-
-    # calculating workHours from workDayStartOn and workDayEndBefore
-    startOnInMinutes = @config.workDayStartOn.hour * 60
-    if @config.workDayStartOn?.minute
-      startOnInMinutes += @config.workDayStartOn.minute
-    endBeforeInMinutes = @config.workDayEndBefore.hour * 60
-    if @config.workDayEndBefore?.minute
-      endBeforeInMinutes += @config.workDayEndBefore.minute
-    if startOnInMinutes < endBeforeInMinutes
-      workMinutes = endBeforeInMinutes - startOnInMinutes
+        series = []
+        if @config.debug
+          console.log('fetchPending is false so filling in with blanks')
     else
-      workMinutes = 24 * 60 - startOnInMinutes
-      workMinutes += endBeforeInMinutes
-    workHours = workMinutes / 60
+      @virgin = false
+      inProcessItems = []
+      notInProcessItems = []
+      if @config.asOf?
+        asOfMilliseconds = new lumenize.Time(@config.asOf, 'millisecond').getJSDate(@config.lumenizeCalculatorConfig.tz).getTime()
+      else
+        asOfMilliseconds = new Date().getTime()
+      millisecondsToShow = @userConfig.daysToShow * 1000 * 60 * 60 * 24
+      startMilliseconds = asOfMilliseconds - millisecondsToShow
+      for row in calculatorResults
+        jsDateMilliseconds = new lumenize.Time(row._ValidTo_lastValue, 'millisecond').getJSDate(@config.lumenizeCalculatorConfig.tz).getTime()
+        if jsDateMilliseconds > asOfMilliseconds
+          row.x = asOfMilliseconds
+        else
+          row.x = jsDateMilliseconds
+        row.x -= Math.random() * 1000 * 60 * 60 * 24  # Separate data points that show up on top of each other
+        if @config.radiusField?
+          row.marker = {radius: @config.radiusField.f(row[@config.radiusField.field + "_lastValue"])}
+        if jsDateMilliseconds > startMilliseconds
+          if jsDateMilliseconds < asOfMilliseconds
+            notInProcessItems.push(row)
+          else
+            inProcessItems.push(row)
 
-    # converting ticks (hours) into days and adding to timeInState
-    for row in timeInState
-      row.days = row.ticks / workHours
+      # calculating workHours from workDayStartOn and workDayEndBefore
+      startOnInMinutes = @config.workDayStartOn.hour * 60
+      if @config.workDayStartOn?.minute
+        startOnInMinutes += @config.workDayStartOn.minute
+      endBeforeInMinutes = @config.workDayEndBefore.hour * 60
+      if @config.workDayEndBefore?.minute
+        endBeforeInMinutes += @config.workDayEndBefore.minute
+      if startOnInMinutes < endBeforeInMinutes
+        workMinutes = endBeforeInMinutes - startOnInMinutes
+      else
+        workMinutes = 24 * 60 - startOnInMinutes
+        workMinutes += endBeforeInMinutes
+      workHours = workMinutes / 60
 
-    histogramResults = lumenize.histogram(timeInState, 'days')
+      # converting ticks (hours) into days and adding to inProcessItems
+      for row in inProcessItems
+        row.days = row.ticks / workHours
+      for row in notInProcessItems
+        row.days = row.ticks / workHours
+
+    histogramResults = lumenize.histogram(notInProcessItems, 'days')
     unless histogramResults?
+      if @config.debug
+        console.log('No histogramResults. Returning.')
       return
 
     {buckets, chartMax, valueMax, bucketSize, clipped} = histogramResults
 
-    for row in timeInState
+    for row in notInProcessItems
       row.y = row.clippedChartValue
-
-    if @config.debug
-      console.log('timeInState just after calling histogram:')
-      console.log(timeInState)
+    for row in inProcessItems
+      if row.days > chartMax
+        row.y = chartMax
+      else
+        row.y = row.days
+#      console.log(row)
 
     histogramCategories = []
     histogramData = []
@@ -165,7 +187,12 @@ class TIPVisualizer extends VisualizerBase
       histogramCategories.push(b.label)
       histogramData.push(b.count)
 
-    @visualizationData = {timeInState, histogramResults, histogramCategories, histogramData}
+    series = [
+      {name: 'Not in Process', data: notInProcessItems},
+      {name: 'In Process', data: inProcessItems},
+      {name: 'Percentile', data: [], yAxis: 1, showInLegend: false}
+    ]
+    @visualizationData = {series, histogramResults, histogramCategories, histogramData, startMilliseconds, asOfMilliseconds}
 
     # For almost all other charts, we'll be able to simply update the data but this TIP chart controls the tickInterval
     # which cannot be updated at run time according to HighCharts support so we have to recreate it each time.

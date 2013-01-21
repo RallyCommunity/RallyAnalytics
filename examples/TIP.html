@@ -6,10 +6,9 @@
             var userConfig = {
                 subTitle: 'Stories In-Progress to Accepted',
                 debug: false,
-                trace: true,
+                trace: false,
                 daysToShow: 120,
                 // asOf: "2012-10-15",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
-                showStillInProcess: false,
                 statePredicate: {ScheduleState:{$lt:"Accepted", $gte:"In-Progress"}},
                 type: 'HierarchicalRequirement',
                 leafOnly: true,
@@ -18,7 +17,11 @@
                   {field: 'PlanEstimate', as: "Plan Estimate"}
                 ],  
                 radiusField: {field: 'PlanEstimate', f: function(value){
-                  return Math.pow(value, 0.6) + 5
+                  if (isNaN(value)) {
+                    return 5
+                  } else {
+                    return Math.pow(value, 0.6) + 5
+                  }
                 }},
                 workDayStartOn: {hour: 9},
                 workDayEndBefore: {hour: 17},
@@ -27,9 +30,9 @@
                 // workDays: (if you want to override the default pulling from WorkspaceConfiguration)
             }
             
+/*
             // Feature Aging
             userConfig.subTitle = 'Features In Dev and less than 100% done'
-            userConfig.showStillInProcess = false
             userConfig.daysToShow = 365
             userConfig.statePredicate = {"State":"In Dev", "PercentDoneByStoryCount":{$lt:1,$gt:0}}
             userConfig.type = 'PortfolioItem/Feature'
@@ -44,6 +47,7 @@
             userConfig.radiusField = {field: 'LeafStoryCount', f: function(value){
               return Math.pow(value, 0.6) + 5
             }}
+*/
 
             
         </script>
@@ -60,7 +64,7 @@
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.5.2/deploy/Lumenize-min.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.5.5/deploy/Lumenize-min.js"></script>
         
         <!-- rally_analytics -->
         <script type="text/javascript" src="../lib/analyticsquery.js"></script>
@@ -83,36 +87,33 @@
                 
                   if (typeof visualizationData !== "undefined" && visualizationData !== null) {
                     
-                    timeInState = visualizationData.timeInState;
-                    histogramResults = visualizationData.histogramResults;
-                    histogramCategories = visualizationData.histogramCategories;
-                    histogramData = visualizationData.histogramData;
+                    var series = visualizationData.series;
+                    var histogramResults = visualizationData.histogramResults;
+                    var startMilliseconds = visualizationData.startMilliseconds
+                    var asOfMilliseconds = visualizationData.asOfMilliseconds
+
+                    var histogramCategories = visualizationData.histogramCategories;
+                    var histogramData = visualizationData.histogramData;
                     
-                    bucketSize = histogramResults.bucketSize;
-                    chartMax = histogramResults.chartMax;
-                    buckets = histogramResults.buckets;
-                    clipped = histogramResults.clipped;
-                    valueMax = histogramResults.valueMax;
+                    var bucketSize = histogramResults.bucketSize;
+                    var chartMax = histogramResults.chartMax;
+                    var buckets = histogramResults.buckets;
+                    var clipped = histogramResults.clipped;
+                    var valueMax = histogramResults.valueMax;
                 
                     charts.scatterChart = new Highcharts.Chart({
                       chart: {
                          renderTo: 'scatter-container',
                          defaultSeriesType: 'scatter',
-                         zoomType: 'x'
+                         zoomType: 'x',
+                         marginTop: 80
                       },
                       legend: {
-                         enabled: false
-                      },
-                      plotOptions: {
-                         scatter: {
-                            marker: {
-                               states: {
-                                  hover: {
-                                     enabled: false
-                                  }
-                               }
-                            }
-                         }
+                         enabled: true,
+                         floating: true,
+                         align: 'center',
+                         verticalAlign: 'top',
+                         y: 37
                       },
                       credits: {
                          enabled: false
@@ -129,7 +130,9 @@
                          title: {
                              enabled: false
                          },
-                         type: 'datetime'
+                         type: 'datetime',
+                         min: startMilliseconds,
+                         max: asOfMilliseconds
                       },
                       yAxis: [
                          {
@@ -214,28 +217,47 @@
                              return tooltip;
                          }
                       },
-                      series: [
-                      	  {
-                       			name: 'Time in process',
-                       			data: timeInState,
-                       			yAxis: 0
+                      plotOptions: {
+                          scatter: {
+                             marker: {
+                                states: {
+                                   hover: {
+                                      enabled: false
+                                   }
+                                }
+                             }
                           },
-                      		{
-                       		  name: 'Percentile',
-                       		  data: [],
-                       		  yAxis: 1
-                      		}
-                      ]
+                          series: {
+                              events: {
+                                  legendItemClick: function(event) {
+                                      if (this.index == 0) {
+                                          if (!this.visible) {
+                                             this.chart.xAxis[0].setExtremes(startMilliseconds, asOfMilliseconds, false);
+                                          } else {
+                                             this.chart.xAxis[0].setExtremes(asOfMilliseconds - 24 * 60 * 60 * 1000, asOfMilliseconds, false);
+                                          };
+                                          this.chart.redraw();
+                                      };
+                                      return true;
+                                  }
+                              }                          
+                          }
+                      },
+                      series: series
                     }, function(chart) {
-                         if (clipped) {
+                        if (clipped) {
                           chart.renderer.text('* non-linear', 57, 55).add();
                         };
+                        if (series[0].data.length == 0) {
+                          chart.renderer.text('No matching data for this project and scope.', chart.chartWidth / 2 - 127, chart.chartHeight / 2 - 100).add();
+                        }
                     });  // end of scatterChart
               
                     charts.histogramChart = new Highcharts.Chart({
                    		chart: {
                    			renderTo: 'histogram-container',
-                   			type: 'bar'
+                   			type: 'bar',
+                   			marginTop: 80
                    		},
                        legend: {
                          enabled: false
@@ -247,7 +269,7 @@
                    			text: 'Histogram'
                    		},
                    		subtitle: {
-                   			text: ''
+                   			text: 'for Not In Process'
                    		},
                    		xAxis: [{ // mirror axis on right side
                    			opposite: false,
