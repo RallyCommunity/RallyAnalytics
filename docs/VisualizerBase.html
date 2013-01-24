@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>VisualizerBase.coffee</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="resources/base.css" />
+  <link rel="stylesheet" media="all" href="resources/module.css" />
+</head>
+<body>
+  <header>
+    <h1>VisualizerBase.coffee</h1>
+  </header>
+  <div id="content">
+    <div id="sidebar">
+      
+      <h4>Classes</h4>
+      <ul class="classlist">
+        
+        <li><a href="#VisualizerBase">VisualizerBase</a></li>
+        
+      </ul>
+      
+      
+    </div>
+    <div id="main">
+      
+      <div id="module_docstring">
+        <p>The general structure of an incrementally update-able visualization follows these steps:</p>
+
+<ol>
+<li><p>Gather the parameters you'll need to specify the visualization
+a. Gather some info from Rally's standard WSAPI
+b. Gather some info from the user.</p></li>
+<li><p>Create a hash from info from above to be used as the key for cache lookup.</p></li>
+<li><p>Restore the cached calculation using LocalCache.</p></li>
+<li><p>Render the cached calculation. Leave space for updates on the x-axis. Show spinners for missing parts.</p></li>
+<li><p>Query the Lookback API for the incremental "snapshots" not found in the cache.
+Get one page's worth of updates. Maybe 10,000 snapshots max?</p></li>
+<li><p>Update the calculation/manipulation/aggregation of the snapshot data.</p></li>
+<li><p>Update the chart.</p></li>
+<li><p>If there are still more pages of snapshots to update repeat starting at step 5.</p></li>
+</ol>
+      </div>
+      
+      
+      <div id="classes">
+        <h2>Classes</h2>
+        
+        <div class="class">
+          <div class="header">
+            <a id="VisualizerBase"><h3>VisualizerBase</h3></a>
+            
+          </div>
+          <div class="class_content">
+            <p>@class ChartVisualizerBase
+  This is intended to the be the base class for ChartVisualizers. It assumes a template method pattern where the parts
+  of the algorithm that have to do with saving to and restoring from the LocalCache (using localStorage API) and
+  providing events for config changes or data updates.</p>
+
+<p>You must override these methods:
+    * initialize() - set @LumenizeCalculatorClass (implements Lumenize.iCalculator)</p>
+
+<p>You may wish to override:
+    * deriveFields(snapshots)</p>
+
+<p>@cfg {Number} [refreshIntervalMilliseconds = 30 * 60 * 1000] Defaults to 30 minutes</p>
+
+<p>@property {Object} userConfig This is whatever the users passes in under the @userConfig parameter in the constructor. It is useful for creating the cache hash. The contents of this will be visualizer specific</p>
+
+<p>@property {Object} config Starts with all the values in userConfig but more may be added
+@property {Number} [config.refreshIntervalMilliseconds = 5 * 60 * 1000] The chart will automatically refresh after this many milliseconds
+@property {Object} [config.deriveFieldsConfig] If you include this, it will pass it into Lumenize.deriveFields as the config Object every time it gets new snapshots to process.
+@property {Boolean} [config.debug = false]
+@property {Object} config.lumenizeCalculatorConfig The config that will be passed to the Lumenize calculator upon instantiation. Do not put x-axis range info in here.</p>
+
+<p>@property {Object} projectAndWorkspaceScope
+@property {Number} projectAndWorkspaceScope.workspaceOID
+@property {Boolean} projectAndWorkspaceScope.projectScopingUp
+@property {Boolean} projectAndWorkspaceScope.projectScopingDown
+@property {Number} projectAndWorkspaceScope.projectOID</p>
+
+<p>@property {Object} workspaceConfiguration Has whatever fields come from Rally but WorkDays and TimeZone (note Caps) are often used by calculators</p>
+
+<p>@property {Lumenize.iCalculator} LumenizeCalculatorClass Must be set; typically in your initialize() method</p>
+
+<p>@property {Object} visualizationData This is where you store the data that you want to communicate to your visualizations.
+  It will be passed into createVisualizationCB.</p>
+
+<p>@property {iAnalyticsQuery} analyticsQuery Instantiate this in your onNewDataAvailable() method.</p>
+
+<p>@property {String} upToDateISOString A ISOString (e.g. '2012-01-01T12:34:56.789Z') indicating the last moment that this chart is
+  up to date. You should not set this but you can read from it. It will be set when new snapshots are added or it's
+  restored from the cache.
+@readonly</p>
+            <div class="methods">
+              
+              
+              <div class="instancemethods">
+                <h3>Instance Methods</h3>
+                
+                <div class="method">
+                  <h4>constructor(@visualizations, @userConfig, @createVisualizationCB)</h4>
+                  <p>You should not have a constructor for the sub-class. Rather, put your code in initialize(). If for some crazy
+reason you really want a constructor, make sure it looks like this:
+<code>
+constructor: (myCustomArgument, remainingArguments...) -&gt;
+  # Any code you want to execute before initialize(). Use myCustomArgument.
+  super(remainingArguments...)
+  # Any code you want to execute after initialize(). Use myCustomArgument.
+</code></p>
+                </div>
+                
+                <div class="method">
+                  <h4>getProjectAndWorkspaceScope()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>getWorkspaceConfiguration()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>onConfigOrScopeUpdated()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>getAsOfISOString()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>onSnapshotsReceieved(snapshots, startOn, endBefore, queryInstance)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>newDataExpected(paddingDelay, etlDelay)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>removeFromCacheAndRecalculate()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>updateCalculator(snapshots, startOn, endBefore, rest...)</h4>
+                  <p>@method updateCalculator
+  Allows you to incrementally add snapshots to this calculator. It will also update the cache.
+@param {Object[]} snapshots An array of temporal data model snapshots.
+@param {String} startOn A ISOString (e.g. '2012-01-01T12:34:56.789Z') indicating the time start of the period of
+  interest. On the second through nth call, this must equal the previous endBefore.
+@param {String} endBefore A ISOString (e.g. '2012-01-01T12:34:56.789Z') indicating the moment just past the time
+  period of interest. This should be the ETLDate from the results of your query to the Lookback API.</p>
+                </div>
+                
+                <div class="method">
+                  <h4>initialize()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>deriveFieldsOnSnapshots(snapshots)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>createVisualization()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>updateVisualization()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>onNewDataAvailable()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>updateVisualizationData()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>getHashForCache()</h4>
+                  
+                </div>
+                
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      
+      
+    </div>
+  </div>
+</body>
+</html>

@@ -72,13 +72,13 @@ exports.analyticsQueryTest =
     query = new AnalyticsQuery(basicConfig)
     r2 = query.find({Project: 1234, Tag: 'Expedited', _At: '2012-01-01'})
     test.equal(r2, query)  # confirm chaining
-    expected = 'find={"Project":1234,"Tag":"Expedited","_At":"2012-01-01"}&sort={"_ValidFrom":1}&start=0&pagesize=100000'
+    expected = 'find={"Project":1234,"Tag":"Expedited","_At":"2012-01-01"}&sort={"_ValidFrom":1}&start=0&pagesize=10000000'
     test.equal(decodeURIComponent(query.getQueryString()), expected)   
         
     test.done()
     
   testGetPageHappy: (test) ->
-    test.expect(15)
+    test.expect(11)
     query = new AnalyticsQuery(basicConfig, 'hello')
     query.XHRClass = XHRMock
 
@@ -90,40 +90,35 @@ exports.analyticsQueryTest =
         	"Warnings": [],
         	"TotalResultCount": 5,
         	"StartIndex": 0,
-        	"PageSize": 2,
-        	"ETLDate": "2012-03-16T21:01:17.802Z",
-        	"Results": [
-        		{"id": 1, "_ValidFrom": "1 valid from"},
-        		{"id": 2, "_ValidFrom": "2 valid from"}
+          "PageSize": 3,
+          "ETLDate": "2012-03-16T21:01:17.802Z",
+          "Results": [
+            {"id": 1, "_ValidFrom": "2012-03-16T21:01:17.000Z"},
+            {"id": 2, "_ValidFrom": "2012-03-16T21:01:17.001Z"},
+            {"id": 3, "_ValidFrom": "2012-03-16T21:01:17.002Z"}
         	]
         }'''
       expectedResponse = JSON.parse(expectedText)
       test.deepEqual(aqInstance.lastResponse, expectedResponse)
       test.deepEqual(lastPageResults, [
-        {"id": 1, "_ValidFrom": "1 valid from"},
-        {"id": 2, "_ValidFrom": "2 valid from"}
+        {"id": 1, "_ValidFrom": "2012-03-16T21:01:17.000Z"},
+        {"id": 2, "_ValidFrom": "2012-03-16T21:01:17.001Z"}
       ])
+      test.equal(lastPageResults.length, 2)
       test.equal(startOn, 'hello')
-      test.equal(endBefore, "2 valid from")
+      test.equal(endBefore, "2012-03-16T21:01:17.002Z")
+
       aqInstance.getPage(callback2)
 
     callback2 = (lastPageResults, startOn, endBefore, aqInstance) ->
       test.deepEqual(lastPageResults, [
-        {"id": 3, "_ValidFrom": "3 valid from"},
-        {"id": 4, "_ValidFrom": "4 valid from"}
+        {"id": 3, "_ValidFrom": "2012-03-16T21:01:17.002Z"},
+        {"id": 4, "_ValidFrom": "2012-03-16T21:01:17.003Z"}
+        {"id": 5, "_ValidFrom": "2012-03-16T21:01:17.004Z"}
       ])
-      test.equal(startOn, '2 valid from')
-      test.equal(endBefore, "4 valid from")
-      test.equal(aqInstance.allResults.length, 4)
-      test.ok(aqInstance.hasMorePages())
-      aqInstance.getPage(callback3)
+      test.equal(startOn, '2012-03-16T21:01:17.002Z')
+      test.equal(endBefore, "2012-03-16T21:01:17.802Z")
 
-    callback3 = (lastPageResults, startOn, endBefore, aqInstance) ->
-      test.deepEqual(lastPageResults, [
-        {"id": 5, "_ValidFrom": "5 valid from"}
-      ])
-      test.equal(startOn, '4 valid from')
-      test.equal(endBefore, aqInstance.ETLDate)
       test.equal(aqInstance.allResults.length, 5)
       test.ok(!aqInstance.hasMorePages())
 

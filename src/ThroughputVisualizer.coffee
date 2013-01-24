@@ -125,12 +125,6 @@ class ThroughputVisualizer extends VisualizerBase
     unless @config.asOf? and @upToDateISOString < @config.asOf
       if @analyticsQuery.hasMorePages() or @analyticsQueryToSubtract.hasMorePages()
         @onNewDataAvailable()
-#        if @analyticsQuery.hasMorePages()
-#          @gotSnapshots = false
-#          @analyticsQuery.getPage(@_gotSnapshots)
-#        if @analyticsQueryToSubtract.hasMorePages()
-#          @gotSnapshotsToSubtract = false
-#          @analyticsQueryToSubtract.getPage(@_gotSnapshotsToSubtract)
       else
         @newDataExpected(undefined, @config.refreshIntervalMilliseconds)
 

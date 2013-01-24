@@ -60,18 +60,19 @@ exports.patternedAnalyticsQueryTest =
       	"Warnings": [], 
       	"TotalResultCount": 5, 
       	"StartIndex": 0,
-      	"PageSize": 2, 
-      	"ETLDate": "2012-03-16T21:01:17.802Z", 
-      	"Results": [
-          {"id": 1, "_ValidFrom": "1 valid from"},
-          {"id": 2, "_ValidFrom": "2 valid from"}
+        "PageSize": 3,
+        "ETLDate": "2012-03-16T21:01:17.802Z",
+        "Results": [
+          {"id": 1, "_ValidFrom": "2012-03-16T21:01:17.000Z"},
+          {"id": 2, "_ValidFrom": "2012-03-16T21:01:17.001Z"},
+          {"id": 3, "_ValidFrom": "2012-03-16T21:01:17.002Z"}
       	]
       }'''
       expectedResponse = JSON.parse(expectedText)
       test.deepEqual(aqInstance.lastResponse, expectedResponse)
       test.deepEqual(lastPageResults, [
-        {"id": 1, "_ValidFrom": "1 valid from"},
-        {"id": 2, "_ValidFrom": "2 valid from"}
+        {"id": 1, "_ValidFrom": "2012-03-16T21:01:17.000Z"},
+        {"id": 2, "_ValidFrom": "2012-03-16T21:01:17.001Z"}
       ])
       test.done()
       

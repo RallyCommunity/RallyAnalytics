@@ -108,20 +108,12 @@ exports.guidedAnalyticsQueryTest =
     query.find()
     test.deepEqual(query._find, {
       "$and": [
-        {
-          "Project": 12345
-        },
-        {
-          "$or": [
-            {
-              "_TypeHierarchy": "HierarchicalRequirement",
-              "Children": null
-            },
-            {
-              "_TypeHierarchy": "PortfolioItem",
-              "Children": null,
-              "UserStories": null
-            }
+        {"Project": 12345},
+        {'$or':
+          [
+            { _TypeHierarchy: -51038, Children: null },
+            { _TypeHierarchy: -51078, Children: null, UserStories: null },
+            { _TypeHierarchy: { '$nin': [ -51038, -51078 ] } }
           ]
         }
       ]

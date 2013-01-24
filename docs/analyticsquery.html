@@ -76,13 +76,13 @@ rally_analytics = require('../')
 
 <p>Which you can then use when instantiating a query.</p>
 
-<pre><code>query = new rally_analytics.AnalyticsQuery(config)
+<pre><code>query = new rally_analytics.AnalyticsQuery(config, 'hello')
 query.XHRClass = XHRMock  # Not required to hit actual Rally Analytics API
 </code></pre>
 
 <p>Then you must set the query. <code>find</code> is required but you can also specify sort, fields, etc. Notice how you can chain these calls.</p>
 
-<pre><code>query.find({Project: 1234, Tag: 'Expedited', _At: '2012-01-01'}).sort({_ValidFrom:1}).fields(['ScheduleState'])
+<pre><code>query.find({Project: 1234, Tag: 'Expedited', _At: '2012-01-01'}).fields(['ScheduleState'])
 </code></pre>
 
 <p>Of course you need to have a callback.</p>
@@ -92,7 +92,7 @@ query.XHRClass = XHRMock  # Not required to hit actual Rally Analytics API
 # 5
 </code></pre>
 
-<p>Finally, call getAll()</p>
+<p>Finally, call getPage()</p>
 
 <pre><code>query.getAll(callback)
 </code></pre>
@@ -112,18 +112,22 @@ query.XHRClass = XHRMock  # Not required to hit actual Rally Analytics API
 
 <h2>Properties you should only inspect</h2>
 
-<p>Note, the context for the callback you provide to the <code>getAll()</code> method is set to the AnalyticsQuery instance
-so you can inspect these properties by simply prepending them with <code>this.</code> from inside of your callback.</p>
+<p>Note, the signature of the callback is callback(snapshots, startOn, endBefore, this). On the last page, endBefore will
+be the ETLDate. For earlier pages, it will be the <em>ValidFrom of the last row in lastPageResults, which is why the
+sort order must be {</em>ValidFrom: 1}. startOn will be the @upToDate value, so be sure to set it before calling getPage() for the
+first time. It will update it after that first call to getPage().</p>
+
+<p>The last parameter allows you to inspect the contents of this object. It has these potentially interesting properties.</p>
 
 <ul>
+<li><strong>upToDate</strong> the endBefore of the prior call or as set when calling the constructor</li>
 <li><strong>ETLDate</strong> the ETLDate of the response in the first page</li>
 <li><strong>lastResponseText</strong> the string containing the most recent response/page</li>
 <li><strong>lastResponse</strong> the parsed JSON Object of the most recent response/page</li>
-<li><strong>lastMeta</strong> the meta data included at the top of the most recent response/page</li>
+<li><strong>lastPageResults</strong> the Results from the most recent page</li>
 <li><strong>allResults</strong> the Results from all pages concatenated together</li>
-<li><strong>allMeta</strong> the meta data from all pages concatentated together</li>
-<li><strong>allErrors</strong> NOT YET IMPLEMENTED</li>
-<li><strong>allWarnings</strong> NOT YET IMPLEMENTED</li>
+<li><strong>lastPageMeta</strong> the meta data included at the top of the most recent page</li>
+<li><strong>allMeta</strong> the meta data from all pages concatentated together including errors and warnings</li>
 </ul>
             <div class="methods">
               
@@ -132,7 +136,7 @@ so you can inspect these properties by simply prepending them with <code>this.</
                 <h3>Instance Methods</h3>
                 
                 <div class="method">
-                  <h4>constructor(config)</h4>
+                  <h4>constructor(config, @upToDate)</h4>
                   
                 </div>
                 
@@ -147,7 +151,7 @@ so you can inspect these properties by simply prepending them with <code>this.</
                 </div>
                 
                 <div class="method">
-                  <h4>sort(@_sort)</h4>
+                  <h4>sort()</h4>
                   
                 </div>
                 
@@ -207,7 +211,17 @@ so you can inspect these properties by simply prepending them with <code>this.</
                 </div>
                 
                 <div class="method">
-                  <h4>getAll(@_callback)</h4>
+                  <h4>getAll(callback)</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>hasMorePages()</h4>
+                  
+                </div>
+                
+                <div class="method">
+                  <h4>getPage(@_callback)</h4>
                   
                 </div>
                 
@@ -316,13 +330,21 @@ console.log(JSON.stringify(query._find, undefined, 2))
 #     {
 #       "$or": [
 #         {
-#           "_TypeHierarchy": "HierarchicalRequirement",
+#           "_TypeHierarchy": -51038,
 #           "Children": null
 #         },
 #         {
-#           "_TypeHierarchy": "PortfolioItem",
+#           "_TypeHierarchy": -51078,
 #           "Children": null,
 #           "UserStories": null
+#         },
+#         {
+#           "_TypeHierarchy": {
+#             "$nin": [
+#               -51038,
+#               -51078
+#             ]
+#           }
 #         }
 #       ]
 #     },
@@ -339,7 +361,7 @@ console.log(JSON.stringify(query._find, undefined, 2))
                 <h3>Instance Methods</h3>
                 
                 <div class="method">
-                  <h4>constructor(config)</h4>
+                  <h4>constructor(config, upToDate)</h4>
                   
                 </div>
                 
@@ -389,7 +411,7 @@ console.log(JSON.stringify(query._find, undefined, 2))
                 </div>
                 
                 <div class="method">
-                  <h4>getAll(callback)</h4>
+                  <h4>getPage(callback)</h4>
                   
                 </div>
                 
@@ -411,7 +433,7 @@ console.log(JSON.stringify(query._find, undefined, 2))
           <div class="class_content">
             <p>This pattern will tell you what a set of Artfacts looked like at particular moments in time</p>
 
-<pre><code>query = new rally_analytics.AtAnalyticsQuery(config, '2012-01-01T12:34:56.789Z')
+<pre><code>query = new rally_analytics.AtAnalyticsQuery(config, 'hello', '2012-01-01T12:34:56.789Z')
 query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
 </code></pre>
 
@@ -438,7 +460,7 @@ console.log(JSON.stringify(query._find, undefined, 2))
                 <h3>Instance Methods</h3>
                 
                 <div class="method">
-                  <h4>constructor(config, zuluDateString)</h4>
+                  <h4>constructor(config, upToDate, zuluDateString)</h4>
                   
                 </div>
                 
@@ -484,7 +506,7 @@ to take advantage of it.</p>
                 <h3>Instance Methods</h3>
                 
                 <div class="method">
-                  <h4>constructor(config, arrayOfZuluDates)</h4>
+                  <h4>constructor(config, upToDate, arrayOfZuluDates)</h4>
                   
                 </div>
                 
@@ -564,7 +586,7 @@ console.log(JSON.stringify(query._find, undefined, 2))
             <p>This pattern will only return snapshots where the specified clause is true.
 This is useful for Cycle Time calculations as well as calculating Flow Efficiency or Blocked Time.</p>
 
-<pre><code>query = new rally_analytics.TimeInStateAnalyticsQuery(config, {KanbanState: {$gte: 'In Dev', $lt: 'Accepted'}})
+<pre><code>query = new rally_analytics.TimeInStateAnalyticsQuery(config, 'hello', {KanbanState: {$gte: 'In Dev', $lt: 'Accepted'}})
 query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
 </code></pre>
             <div class="methods">
@@ -574,7 +596,7 @@ query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
                 <h3>Instance Methods</h3>
                 
                 <div class="method">
-                  <h4>constructor(config, predicate)</h4>
+                  <h4>constructor(config, upToDate, predicate)</h4>
                   
                 </div>
                 
@@ -642,7 +664,7 @@ console.log(JSON.stringify(query.</em>find, undefined, 2))</p>
                 <h3>Instance Methods</h3>
                 
                 <div class="method">
-                  <h4>constructor(config, arrayOfZuluDates)</h4>
+                  <h4>constructor(config, upToDate, predicate)</h4>
                   
                 </div>
                 

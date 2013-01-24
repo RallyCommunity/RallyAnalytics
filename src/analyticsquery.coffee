@@ -46,7 +46,7 @@ class AnalyticsQuery
         ]
   Which you can then use when instantiating a query.
   
-      query = new rally_analytics.AnalyticsQuery(config)
+      query = new rally_analytics.AnalyticsQuery(config, 'hello')
       query.XHRClass = XHRMock  # Not required to hit actual Rally Analytics API
 
   Then you must set the query. `find` is required but you can also specify sort, fields, etc. Notice how you can chain these calls.
@@ -61,7 +61,7 @@ class AnalyticsQuery
 
   Finally, call getPage()
 
-      query.getPage(callback)
+      query.getAll(callback)
       
   ## Properties you can inspect or set ##
   
@@ -109,7 +109,7 @@ class AnalyticsQuery
     @_fields = []
     @_sort = {_ValidFrom: 1}
     @_startIndex = 0
-    @_pageSize = 100000  # Start with a really large number because it gets set to whatever comes back on the first page
+    @_pageSize = 10000000  # Start with a really large number because it gets set to whatever comes back on the first page
     @_callback = null
     
     @headers = {}
@@ -326,6 +326,7 @@ class AnalyticsQuery
         # populate @lastPageResults
         @lastPageResults = []
         results = @lastResponse.Results
+
         for o in results
           unless o._ValidFrom == @upToDate  # Filtered out because of note below
             @lastPageResults.push(o)
@@ -441,13 +442,21 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
       #     {
       #       "$or": [
       #         {
-      #           "_TypeHierarchy": "HierarchicalRequirement",
+      #           "_TypeHierarchy": -51038,
       #           "Children": null
       #         },
       #         {
-      #           "_TypeHierarchy": "PortfolioItem",
+      #           "_TypeHierarchy": -51078,
       #           "Children": null,
       #           "UserStories": null
+      #         },
+      #         {
+      #           "_TypeHierarchy": {
+      #             "$nin": [
+      #               -51038,
+      #               -51078
+      #             ]
+      #           }
       #         }
       #       ]
       #     },
@@ -547,7 +556,7 @@ class AtAnalyticsQuery extends GuidedAnalyticsQuery
   ###
   This pattern will tell you what a set of Artfacts looked like at particular moments in time
     
-      query = new rally_analytics.AtAnalyticsQuery(config, '2012-01-01T12:34:56.789Z')
+      query = new rally_analytics.AtAnalyticsQuery(config, 'hello', '2012-01-01T12:34:56.789Z')
       query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
       
   It will expand to a query like this:
@@ -643,7 +652,7 @@ class TimeInStateAnalyticsQuery extends GuidedAnalyticsQuery
   This pattern will only return snapshots where the specified clause is true.
   This is useful for Cycle Time calculations as well as calculating Flow Efficiency or Blocked Time.
   
-      query = new rally_analytics.TimeInStateAnalyticsQuery(config, {KanbanState: {$gte: 'In Dev', $lt: 'Accepted'}})
+      query = new rally_analytics.TimeInStateAnalyticsQuery(config, 'hello', {KanbanState: {$gte: 'In Dev', $lt: 'Accepted'}})
       query.XHRClass = XHRMock  # Not required to hit real Rally Analytics API
   ###
   constructor: (config, upToDate, predicate) ->

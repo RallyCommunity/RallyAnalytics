@@ -12,11 +12,12 @@ class XHRMock
         	"Warnings": [], 
         	"TotalResultCount": 5, 
         	"StartIndex": 0, 
-        	"PageSize": 2, 
+        	"PageSize": 3,
         	"ETLDate": "2012-03-16T21:01:17.802Z", 
         	"Results": [
-        		{"id": 1, "_ValidFrom": "1 valid from"},
-        		{"id": 2, "_ValidFrom": "2 valid from"}
+        		{"id": 1, "_ValidFrom": "2012-03-16T21:01:17.000Z"},
+        		{"id": 2, "_ValidFrom": "2012-03-16T21:01:17.001Z"},
+            {"id": 3, "_ValidFrom": "2012-03-16T21:01:17.002Z"}
         	]
         }''',
      '''{
@@ -26,26 +27,14 @@ class XHRMock
         	"Warnings": [], 
         	"TotalResultCount": 5, 
         	"StartIndex": 2, 
-        	"PageSize": 2, 
+        	"PageSize": 3,
         	"ETLDate": "2012-03-16T21:01:17.802Z", 
         	"Results": [
-        		{"id": 3, "_ValidFrom": "3 valid from"},
-        		{"id": 4, "_ValidFrom": "4 valid from"}
+        		{"id": 3, "_ValidFrom": "2012-03-16T21:01:17.002Z"},
+        		{"id": 4, "_ValidFrom": "2012-03-16T21:01:17.003Z"},
+            {"id": 5, "_ValidFrom": "2012-03-16T21:01:17.004Z"}
         	]
-        }''',
-     '''{
-        	"_rallyAPIMajor": "1", 
-        	"_rallyAPIMinor": "27", 
-        	"Errors": [], 
-        	"Warnings": [], 
-        	"TotalResultCount": 5, 
-        	"StartIndex": 4, 
-        	"PageSize": 2, 
-        	"ETLDate": "2012-03-16T21:01:17.802Z", 
-        	"Results": [
-        		{"id": 5, "_ValidFrom": "5 valid from"}
-        	]
-        }'''        
+        }'''
   ]
 
   constructor: (@debug = false) ->
