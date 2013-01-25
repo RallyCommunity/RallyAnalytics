@@ -13,7 +13,7 @@
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.4.3/deploy/Lumenize.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize.js"></script>
         
         <!-- rally_analytics -->
         <script type="text/javascript" src="../lib/analyticsquery.js"></script> 
@@ -24,6 +24,7 @@
         <script type="text/javascript">
         
             var lumenize = require('/lumenize');
+            lumenize.ChartTime.setTZPath('anything');
             
             $(document).ready(function() {
                             
@@ -82,19 +83,17 @@
                 
                 var config = {
                   workspaceConfiguration: workspaceConfiguration,
-                  upSeriesType: 'Story Count', // 'Points' or 'Story Count'
+                  upSeriesType: 'Points', // 'Points' or 'Story Count'
                   series: [
                     'down',
                     'up',
-/*
                     'projectionToCurrentScope',
                     'projectionToProjectedScope',
-*/
                     'ideal',
                     'scope'
                   ],
                   acceptedStates: ['Accepted', 'Released'],
-                  start: "2011-01-03T13:00:00Z",  // Calculated either by inspecting results or via configuration. pastEnd is automatically the last date in results
+                  start: "2011-01-02T13:00:00Z",  // Calculated either by inspecting results or via configuration. pastEnd is automatically the last date in results
                   holidays: [
                     {month: 12, day: 25}, // Notice how the year can be omitted
                     {year: 2011, month: 11, day: 26},

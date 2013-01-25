@@ -1,8 +1,32 @@
 <!DOCTYPE HTML>
+
 <html>
     <head>
+        <script type="text/javascript"">
+            var userConfig = {
+                subTitle: 'Iteration',
+                debug: true,
+                // trace: true,
+                // asOf: "2012-11-01",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
+                granularity: 'day',
+                scopeField: "Iteration",  // Supports Iteration, Release, Tags, Project, _ProjectHierarchy, _ItemHierarchy
+                scopeValue: 9693020302,
+                chartSeries: [
+                  {name: 'StoryUnitScope', yAxis: 1, type: 'line'}, 
+/*                   {name: 'StoryCountScope', yAxis: 1},  */
+                  {name: 'StoryUnitBurnUp', yAxis: 1}, 
+/*                   {name: 'StoryCountBurnUp', yAxis: 1},  */
+                  {name: 'TaskUnitBurnDown'}, 
+                  {name: 'TaskUnitScope', type: 'line'}, 
+                  {name: 'Ideal', type: 'line'},
+                  {name: 'Ideal2', type: 'line'} 
+                ]
+            }
+            
+        </script>
+        
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <title>Rally Burn Chart Prototype</title>
+        <title>Burn</title>
         
         <!-- HighCharts -->
         <script type="text/javascript" src="../lib/jquery.min.js" deploy_src="https://people.rallydev.com/js/jquery.min.js"></script>
@@ -13,194 +37,129 @@
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.4.3/deploy/Lumenize.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.5.6/deploy/Lumenize-min.js"></script>
         
         <!-- rally_analytics -->
-        <script type="text/javascript" src="../lib/analyticsquery.js"></script> 
+        <script type="text/javascript" src="../lib/analyticsquery.js"></script>
+
+        <!-- md5 -->
+        <script type="text/javascript" src="../lib/md5.js"></script>
         
-        <!-- my calculator for this chart -->
-        <script type="text/javascript" src="../lib/burncalculator.js"></script> 
-                
+        <!-- my visualizer for this chart (optional) -->
+        <script type="text/javascript" src="../lib/localcache/LocalCache.js"></script> 
+        <script type="text/javascript" src="../lib/VisualizerBase.js"></script> 
+        <script type="text/javascript" src="../lib/BurnVisualizer.js"></script>
+        
         <script type="text/javascript">
-        
-            var lumenize = require('/lumenize');
-            
-            $(document).ready(function() {
-                            
-                // Let's say you have this data. I've put it in this CSV-style format for easy entry and comprehension.
-                resultsCSVStyle = [
-                    ["ObjectID", "_ValidFrom",           "_ValidTo",             "ScheduleState"  , "PlanEstimate", "TaskRemainingTotal", "TaskEstimateTotal"],
-                                                                        
-                    [1,          "2010-10-10T15:00:00Z", "2011-01-02T13:00:00Z", "Ready to pull", 5            , 15                     , 15],  // Shouldn't show up, 2010 before start
-                    
-                    [1,          "2011-01-02T13:00:00Z", "2011-01-02T15:10:00Z", "Ready to pull", 5            , 15                     , 15],  // !TODO: Should get the same results even without this line
-                    [1,          "2011-01-02T15:10:00Z", "2011-01-04T15:00:00Z", "In progress"  , 5            , 20                     , 15],  // Testing it starting at one state and switching later to another
-                    [2,          "2011-01-02T15:00:00Z", "2011-01-03T15:00:00Z", "Ready to pull", 3            , 5                      , 5],                
-                    [3,          "2011-01-02T15:00:00Z", "2011-01-03T15:00:00Z", "Ready to pull", 5            , 12                     , 12], 
-                    
-                    [2,          "2011-01-03T15:00:00Z", "2011-01-04T15:00:00Z", "In progress"  , 3            , 5                      , 5], 
-                    [3,          "2011-01-03T15:00:00Z", "2011-01-04T15:00:00Z", "Ready to pull", 5            , 12                     , 12], 
-                    [4,          "2011-01-03T15:00:00Z", "2011-01-04T15:00:00Z", "Ready to pull", 5            , 15                     , 15], 
-                    [1,          "2011-01-03T15:10:00Z", "2011-01-04T15:00:00Z", "In progress"  , 5            , 12                     , 15],  // Testing later change
-                    
-                    [1,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "Accepted"     , 5            , 0                      , 15], 
-                    [2,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "In test"      , 3            , 1                      , 5], 
-                    [3,          "2011-01-04T15:00:00Z", "2011-01-05T15:00:00Z", "In progress"  , 5            , 10                     , 12], 
-                    [4,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "Ready to pull", 5            , 15                     , 15], 
-                    [5,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "Ready to pull", 2            , 4                      , 4], 
-                    
-                    [3,          "2011-01-05T15:00:00Z", "2011-01-07T15:00:00Z", "In test"      , 5            , 5                      , 12],
-                    
-                    [1,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "Released"     , 5            , 0                      , 15], 
-                    [2,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "Accepted"     , 3            , 0                      , 5], 
-                    [4,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "In progress"  , 5            , 7                      , 15], 
-                    [5,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "Ready to pull", 2            , 4                      , 4], 
-                    
-                    [1,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "Released"     , 5            , 0                      , 15], 
-                    [2,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "Released"     , 3            , 0                      , 5], 
-                    [3,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "Accepted"     , 5            , 0                      , 12], 
-                    [4,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "In test"      , 5            , 3                      , 15], 
-                    [5,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "In progress"  , 2            , 4                      , 4]
-                ];
+            (function() {
+
+                var charts = {};
+                var visualizer;
                 
-                // The CSV-style table is not what it would look like from the Rally Analytics API so let's fix that.
-                var results = lumenize.csvStyleArray_To_ArrayOfMaps(resultsCSVStyle);
-                
-                // Replace above code with call to LookbackAPI
-                // For PI/Story burn chart, {_ItemHiearchy: 123456L} where 123456L is the ObjectID of the PI or Story
-                
-                var workspaceConfiguration = {  // Need to grab from Rally for this user
-                  DateFormat: 'MM/dd/yyyy',
-                  DateTimeFormat: 'MM/dd/yyyy hh:mm:ss a',
-                  IterationEstimateUnitName: 'Points',  // !TODO: Should we use this?
-                  ReleaseEstimateUnitName: 'Points',
-                  TaskUnitName: 'Hours',
-                  TimeTrackerEnabled: true,
-                  TimeZone: 'America/Denver',
-                  WorkDays: 'Sunday,Monday,Tuesday,Wednesday,Thursday,Friday' // They work on Sundays
-                };
-                
-                var config = {
-                  workspaceConfiguration: workspaceConfiguration,
-                  upSeriesType: 'Story Count', // 'Points' or 'Story Count'
-                  series: [
-                    'down',
-                    'up',
+                createVisualization = function(visualizationData) {
+                  
+                  if (typeof visualizationData !== "undefined" && visualizationData !== null) {
+                    categories = visualizationData.categories;
+                    series = visualizationData.series;
+
+                    charts.chart = new Highcharts.Chart({
+                      chart: {
+                         renderTo: 'chart-container',
+                         defaultSeriesType: 'column',
+                         zoomType: 'x'
+                      },
+                      legend: {
+                         enabled: true
+                      },
+                      credits: {
+                         enabled: false
+                      },
+                      title: {
+                         text: 'Burn'
+                      },
+                      subtitle: {
+                         text: userConfig.subTitle
+                      },
+                      xAxis: {
+                         categories: categories,
+                         tickmarkPlacement: 'on',
+                         tickInterval: Math.floor(categories.length / 30) + 1,
+                         title: {
+                             text: userConfig.granularity.slice(0, 1).toUpperCase() + userConfig.granularity.slice(1) + 's'
+                         }
+                      },
+                      yAxis: [
+                         {
+                             title: {
+                                 text: 'Task units (look up in Rally WorkspaceConfig)'
+                             },
+                             min: 0
+                         },
+                         {
+                             title: {
+                                 text: 'Story units (look up in Rally WorkspaceConfig)'
+                             },
+                             opposite: true,
+                             min: 0
+                         }                      
+                      ],
+                      tooltip: {
+                         formatter: function() {
+                             point = this.point
+                             s = point.series.name + ': <b>' + point.y + '</b><br \>';
+                             if (point.x == point.series.data.length - 1) {
+                                 s += point.category.slice(0, point.category.length - 1) + ' to-date';
+                             } else {
+                                 s += point.category;
+                             }
+                             return s;
+                         }
+                      },                    
 /*
-                    'projectionToCurrentScope',
-                    'projectionToProjectedScope',
+                         series: [
+                           {name: 'hello', data: [1, 2, 3]}
+                         ]
 */
-                    'ideal',
-                    'scope'
-                  ],
-                  acceptedStates: ['Accepted', 'Released'],
-                  start: "2011-01-03T13:00:00Z",  // Calculated either by inspecting results or via configuration. pastEnd is automatically the last date in results
-                  holidays: [
-                    {month: 12, day: 25}, // Notice how the year can be omitted
-                    {year: 2011, month: 11, day: 26},
-                    {year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
-                  ]
-                };
-                                
-                var tscResults = burnCalculator(results, config);
-                
-                var categories = tscResults.categories;
-                var series = tscResults.series;
-                
-                chart = new Highcharts.Chart({
-                    chart: {
-                        renderTo: 'container',
-                        defaultSeriesType: 'column'
-                    },
-                    credits: {
-                        enabled: false
-                    },
-                    title: {
-                        text: 'Burn Chart'
-                    },
-                    subtitle: {
-                        text: ''
-                    },
-                    xAxis: {
-                        categories: categories,
-                        tickmarkPlacement: 'on',
-                        tickInterval: Math.floor(categories.length / 13) + 1,
-                        title: {
-                            enabled: false
-                        }
-                    },
-                    yAxis: [
-                        {
-                            title: {
-                                text: 'Hours'
-                            },
-                            labels: {
-                                formatter: function() {
-                                    return this.value / 1;
-                                }
-                            },
-                            min: 0
-                        },
-                        {
-                            title: {
-                                text: config.upSeriesType
-                            },
-                            opposite: true,
-                            labels: {
-                                formatter: function() {
-                                    return this.value / 1;
-                                }
-                            },
-                            min: 0
-                        }                        
-                    ],
-                    tooltip: {
-                        formatter: function() {
-                            return ''+ this.x + '<br />' + this.series.name + ': ' + this.y;
-                        }
-                    },
-                    plotOptions: {
-                        column: {
-                            stacking: null,
-                            lineColor: '#666666',
-                            lineWidth: 1,
-                            marker: {
-                                lineWidth: 1,
-                                lineColor: '#666666'
-                            }
-                        },
+                      series: series
+                    });  // end of chart
+                    
+                  } else {
+                    // Put a spinner in the chart containers until first fetch returns
+                    $('#chart-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
 /*
-                        series: {
-                            allowPointSelect: true,
-                            point: {
-                                events: {
-                                    select: function(event) {
-                                        // Use this to highlight the rows in a table
-                                        alert('ObjectIDs: ' +
-                                            JSON.stringify(cfdCalculation.drillDownObjectIDs[this.series.name][this.x]));
-                                    },
-                                    unselect: function(event) {
-                                        alert('Unselect rows')
-                                    }
-                                }
-                            }
-                        }
+                    $('#summary-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
 */
-                    },
-                    series: series
+                  };  // end of if visualizationData?
+                
+                };  // end of createVisualization  
+                  
+    
+                $(document).ready(function() {
+                  visualizer = new BurnVisualizer(charts, userConfig, createVisualization);
                 });
-                      
-                                  
-                
-            });
+            
+            })();
+            
                 
         </script>
+
         
     </head>
     <body>
         
-        <!-- 3. Add the container -->
-        <div id="container" style="width: 75%; height: 75%; margin: 0 auto"></div>
-        
+        <!-- 3. Add the containers -->
+        <table cellpading="0px" cellspacing="0px" width="98%" height="98%">
+          <tr>
+            <td width="100%"><div id="chart-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+            <td width="0%"><div id="summary-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+          </tr>
+        </table>
+                
     </body>
 </html>
+
+

@@ -86,6 +86,7 @@ class TIPVisualizer extends VisualizerBase
     hashObject = {}
     userConfig = utils.clone(@userConfig)
     delete userConfig.debug
+    delete userConfig.trace
     delete userConfig.daysToShow
     delete userConfig.showStillInProgress
     hashObject.userConfig = userConfig

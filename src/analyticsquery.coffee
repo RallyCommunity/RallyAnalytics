@@ -185,8 +185,19 @@ class AnalyticsQuery
   _setSort: (@_sort) ->
     return this
     
-  fields: (additionalFields) ->  # !TODO: Confirm that additionalFields is an array
-    @_fields = @_fields.concat(additionalFields)
+  fields: (additionalFields) ->
+    if utils.type(additionalFields) is 'array'
+      @_fields = @_fields.concat(additionalFields)
+    else if utils.type(additionalFields) is 'object'
+      if utils.type(@_fields) is 'array'
+        temp = {}
+        for field in @_fields
+          temp[field] = 1
+        @_fields = temp
+      for key, value of additionalFields
+        @_fields[key] = value
+    else
+      throw new Error("Don't know what to do. additionalFields is type #{utils.type(additionalFields)} and @_fields it type #{utils.type(@_fields)}.")
     return this
 
   hydrate: (@_hydrate) ->
@@ -210,6 +221,7 @@ class AnalyticsQuery
     
   debug: () ->
     @_debug = true
+    return this
 
   getBaseURL: () ->
     return @protocol + '://' + [
@@ -231,7 +243,14 @@ class AnalyticsQuery
       if @_fields?
         if @_fields[0] == true
           queryArray.push('fields=true')
-        else if @_fields.length > 0
+        else if @_fields.length > 0 or utils.type(@_fields) is 'object'
+          unless '_ValidFrom' in @_fields or @_fields.hasOwnProperty('_ValidFrom')
+            if utils.type(@_fields) is 'object'
+              @_fields._ValidFrom = 1
+            else if utils.type(@_fields) is 'array'
+              @_fields.push('_ValidFrom')
+            else
+              throw new Error("@_fields is unexpected type #{utils.type(@_fields)}")
           queryArray.push('fields=' + JSON.stringify(@_fields))
       if @_hydrate?
         queryArray.push('hydrate=' + JSON.stringify(@_hydrate))  # !TODO: Test that this works for true
@@ -285,6 +304,8 @@ class AnalyticsQuery
       console.log('\nreadyState: ', @_xhr.readyState)
     if @_xhr.readyState == 4
       @lastResponseText = @_xhr.responseText
+      if @_debug
+        console.log('Last response text length: ', @lastResponseText.length)
       @lastResponse = JSON.parse(@lastResponseText)
       if @_debug
         console.log('\nresponse headers:\n')
@@ -299,7 +320,7 @@ class AnalyticsQuery
       if @lastResponse.Errors.length > 0
         # !TODO: Maybe throw away partially complete allResults?
         console.log('Errors\n' + JSON.stringify(@lastResponse.Errors))
-        _return()
+        @_callback(@lastPageResults, startOn, @upToDate, this)
       else
         if @_firstPage
           @_firstPage = false
@@ -327,9 +348,13 @@ class AnalyticsQuery
         @lastPageResults = []
         results = @lastResponse.Results
 
+        if @_debug
+          console.log('Length of results before @upToDate filtering: ', results.length)
         for o in results
           unless o._ValidFrom == @upToDate  # Filtered out because of note below
             @lastPageResults.push(o)
+        if @_debug
+          console.log('Length of results after @upToDate filtering: ', @lastPageResults.length)
 
         @_startIndex += @lastPageResults.length  # Changed from adding @_pageSize because of note below
 
@@ -506,7 +531,7 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
         k = 'Tags'
       if k == 'ProjectHierarchy'
         k = '_ProjectHierarchy'
-      okKeys = ['Project', '_ProjectHierarchy', 'Iteration', 'Release', 'Tags', '_ItemHierarchy']
+      okKeys = ['Project', '_ProjectHierarchy', 'Iteration', 'Release', 'Tags', 'Tag', '_ItemHierarchy']
       unless k in okKeys
         throw new Error("Key for scope() call must be one of #{okKeys}")
       if utils.type(v) == 'array'
@@ -581,33 +606,6 @@ class AtAnalyticsQuery extends GuidedAnalyticsQuery
     unless zuluDateString?
       throw new Error('Must provide a zuluDateString when instantiating an AtAnalyticsQuery.')
     @_additionalCriteria.push({_At: zuluDateString})
-
-class AtArrayAnalyticsQuery extends GuidedAnalyticsQuery
-  ###
-  This pattern is not implemented at this time but the intention is for it to tell you what a 
-  set of Artfacts looked like at particular moments in time. In the mean time, use the "Between"
-  pattern defined above combined with the Lumenize `snapshotArray_To_AtArray` function. 
-  Eventually, this will be the ideal pattern to use for Burn charts, CFD charts, and most time-series charts
-  It's the same as the 'At' pattern except that the second parameter can be a list of timestamps.
-  
-  `query = new rally_analytics.AtArrayAnalyticsQuery(config, ['2012-01-01T12:34:56.789Z', '2012-01-02T12:34:56.789Z', ...])`
-      
-  Altneratively, we may make it possible to submit a ChartTimeIterator spec.
-  
-  The way to implement this in the short term is to use the Between pattern and wrap in the Lumenize 
-  `snapshotArray_To_AtArray` transformation.
-     
-  Note: it's tempting to try to make this more efficient by just looking for snapshots where the fields of interest change. 
-  However, that approach would not pick up on the deletions/restores nor the changing of the work item so it no longer meets 
-  the other criteria.
-    
-  Note: when/if there is server-side support for finding the results at these points in time, this query pattern will be updated
-  to take advantage of it.
-
-  ###
-  constructor: (config, upToDate, arrayOfZuluDates) ->
-    super(config, upToDate)
-    throw new Error('AtArrayAnalyticsQuery is not yet implemented')
 
 class BetweenAnalyticsQuery extends GuidedAnalyticsQuery
   ###
@@ -718,7 +716,6 @@ class TransitionsAnalyticsQuery extends GuidedAnalyticsQuery
 root.AnalyticsQuery = AnalyticsQuery
 root.GuidedAnalyticsQuery = GuidedAnalyticsQuery
 root.AtAnalyticsQuery = AtAnalyticsQuery
-root.AtArrayAnalyticsQuery = AtArrayAnalyticsQuery
 root.BetweenAnalyticsQuery = BetweenAnalyticsQuery
 root.TimeInStateAnalyticsQuery = TimeInStateAnalyticsQuery
 root.TransitionsAnalyticsQuery = TransitionsAnalyticsQuery

@@ -59,7 +59,7 @@ class ThroughputVisualizer extends VisualizerBase
 
 #    @analyticsQuery.leafOnly()
 
-    @analyticsQuery.pagesize(300)  # For debugging incremental update
+#    @analyticsQuery.pagesize(30)  # For debugging incremental update
 
     if @config.asOf?
       criteria = {}
@@ -136,7 +136,7 @@ class ThroughputVisualizer extends VisualizerBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'Throughput v0.2.75'
+    salt = 'Throughput v0.2.78'
 #    salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)
