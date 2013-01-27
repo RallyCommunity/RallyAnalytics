@@ -167,13 +167,7 @@ class BurnVisualizer extends VisualizerBase
 
     categories = (row.label for row in seriesData)
 
-#    categories = (new Time(row.tick, @config.granularity, @config.lumenizeCalculatorConfig.tz)
-##      .addInPlace(1, Time.DAY)
-#      .toString() for row in seriesData)
-
     @visualizationData = {series, categories}
-
-    console.log('@visualizationData in updateVisualizationData', @visualizationData)
 
   updateVisualization: () ->
     # most likely override. The default here is to just recreate it again but you should try to update the HighCharts
