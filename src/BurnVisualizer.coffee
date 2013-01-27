@@ -3,7 +3,7 @@ if exports?
 else
   lumenize = require('/lumenize')  # in the browser
 
-{utils} = lumenize
+{utils, Time} = lumenize
 
 class BurnVisualizer extends VisualizerBase
   ###
@@ -12,7 +12,7 @@ class BurnVisualizer extends VisualizerBase
   initialize: () ->
     if @config.trace
       console.log('in BurnVisualizer.initialize')
-    super()
+    super()  # sets lumenizeCalculatorConfig.tz
 
     if @config.granularity?
       @config.lumenizeCalculatorConfig.granularity = @config.granularity
@@ -22,6 +22,12 @@ class BurnVisualizer extends VisualizerBase
     @config.lumenizeCalculatorConfig.workDayEndBefore = @config.workDayEndBefore
     @config.lumenizeCalculatorConfig.holidays = @config.holidays
     @config.lumenizeCalculatorConfig.workDays = @config.workDays
+    @config.lumenizeCalculatorConfig.startOn = new Time(@userConfig.scopeData.StartDate)
+      .addInPlace(1, Time.DAY)
+      .getISOStringInTZ(@config.lumenizeCalculatorConfig.tz)
+    @config.lumenizeCalculatorConfig.endBefore = new Time(@userConfig.scopeData.EndDate)
+      .addInPlace(1, Time.DAY)
+      .getISOStringInTZ(@config.lumenizeCalculatorConfig.tz)
 
     @config.lumenizeCalculatorConfig.deriveFieldsOnInput = [
       {field: 'AcceptedStoryCount', f: (row) ->
@@ -31,7 +37,7 @@ class BurnVisualizer extends VisualizerBase
           return 0
       },
       {field: 'AcceptedStoryPoints', f: (row) ->
-        if row.ScheduleState in ['Accepted', 'Released']
+        if row.ScheduleState in ['Accepted', 'Released']  # !TODO: Need to use correct value for "Released" for their Workspace
           return row.PlanEstimate
         else
           return 0
@@ -95,11 +101,11 @@ class BurnVisualizer extends VisualizerBase
 
     fields = ["ObjectID", "_ValidFrom", "_ValidTo", "ScheduleState", "PlanEstimate", "TaskRemainingTotal", "TaskEstimateTotal"]
     @analyticsQuery
-      .type('HierarchicalRequirement')
+#      .type('HierarchicalRequirement')  # !TODO: Confirm that leaving off a .type specification gets the types we want and not the ones we don't
       .leafOnly()
       .fields(fields)
       .hydrate(['ScheduleState'])
-#      .pagesize(3000)  # For debugging incremental update
+#      .pagesize(100)  # For debugging incremental update
 
     if @config.asOf?
       @analyticsQuery.additionalCriteria({_ValidFrom:{$lt:@getAsOfISOString()}})
@@ -122,7 +128,7 @@ class BurnVisualizer extends VisualizerBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'Burn v0.2.0'
+    salt = 'Burn v0.2.7'
     salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)
@@ -153,19 +159,29 @@ class BurnVisualizer extends VisualizerBase
     else
       @virgin = false
 
-    console.log(calculatorResults)
+    seriesData = calculatorResults.seriesData
 
-    series = lumenize.aggregationAtArray_To_HighChartsSeries(calculatorResults.seriesData, @config.chartSeries)
-    categories = (row.tick for row in calculatorResults.seriesData)
-    console.log(categories)
+    series = lumenize.aggregationAtArray_To_HighChartsSeries(seriesData, @config.chartSeries)
+    for s in series
+      if s.displayName?
+        s.name = s.displayName
 
-    console.log(series)
+    categories = (new Time(row.tick, @config.granularity, @config.lumenizeCalculatorConfig.tz)
+      .addInPlace(1, Time.DAY)
+      .toString() for row in seriesData)
 
     @visualizationData = {series, categories}
 
-    # For almost all other charts, we'll be able to simply update the data but this TIP chart controls the tickInterval
-    # which cannot be updated at run time according to HighCharts support so we have to recreate it each time.
-
+  updateVisualization: () ->
+    # most likely override. The default here is to just recreate it again but you should try to update the HighCharts
+    # Objects in @visualizations.
+    @updateVisualizationData()
+    chart = @visualizations.chart
+    series = chart.series
+    for s, index in @visualizationData.series
+      series[index].setData(s.data, false)
+    chart.xAxis[0].setCategories(@visualizationData.categories, false)
+    chart.redraw()
   
 this.BurnVisualizer = BurnVisualizer
   

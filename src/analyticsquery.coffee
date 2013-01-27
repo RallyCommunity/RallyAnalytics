@@ -350,6 +350,7 @@ class AnalyticsQuery
 
         if @_debug
           console.log('Length of results before @upToDate filtering: ', results.length)
+
         for o in results
           unless o._ValidFrom == @upToDate  # Filtered out because of note below
             @lastPageResults.push(o)
@@ -498,6 +499,8 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
     @_scope = {}
     @_type = null
     @_additionalCriteria = []
+    if upToDate?
+      @_additionalCriteria.push({"_ValidTo": {$gt: upToDate}})
     
   generateFind: () ->
     compoundArray = []
@@ -595,7 +598,7 @@ class AtAnalyticsQuery extends GuidedAnalyticsQuery
       #       "_ProjectHierarchy": 1234
       #     },
       #     {
-      #       "_At": "2012-01-01T12:34:56.789Z"
+      #       "__At": "2012-01-01T12:34:56.789Z"
       #     }
       #   ]
       # }
@@ -605,7 +608,7 @@ class AtAnalyticsQuery extends GuidedAnalyticsQuery
     super(config, upToDate)
     unless zuluDateString?
       throw new Error('Must provide a zuluDateString when instantiating an AtAnalyticsQuery.')
-    @_additionalCriteria.push({_At: zuluDateString})
+    @_additionalCriteria.push({__At: zuluDateString})
 
 class BetweenAnalyticsQuery extends GuidedAnalyticsQuery
   ###
@@ -658,7 +661,7 @@ class TimeInStateAnalyticsQuery extends GuidedAnalyticsQuery
     unless predicate?
       throw new Error('Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.')
     @_additionalCriteria.push(predicate)
-    @_additionalCriteria.push({"_ValidTo": {$gt: upToDate}})
+#    @_additionalCriteria.push({"_ValidTo": {$gt: upToDate}})
     @fields(['ObjectID', '_ValidFrom', '_ValidTo'])
 
 class TransitionsAnalyticsQuery extends GuidedAnalyticsQuery

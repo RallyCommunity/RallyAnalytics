@@ -12,7 +12,7 @@ class TIPVisualizer extends VisualizerBase
   initialize: () ->
     if @config.trace
       console.log('in TIPVisualizer.initialize')
-    super()
+    super()  # sets lumenizeCalculatorConfig.tz
 
     @config.toolTipFieldNames = []
     for s in @config.showTheseFieldsInToolTip
@@ -92,7 +92,7 @@ class TIPVisualizer extends VisualizerBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'TIP v0.2.89'
+    salt = 'TIP v0.2.92'
 #    salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)

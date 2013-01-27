@@ -5,8 +5,8 @@
         <script type="text/javascript"">
             var userConfig = {
                 subTitle: 'Stories In-Progress to Accepted',
-                debug: false,
-                trace: false,
+                debug: true,
+                trace: true,
                 daysToShow: 120,
                 // asOf: "2012-10-15",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
                 statePredicate: {ScheduleState:{$lt:"Accepted", $gte:"In-Progress"}},

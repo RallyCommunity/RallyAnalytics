@@ -136,7 +136,7 @@ class ThroughputVisualizer extends VisualizerBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'Throughput v0.2.78'
+    salt = 'Throughput v0.2.79'
 #    salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)
@@ -198,7 +198,7 @@ class ThroughputVisualizer extends VisualizerBase
     series = chart.series
     for s, index in @visualizationData.series
       series[index].setData(s.data, false)
-    chart.xAxis[0].setCategories(categories, false)
+    chart.xAxis[0].setCategories(@visualizationData.categories, false)
     chart.redraw()
   
 this.ThroughputVisualizer = ThroughputVisualizer
