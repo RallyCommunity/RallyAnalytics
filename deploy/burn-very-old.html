@@ -13,7 +13,7 @@
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/v0.4.3/deploy/Lumenize.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/master/deploy/Lumenize.js"></script>
         
         <!-- rally_analytics -->
         
@@ -24,12 +24,13 @@
         <!-- my calculator for this chart -->
         
 <script type="text/javascript">
-(function(){var t,e,i,s,r,n,o=[].indexOf||function(t){for(var e=0,i=this.length;i>e;e++)if(e in this&&this[e]===t)return e;return-1};s=this,i="undefined"!=typeof exports&&null!==exports?require("../lib/lumenize"):require("/lumenize"),t=i.ChartTime,r=i.timeSeriesCalculator,n=i.utils,e=function(e,s){var r,a,l,h,u,c,p,f,d,g,y,_,m,S,v,A,R,C,w,T,O,D,I,P,z,b,k,x,E,F,V;for(f=null!=s.granularity?s.granularity:"day",D=s.start,"string"===n.type(D)&&(D=new t(D,f,s.workspaceConfiguration.TimeZone)),A=new t(e[e.length-1]._ValidFrom,f,s.workspaceConfiguration.TimeZone).add(1),R={workDays:s.workspaceConfiguration.WorkDays,holidays:s.holidays,start:D,pastEnd:A},null==s.upSeriesType&&(s.upSeriesType="Sums"),u=[],"Points"===s.upSeriesType?u.push({name:"Accepted",f:function(t){var e;return e=t.ScheduleState,o.call(s.acceptedStates,e)>=0?t.PlanEstimate:0}}):"Story Count"===s.upSeriesType?u.push({name:"Accepted",f:function(t){var e;return e=t.ScheduleState,o.call(s.acceptedStates,e)>=0?1:0}}):console.error("Unrecognized upSeriesType: "+s.upSeriesType),O=[],a=[],E=s.series,b=0,x=E.length;x>b;b++){switch(C=E[b],T=!0,C){case"down":S="Task To Do (Hours)",c="$sum",p="TaskRemainingTotal",z=0,P="column";break;case"ideal":S="Ideal (Hours)",c="$sum",p="TaskEstimateTotal",z=0,P="line";break;case"up":S="Accepted ("+s.upSeriesType+")",c="$sum",p="Accepted",z=1,P="column";break;case"scope":S="Scope ("+s.upSeriesType+")","Story Count"===s.upSeriesType?c="$count":"Points"===s.upSeriesType&&(c="$sum"),p="PlanEstimate",z=1,P="line";break;default:null!=C.name&&null!=C.f&&null!=C.field?(S=C.name,c=C.f,p=C.field,P="column"):(T=!1,console.error("Unrecognizable series: "+C))}T&&(a.push({name:S,as:S,f:c,field:p,yAxis:z,type:P}),O.push(S))}if(I={rangeSpec:R,derivedFields:u,aggregationSpec:a,timezone:s.workspaceConfiguration.TimeZone,snapshotValidFromField:"_ValidFrom",snapshotValidToField:"_ValidTo",snapshotUniqueID:"ObjectID"},F=i.timeSeriesCalculator(e,I),_=F.listOfAtCTs,r=F.aggregationAtArray,console.log("aggregationAtArray: "+JSON.stringify(r,null,2)),w=i.aggregationAtArray_To_HighChartsSeries(r,a),l=function(){var t,e,i;for(i=[],t=0,e=_.length;e>t;t++)h=_[t],i.push(""+(""+h));return i}(),v=l.length,o.call(s.series,"ideal")>=0){for(d=0;0>w[d].name.indexOf("Ideal");)d++;for(g=w[d].data,m=i.functions.$max(g),y=m/(v-1),d=k=0,V=v-2;V>=0?V>=k:k>=V;d=V>=0?++k:--k)g[d]=(v-1-d)*y;g[v-1]=0}return{categories:l,series:w}},s.burnCalculator=e}).call(this);
+(function(){var t,e,i,s,r,n,o=[].indexOf||function(t){for(var e=0,i=this.length;i>e;e++)if(e in this&&this[e]===t)return e;return-1};s=this,i="undefined"!=typeof exports&&null!==exports?require("../lib/lumenize"):require("/lumenize"),t=i.ChartTime,r=i.timeSeriesCalculator,n=i.utils,e=function(e,s){var r,a,l,h,u,c,p,d,f,g,y,_,m,S,v,R,A,T,w,C,O,D,P,I,z,b,x,E,k,V,F;for(d=null!=s.granularity?s.granularity:"day",D=s.start,"string"===n.type(D)&&(D=new t(D,d,s.workspaceConfiguration.TimeZone)),R=new t(e[e.length-1]._ValidFrom,d,s.workspaceConfiguration.TimeZone).add(1),A={workDays:s.workspaceConfiguration.WorkDays,holidays:s.holidays,start:D,pastEnd:R},null==s.upSeriesType&&(s.upSeriesType="Sums"),u=[],"Points"===s.upSeriesType?u.push({name:"Accepted",f:function(t){var e;return e=t.ScheduleState,o.call(s.acceptedStates,e)>=0?t.PlanEstimate:0}}):"Story Count"===s.upSeriesType?u.push({name:"Accepted",f:function(t){var e;return e=t.ScheduleState,o.call(s.acceptedStates,e)>=0?1:0}}):console.error("Unrecognized upSeriesType: "+s.upSeriesType),O=[],a=[],k=s.series,b=0,E=k.length;E>b;b++){switch(T=k[b],C=!0,T){case"down":S="Task To Do (Hours)",c="$sum",p="TaskRemainingTotal",z=0,I="column";break;case"ideal":S="Ideal (Hours)",c="$sum",p="TaskEstimateTotal",z=0,I="line";break;case"up":S="Accepted ("+s.upSeriesType+")",c="$sum",p="Accepted",z=1,I="column";break;case"scope":S="Scope ("+s.upSeriesType+")","Story Count"===s.upSeriesType?c="$count":"Points"===s.upSeriesType&&(c="$sum"),p="PlanEstimate",z=1,I="line";break;default:null!=T.name&&null!=T.f&&null!=T.field?(S=T.name,c=T.f,p=T.field,I="column"):(C=!1,console.error("Unrecognizable series: "+T))}C&&(a.push({name:S,as:S,f:c,field:p,yAxis:z,type:I}),O.push(S))}if(P={rangeSpec:A,derivedFields:u,aggregationSpec:a,timezone:s.workspaceConfiguration.TimeZone,snapshotValidFromField:"_ValidFrom",snapshotValidToField:"_ValidTo",snapshotUniqueID:"ObjectID"},V=i.timeSeriesCalculator(e,P),_=V.listOfAtCTs,r=V.aggregationAtArray,console.log("aggregationAtArray: "+JSON.stringify(r,null,2)),w=i.aggregationAtArray_To_HighChartsSeries(r,a),l=function(){var t,e,i;for(i=[],t=0,e=_.length;e>t;t++)h=_[t],i.push(""+(""+h));return i}(),v=l.length,o.call(s.series,"ideal")>=0){for(f=0;0>w[f].name.indexOf("Ideal");)f++;for(g=w[f].data,m=i.functions.$max(g),y=m/(v-1),f=x=0,F=v-2;F>=0?F>=x:x>=F;f=F>=0?++x:--x)g[f]=(v-1-f)*y;g[v-1]=0}return{categories:l,series:w}},s.burnCalculator=e}).call(this);
 </script> 
                 
         <script type="text/javascript">
         
             var lumenize = require('/lumenize');
+            lumenize.ChartTime.setTZPath('anything');
             
             $(document).ready(function() {
                             
@@ -88,19 +89,17 @@
                 
                 var config = {
                   workspaceConfiguration: workspaceConfiguration,
-                  upSeriesType: 'Story Count', // 'Points' or 'Story Count'
+                  upSeriesType: 'Points', // 'Points' or 'Story Count'
                   series: [
                     'down',
                     'up',
-/*
                     'projectionToCurrentScope',
                     'projectionToProjectedScope',
-*/
                     'ideal',
                     'scope'
                   ],
                   acceptedStates: ['Accepted', 'Released'],
-                  start: "2011-01-03T13:00:00Z",  // Calculated either by inspecting results or via configuration. pastEnd is automatically the last date in results
+                  start: "2011-01-02T13:00:00Z",  // Calculated either by inspecting results or via configuration. pastEnd is automatically the last date in results
                   holidays: [
                     {month: 12, day: 25}, // Notice how the year can be omitted
                     {year: 2011, month: 11, day: 26},

@@ -1,8 +1,45 @@
 <!DOCTYPE HTML>
+
 <html>
     <head>
+        <script type="text/javascript"">
+            var userConfig = {
+                title: 'Burn',
+                debug: false,
+                trace: false,
+                // asOf: "2012-11-01",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
+                granularity: 'day',
+                scopeField: "Iteration",  // Supports Iteration, Release, Tags, Project, _ProjectHierarchy, _ItemHierarchy
+/*
+                scopeValue: 9693020302,  // !TODO: Also supports "scope" which would get it from the dashboard
+                scopeData: {
+                  StartDate: new Date("2012-12-17T07:00:00.000Z"),  // Ignored if scopeValue = "scope"
+                  EndDate: new Date("2013-01-15T06:59:59.000Z"),  // Ignored if scopeValue = "scope"
+                  Name: "My iteration"
+                },
+*/
+                scopeValue: 9723347171,  // !TODO: Also supports "scope" which would get it from the dashboard
+                scopeData: {
+                  StartDate: new Date("2013-01-15T07:00:00.000Z"),  // Ignored if scopeValue = "scope"
+                  EndDate: new Date("2013-01-29T06:59:59.000Z"),  // Ignored if scopeValue = "scope"
+                  Name: "My iteration"
+                },
+                chartSeries: [  // Note, we cannot do Task count because this design queries stories and defects only
+                  {displayName: 'Task To Do (Hours)', name: 'TaskUnitBurnDown', color:'#5C9ACB'}, // !TODO: Pull units (Hours) from WorkspaceConfig
+                  {displayName: 'Task Scope (Hours)', name: 'TaskUnitScope', type: 'line', color:'#5C9ACB', visible: false}, // !TODO: Pull units (Hours) from WorkspaceConfig
+                  {displayName: 'Story Scope (Points)', name: 'StoryUnitScope', yAxis: 1, type: 'line', color:'#6AB17D', visible: false}, // !TODO: Pull units (Points) from WorkspaceConfig
+/*                   {displayName: 'Story Scope (Count)', name: 'StoryCountScope', yAxis: 1, color:'#6AB17D', visible: false},  */ 
+                  {displayName: 'Accepeted (Points)', name: 'StoryUnitBurnUp', yAxis: 1, color:'#6AB17D'}, // !TODO: Pull units (Points) from WorkspaceConfig
+/*                   {displayName: 'Accepted (Count)', name: 'StoryCountBurnUp', yAxis: 1, color:'#6AB17D'},  */
+                  {displayName: 'Ideal', name: 'Ideal', type: 'line', color:'#777777', visible: false},
+                  {displayName: 'Ideal (alternate)', name: 'Ideal2', type: 'line', color:'#777777'},
+                ]
+            }
+            
+        </script>
+        
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <title>Rally Burn Chart Prototype</title>
+        <title>Burn</title>
         
         <!-- HighCharts -->
         <script type="text/javascript" src="https://people.rallydev.com/js/jquery.min.js"></script>
@@ -13,200 +50,140 @@
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/v0.4.3/deploy/Lumenize.js"></script>
+        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/v0.5.7/deploy/Lumenize-min.js"></script>
         
         <!-- rally_analytics -->
         
 <script type="text/javascript">
-(function(){var t,e,i,s,r,n,o,a,l,h,u,c=function(t,e){return function(){return t.apply(e,arguments)}},p={}.hasOwnProperty,d=function(t,e){function i(){this.constructor=t}for(var s in e)p.call(e,s)&&(t[s]=e[s]);return i.prototype=e.prototype,t.prototype=new i,t.__super__=e.prototype,t},f=[].indexOf||function(t){for(var e=0,i=this.length;i>e;e++)if(e in this&&this[e]===t)return e;return-1};l="undefined"!=typeof exports&&null!==exports?require("../lib/Lumenize"):require("/lumenize"),u=l.utils,n=l.Time,h=this,t=function(){function t(t,e){var i,s,r,n,o,a,l,u,p,d;this.upToDate=e,this._gotResponse=c(this._gotResponse,this),this._debug=!1,"undefined"==typeof process||null===process||"undefined"!=typeof window&&null!==window?null!=h.XMLHttpRequest&&(i=h.XMLHttpRequest):i=require("xmlhttprequest").XMLHttpRequest,this.XHRClass=i,this._xhr=null,this._find=null,this._fields=[],this._sort={_ValidFrom:1},this._startIndex=0,this._pageSize=1e7,this._callback=null,this.headers={},this.headers["X-RallyIntegrationLibrary"]="rally_analytics-0.1.0","undefined"!=typeof navigator&&null!==navigator?(o=navigator.appName+" "+navigator.appVersion,n=navigator.platform):"undefined"!=typeof process&&null!==process&&(o="Node.js (or some other non-browser) "+process.version,n=process.platform),this.headers["X-RallyIntegrationPlatform"]=o,this.headers["X-RallyIntegrationOS"]=n,l=t.additionalHeaders;for(r in l)a=l[r],this.headers[r]=a;if(s=function(e,i){if(null!=t[i])return e[i]=t[i];throw Error("Must include config["+i+"] header when instantiating this rally_analytics.AnalyticsQuery object")},s(this.headers,"X-RallyIntegrationName"),s(this.headers,"X-RallyIntegrationVendor"),s(this.headers,"X-RallyIntegrationVersion"),null!=t.workspaceOID)this.workspaceOID=t.workspaceOID;else{if(!("undefined"!=typeof process&&null!==process?null!=(u=process.env)?u.RALLY_WORKSPACE:void 0:void 0))throw Error("Must provide a config.workspaceOID or set environment variable RALLY_WORKSPACE");this.workspaceOID=process.env.RALLY_WORKSPACE}this.username=null!=t.username?t.username:("undefined"!=typeof process&&null!==process?null!=(p=process.env)?p.RALLY_USER:void 0:void 0)?process.env.RALLY_USER:void 0,this.password=null!=t.password?t.password:("undefined"!=typeof process&&null!==process?null!=(d=process.env)?d.RALLY_PASSWORD:void 0:void 0)?process.env.RALLY_PASSWORD:void 0,this.protocol="https",this.server="rally1.rallydev.com",this.service="analytics",this.version="v2.0",this.endpoint="artifact/snapshot/query.js",this.virgin=!0,this._hasMorePages=!0,this._firstPage=!0,this.ETLDate=null,this.lastResponseText="",this.lastResponse={},this.lastPageResults=[],this.allResults=[],this.lastPageMeta={},this.allMeta=[]}return t.prototype.resetFind=function(){return this._find=null},t.prototype.find=function(t){return this._find=t,this},t.prototype.sort=function(){throw Error("Sort must be {_ValidFrom: 1}.")},t.prototype._setSort=function(t){return this._sort=t,this},t.prototype.fields=function(t){return this._fields=this._fields.concat(t),this},t.prototype.hydrate=function(t){return this._hydrate=t,this},t.prototype.start=function(t){return this._startIndex=t,this},t.prototype.startIndex=function(t){return this._startIndex=t,this},t.prototype.pagesize=function(t){return this._pageSize=t,this},t.prototype.pageSize=function(t){return this._pageSize=t,this},t.prototype.auth=function(t,e){return this.username=t,this.password=e,this},t.prototype.debug=function(){return this._debug=!0},t.prototype.getBaseURL=function(){return this.protocol+"://"+[this.server,this.service,this.version,"service/rally/workspace",this.workspaceOID,this.endpoint].join("/")},t.prototype.getQueryString=function(){var t,e;if(t=JSON.stringify(this._find),null!=this._find&&t.length>2)return e=[],e.push("find="+t),null!=this._sort&&e.push("sort="+JSON.stringify(this._sort)),null!=this._fields&&(this._fields[0]===!0?e.push("fields=true"):this._fields.length>0&&e.push("fields="+JSON.stringify(this._fields))),null!=this._hydrate&&e.push("hydrate="+JSON.stringify(this._hydrate)),e.push("start="+this._startIndex),e.push("pagesize="+this._pageSize),e.join("&");throw Error("find clause not set")},t.prototype.getURL=function(){var t;return t=this.getBaseURL()+"?"+this.getQueryString(),this._debug&&(console.log("\nfind: ",this._find),console.log("\nurl:"),console.log(t)),encodeURI(t)},t.prototype.getAll=function(t){return this.virgin&&(this.allCallback=t,this.virgin=!1,this.upToDate="2011-12-01T00:00:00.000Z"),this.hasMorePages()?this.getPage(this.getAll):this.allCallback.call(this)},t.prototype.hasMorePages=function(){return this._hasMorePages},t.prototype.getPage=function(t){var e,i,s;if(this._callback=t,null==this._find)throw Error("Must set find clause before calling getPage");if(null==this.XHRClass)throw Error("Must set XHRClass");if(!this._hasMorePages)throw Error("All pages retrieved. Inspect AnalyticsQuery.allResults and AnalyticsQuery.allMeta for results.");if(null==this.upToDate)throw Error("Must set property upToDate before calling getPage");this._xhr=new this.XHRClass,this._xhr.onreadystatechange=this._gotResponse,this._xhr.open("GET",this.getURL(),!0,this.username,this.password),s=this.headers;for(e in s)i=s[e],this._xhr.setRequestHeader(e,i);return this._xhr.send(),this},t.prototype._gotResponse=function(){var t,e,i,s,r,n,o,a,l;if(this._debug&&console.log("\nreadyState: ",this._xhr.readyState),4===this._xhr.readyState){if(this.lastResponseText=this._xhr.responseText,this.lastResponse=JSON.parse(this.lastResponseText),this._debug&&(console.log("\nresponse headers:\n"),console.log(this._xhr.getAllResponseHeaders()),console.log("\nstatus: ",this._xhr.status),"string"==typeof this.lastResponse?console.log("\nlastResponseText: ",this.lastResponseText):console.log("\nlastResponseJSON: ",this.lastResponse)),this.lastResponse.Errors.length>0)return console.log("Errors\n"+JSON.stringify(this.lastResponse.Errors)),_return();if(this._firstPage)this._firstPage=!1,this.allResults=[],this.allMeta=[],this.ETLDate=this.lastResponse.ETLDate,this._pageSize=this.lastResponse.PageSize,e={$and:[this._find,{_ValidFrom:{$lte:this.ETLDate}}]},this._find=e;else if(this.lastResponse.PageSize!==this._pageSize)throw Error("Pagesize changed after first page which is unexpected.");for(r=this.upToDate,this.lastResponse.Results.length+this.lastResponse.StartIndex>=this.lastResponse.TotalResultCount?(this._hasMorePages=!1,this.upToDate=this.ETLDate):(this._hasMorePages=!0,this.upToDate=this.lastResponse.Results[this.lastResponse.Results.length-1]._ValidFrom),this.lastPageResults=[],s=this.lastResponse.Results,o=0,a=s.length;a>o;o++)i=s[o],i._ValidFrom!==this.upToDate&&this.lastPageResults.push(i);this._startIndex+=this.lastPageResults.length,this.allResults=this.allResults.concat(this.lastPageResults),this.lastPageMeta={},l=this.lastResponse;for(t in l)n=l[t],"Results"!==t&&(this.lastPageMeta[t]=n);return this.allMeta.push(this.lastPageMeta),this._callback(this.lastPageResults,r,this.upToDate,this)}},t}(),r=function(t){function e(t,i){e.__super__.constructor.call(this,t,i),this._scope={},this._type=null,this._additionalCriteria=[]}return d(e,t),e.prototype.generateFind=function(){var t,e,i,s,r,n;if(e=[],!(JSON.stringify(this._scope).length>2))throw Error("Must set scope first.");for(e.push(this._scope),null!=this._type&&e.push(this._type),r=this._additionalCriteria,i=0,s=r.length;s>i;i++)t=r[i],e.push(t);return(n=e.length)>0&&2>n?e[0]:{$and:e}},e.prototype.find=function(){if(arguments.length>0)throw Error("Do not call find() directly to set query. Use scope(), type(), and additionalCriteria()");return e.__super__.find.call(this,this.generateFind()),this},e.prototype.resetScope=function(){return this._scope={}},e.prototype.scope=function(t,e){var i,s,r,n=this;if(i=function(t,e){var i;if("ItemHierarchy"===t&&(t="_ItemHierarchy"),"Tag"===t&&(t="Tags"),"ProjectHierarchy"===t&&(t="_ProjectHierarchy"),i=["Project","_ProjectHierarchy","Iteration","Release","Tags","_ItemHierarchy"],0>f.call(i,t))throw Error("Key for scope() call must be one of "+i);return n._scope[t]="array"===u.type(e)?{$in:e}:e},"object"===u.type(t))for(s in t)r=t[s],i(s,r);else{if(2!==arguments.length)throw Error("Must provide an Object in first parameter or two parameters (key, value).");i(t,e)}return this},e.prototype.resetType=function(){return this._type=null},e.prototype.type=function(t){return this._type={_TypeHierarchy:t},this},e.prototype.resetAdditionalCriteria=function(){return this._additionalCriteria=[]},e.prototype.additionalCriteria=function(t){return this._additionalCriteria.push(t),this},e.prototype.leafOnly=function(){return this.additionalCriteria({$or:[{_TypeHierarchy:-51038,Children:null},{_TypeHierarchy:-51078,Children:null,UserStories:null},{_TypeHierarchy:{$nin:[-51038,-51078]}}]}),this},e.prototype.getPage=function(t){return this.find(),e.__super__.getPage.call(this,t)},e}(t),e=function(t){function e(t,i,s){if(e.__super__.constructor.call(this,t,i),null==s)throw Error("Must provide a zuluDateString when instantiating an AtAnalyticsQuery.");this._additionalCriteria.push({_At:s})}return d(e,t),e}(r),i=function(t){function e(t,i){throw e.__super__.constructor.call(this,t,i),Error("AtArrayAnalyticsQuery is not yet implemented")}return d(e,t),e}(r),s=function(t){function e(t,i,s){var r;if(e.__super__.constructor.call(this,t,i),null==i||null==s)throw Error("Must provide two zulu data strings when instantiating a BetweenAnalyticsQuery.");r={_ValidFrom:{$lt:s},_ValidTo:{$gt:i}},this._additionalCriteria.push(r)}return d(e,t),e}(r),o=function(t){function e(t,i,s){if(e.__super__.constructor.call(this,t,i),null==s)throw Error("Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.");this._additionalCriteria.push(s),this._additionalCriteria.push({_ValidTo:{$gt:i}}),this.fields(["ObjectID","_ValidFrom","_ValidTo"])}return d(e,t),e}(r),a=function(t){function e(t,i,s){if(e.__super__.constructor.call(this,t,i),null==s)throw Error("Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.");this._additionalCriteria.push(s),this._additionalCriteria.push({_ValidFrom:{$gte:i}}),this.fields(["ObjectID","_ValidFrom","_ValidTo"])}return d(e,t),e}(r),h.AnalyticsQuery=t,h.GuidedAnalyticsQuery=r,h.AtAnalyticsQuery=e,h.AtArrayAnalyticsQuery=i,h.BetweenAnalyticsQuery=s,h.TimeInStateAnalyticsQuery=o,h.TransitionsAnalyticsQuery=a}).call(this);
-</script> 
-        
-        <!-- my calculator for this chart -->
+(function(){var t,e,i,s,r,n,o,a,l,h,u=function(t,e){return function(){return t.apply(e,arguments)}},c=[].indexOf||function(t){for(var e=0,i=this.length;i>e;e++)if(e in this&&this[e]===t)return e;return-1},p={}.hasOwnProperty,d=function(t,e){function i(){this.constructor=t}for(var s in e)p.call(e,s)&&(t[s]=e[s]);return i.prototype=e.prototype,t.prototype=new i,t.__super__=e.prototype,t};a="undefined"!=typeof exports&&null!==exports?require("../lib/Lumenize"):require("/lumenize"),h=a.utils,r=a.Time,l=this,t=function(){function t(t,e){var i,s,r,n,o,a,h,c,p,d;this.upToDate=e,this._gotResponse=u(this._gotResponse,this),this._debug=!1,"undefined"==typeof process||null===process||"undefined"!=typeof window&&null!==window?null!=l.XMLHttpRequest&&(i=l.XMLHttpRequest):i=require("xmlhttprequest").XMLHttpRequest,this.XHRClass=i,this._xhr=null,this._find=null,this._fields=[],this._sort={_ValidFrom:1},this._startIndex=0,this._pageSize=1e7,this._callback=null,this.headers={},this.headers["X-RallyIntegrationLibrary"]="rally_analytics-0.1.0","undefined"!=typeof navigator&&null!==navigator?(o=navigator.appName+" "+navigator.appVersion,n=navigator.platform):"undefined"!=typeof process&&null!==process&&(o="Node.js (or some other non-browser) "+process.version,n=process.platform),this.headers["X-RallyIntegrationPlatform"]=o,this.headers["X-RallyIntegrationOS"]=n,h=t.additionalHeaders;for(r in h)a=h[r],this.headers[r]=a;if(s=function(e,i){if(null!=t[i])return e[i]=t[i];throw Error("Must include config["+i+"] header when instantiating this rally_analytics.AnalyticsQuery object")},s(this.headers,"X-RallyIntegrationName"),s(this.headers,"X-RallyIntegrationVendor"),s(this.headers,"X-RallyIntegrationVersion"),null!=t.workspaceOID)this.workspaceOID=t.workspaceOID;else{if(!("undefined"!=typeof process&&null!==process?null!=(c=process.env)?c.RALLY_WORKSPACE:void 0:void 0))throw Error("Must provide a config.workspaceOID or set environment variable RALLY_WORKSPACE");this.workspaceOID=process.env.RALLY_WORKSPACE}this.username=null!=t.username?t.username:("undefined"!=typeof process&&null!==process?null!=(p=process.env)?p.RALLY_USER:void 0:void 0)?process.env.RALLY_USER:void 0,this.password=null!=t.password?t.password:("undefined"!=typeof process&&null!==process?null!=(d=process.env)?d.RALLY_PASSWORD:void 0:void 0)?process.env.RALLY_PASSWORD:void 0,this.protocol="https",this.server="rally1.rallydev.com",this.service="analytics",this.version="v2.0",this.endpoint="artifact/snapshot/query.js",this.virgin=!0,this._hasMorePages=!0,this._firstPage=!0,this.ETLDate=null,this.lastResponseText="",this.lastResponse={},this.lastPageResults=[],this.allResults=[],this.lastPageMeta={},this.allMeta=[]}return t.prototype.resetFind=function(){return this._find=null},t.prototype.find=function(t){return this._find=t,this},t.prototype.sort=function(){throw Error("Sort must be {_ValidFrom: 1}.")},t.prototype._setSort=function(t){return this._sort=t,this},t.prototype.fields=function(t){var e,i,s,r,n,o,a;if("array"===h.type(t))this._fields=this._fields.concat(t);else{if("object"!==h.type(t))throw Error("Don't know what to do. additionalFields is type "+h.type(t)+" and @_fields it type "+h.type(this._fields)+".");if("array"===h.type(this._fields)){for(s={},a=this._fields,n=0,o=a.length;o>n;n++)e=a[n],s[e]=1;this._fields=s}for(i in t)r=t[i],this._fields[i]=r}return this},t.prototype.hydrate=function(t){return this._hydrate=t,this},t.prototype.start=function(t){return this._startIndex=t,this},t.prototype.startIndex=function(t){return this._startIndex=t,this},t.prototype.pagesize=function(t){return this._pageSize=t,this},t.prototype.pageSize=function(t){return this._pageSize=t,this},t.prototype.auth=function(t,e){return this.username=t,this.password=e,this},t.prototype.debug=function(){return this._debug=!0,this},t.prototype.getBaseURL=function(){return this.protocol+"://"+[this.server,this.service,this.version,"service/rally/workspace",this.workspaceOID,this.endpoint].join("/")},t.prototype.getQueryString=function(){var t,e;if(t=JSON.stringify(this._find),null!=this._find&&t.length>2){if(e=[],e.push("find="+t),null!=this._sort&&e.push("sort="+JSON.stringify(this._sort)),null!=this._fields)if(this._fields[0]===!0)e.push("fields=true");else if(this._fields.length>0||"object"===h.type(this._fields)){if(!(c.call(this._fields,"_ValidFrom")>=0||this._fields.hasOwnProperty("_ValidFrom")))if("object"===h.type(this._fields))this._fields._ValidFrom=1;else{if("array"!==h.type(this._fields))throw Error("@_fields is unexpected type "+h.type(this._fields));this._fields.push("_ValidFrom")}e.push("fields="+JSON.stringify(this._fields))}return null!=this._hydrate&&e.push("hydrate="+JSON.stringify(this._hydrate)),e.push("start="+this._startIndex),e.push("pagesize="+this._pageSize),e.join("&")}throw Error("find clause not set")},t.prototype.getURL=function(){var t;return t=this.getBaseURL()+"?"+this.getQueryString(),this._debug&&(console.log("\nfind: ",this._find),console.log("\nurl:"),console.log(t)),encodeURI(t)},t.prototype.getAll=function(t){return this.virgin&&(this.allCallback=t,this.virgin=!1,this.upToDate="2011-12-01T00:00:00.000Z"),this.hasMorePages()?this.getPage(this.getAll):this.allCallback.call(this)},t.prototype.hasMorePages=function(){return this._hasMorePages},t.prototype.getPage=function(t){var e,i,s;if(this._callback=t,null==this._find)throw Error("Must set find clause before calling getPage");if(null==this.XHRClass)throw Error("Must set XHRClass");if(!this._hasMorePages)throw Error("All pages retrieved. Inspect AnalyticsQuery.allResults and AnalyticsQuery.allMeta for results.");if(null==this.upToDate)throw Error("Must set property upToDate before calling getPage");this._xhr=new this.XHRClass,this._xhr.onreadystatechange=this._gotResponse,this._xhr.open("GET",this.getURL(),!0,this.username,this.password),s=this.headers;for(e in s)i=s[e],this._xhr.setRequestHeader(e,i);return this._xhr.send(),this},t.prototype._gotResponse=function(){var t,e,i,s,r,n,o,a,l;if(this._debug&&console.log("\nreadyState: ",this._xhr.readyState),4===this._xhr.readyState){if(this.lastResponseText=this._xhr.responseText,this._debug&&console.log("Last response text length: ",this.lastResponseText.length),this.lastResponse=JSON.parse(this.lastResponseText),this._debug&&(console.log("\nresponse headers:\n"),console.log(this._xhr.getAllResponseHeaders()),console.log("\nstatus: ",this._xhr.status),"string"==typeof this.lastResponse?console.log("\nlastResponseText: ",this.lastResponseText):console.log("\nlastResponseJSON: ",this.lastResponse)),this.lastResponse.Errors.length>0)return console.log("Errors\n"+JSON.stringify(this.lastResponse.Errors)),this._callback(this.lastPageResults,r,this.upToDate,this);if(this._firstPage)this._firstPage=!1,this.allResults=[],this.allMeta=[],this.ETLDate=this.lastResponse.ETLDate,this._pageSize=this.lastResponse.PageSize,e={$and:[this._find,{_ValidFrom:{$lte:this.ETLDate}}]},this._find=e;else if(this.lastResponse.PageSize!==this._pageSize)throw Error("Pagesize changed after first page which is unexpected.");for(r=this.upToDate,this.lastResponse.Results.length+this.lastResponse.StartIndex>=this.lastResponse.TotalResultCount?(this._hasMorePages=!1,this.upToDate=this.ETLDate):(this._hasMorePages=!0,this.upToDate=this.lastResponse.Results[this.lastResponse.Results.length-1]._ValidFrom),this.lastPageResults=[],s=this.lastResponse.Results,this._debug&&console.log("Length of results before @upToDate filtering: ",s.length),o=0,a=s.length;a>o;o++)i=s[o],i._ValidFrom!==this.upToDate&&this.lastPageResults.push(i);this._debug&&console.log("Length of results after @upToDate filtering: ",this.lastPageResults.length),this._startIndex+=this.lastPageResults.length,this.allResults=this.allResults.concat(this.lastPageResults),this.lastPageMeta={},l=this.lastResponse;for(t in l)n=l[t],"Results"!==t&&(this.lastPageMeta[t]=n);return this.allMeta.push(this.lastPageMeta),this._callback(this.lastPageResults,r,this.upToDate,this)}},t}(),s=function(t){function e(t,i){e.__super__.constructor.call(this,t,i),this._scope={},this._type=null,this._additionalCriteria=[],null!=i&&this._additionalCriteria.push({_ValidTo:{$gt:i}})}return d(e,t),e.prototype.generateFind=function(){var t,e,i,s,r,n;if(e=[],!(JSON.stringify(this._scope).length>2))throw Error("Must set scope first.");for(e.push(this._scope),null!=this._type&&e.push(this._type),r=this._additionalCriteria,i=0,s=r.length;s>i;i++)t=r[i],e.push(t);return(n=e.length)>0&&2>n?e[0]:{$and:e}},e.prototype.find=function(){if(arguments.length>0)throw Error("Do not call find() directly to set query. Use scope(), type(), and additionalCriteria()");return e.__super__.find.call(this,this.generateFind()),this},e.prototype.resetScope=function(){return this._scope={}},e.prototype.scope=function(t,e){var i,s,r,n=this;if(i=function(t,e){var i;if("ItemHierarchy"===t&&(t="_ItemHierarchy"),"Tag"===t&&(t="Tags"),"ProjectHierarchy"===t&&(t="_ProjectHierarchy"),i=["Project","_ProjectHierarchy","Iteration","Release","Tags","Tag","_ItemHierarchy"],0>c.call(i,t))throw Error("Key for scope() call must be one of "+i);return n._scope[t]="array"===h.type(e)?{$in:e}:e},"object"===h.type(t))for(s in t)r=t[s],i(s,r);else{if(2!==arguments.length)throw Error("Must provide an Object in first parameter or two parameters (key, value).");i(t,e)}return this},e.prototype.resetType=function(){return this._type=null},e.prototype.type=function(t){return this._type={_TypeHierarchy:t},this},e.prototype.resetAdditionalCriteria=function(){return this._additionalCriteria=[]},e.prototype.additionalCriteria=function(t){return this._additionalCriteria.push(t),this},e.prototype.leafOnly=function(){return this.additionalCriteria({$or:[{_TypeHierarchy:-51038,Children:null},{_TypeHierarchy:-51078,Children:null,UserStories:null},{_TypeHierarchy:{$nin:[-51038,-51078]}}]}),this},e.prototype.getPage=function(t){return this.find(),e.__super__.getPage.call(this,t)},e}(t),e=function(t){function e(t,i,s){if(e.__super__.constructor.call(this,t,i),null==s)throw Error("Must provide a zuluDateString when instantiating an AtAnalyticsQuery.");this._additionalCriteria.push({__At:s})}return d(e,t),e}(s),i=function(t){function e(t,i,s){var r;if(e.__super__.constructor.call(this,t,i),null==i||null==s)throw Error("Must provide two zulu data strings when instantiating a BetweenAnalyticsQuery.");r={_ValidFrom:{$lt:s},_ValidTo:{$gt:i}},this._additionalCriteria.push(r)}return d(e,t),e}(s),n=function(t){function e(t,i,s){if(e.__super__.constructor.call(this,t,i),null==s)throw Error("Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.");this._additionalCriteria.push(s),this.fields(["ObjectID","_ValidFrom","_ValidTo"])}return d(e,t),e}(s),o=function(t){function e(t,i,s){if(e.__super__.constructor.call(this,t,i),null==s)throw Error("Must provide a predicate when instantiating a TimeInStateAnalyticsQuery.");this._additionalCriteria.push(s),this._additionalCriteria.push({_ValidFrom:{$gte:i}}),this.fields(["ObjectID","_ValidFrom","_ValidTo"])}return d(e,t),e}(s),l.AnalyticsQuery=t,l.GuidedAnalyticsQuery=s,l.AtAnalyticsQuery=e,l.BetweenAnalyticsQuery=i,l.TimeInStateAnalyticsQuery=n,l.TransitionsAnalyticsQuery=o}).call(this);
+</script>
+
+        <!-- md5 -->
         
 <script type="text/javascript">
-(function(){var t,e,i,s,r,n,o=[].indexOf||function(t){for(var e=0,i=this.length;i>e;e++)if(e in this&&this[e]===t)return e;return-1};s=this,i="undefined"!=typeof exports&&null!==exports?require("../lib/lumenize"):require("/lumenize"),t=i.ChartTime,r=i.timeSeriesCalculator,n=i.utils,e=function(e,s){var r,a,l,h,u,c,p,d,f,g,y,_,m,S,v,R,A,w,T,C,I,P,D,O,z,E,b,k,x,M,V;for(d=null!=s.granularity?s.granularity:"day",P=s.start,"string"===n.type(P)&&(P=new t(P,d,s.workspaceConfiguration.TimeZone)),R=new t(e[e.length-1]._ValidFrom,d,s.workspaceConfiguration.TimeZone).add(1),A={workDays:s.workspaceConfiguration.WorkDays,holidays:s.holidays,start:P,pastEnd:R},null==s.upSeriesType&&(s.upSeriesType="Sums"),u=[],"Points"===s.upSeriesType?u.push({name:"Accepted",f:function(t){var e;return e=t.ScheduleState,o.call(s.acceptedStates,e)>=0?t.PlanEstimate:0}}):"Story Count"===s.upSeriesType?u.push({name:"Accepted",f:function(t){var e;return e=t.ScheduleState,o.call(s.acceptedStates,e)>=0?1:0}}):console.error("Unrecognized upSeriesType: "+s.upSeriesType),I=[],a=[],x=s.series,E=0,k=x.length;k>E;E++){switch(w=x[E],C=!0,w){case"down":S="Task To Do (Hours)",c="$sum",p="TaskRemainingTotal",z=0,O="column";break;case"ideal":S="Ideal (Hours)",c="$sum",p="TaskEstimateTotal",z=0,O="line";break;case"up":S="Accepted ("+s.upSeriesType+")",c="$sum",p="Accepted",z=1,O="column";break;case"scope":S="Scope ("+s.upSeriesType+")","Story Count"===s.upSeriesType?c="$count":"Points"===s.upSeriesType&&(c="$sum"),p="PlanEstimate",z=1,O="line";break;default:null!=w.name&&null!=w.f&&null!=w.field?(S=w.name,c=w.f,p=w.field,O="column"):(C=!1,console.error("Unrecognizable series: "+w))}C&&(a.push({name:S,as:S,f:c,field:p,yAxis:z,type:O}),I.push(S))}if(D={rangeSpec:A,derivedFields:u,aggregationSpec:a,timezone:s.workspaceConfiguration.TimeZone,snapshotValidFromField:"_ValidFrom",snapshotValidToField:"_ValidTo",snapshotUniqueID:"ObjectID"},M=i.timeSeriesCalculator(e,D),_=M.listOfAtCTs,r=M.aggregationAtArray,console.log("aggregationAtArray: "+JSON.stringify(r,null,2)),T=i.aggregationAtArray_To_HighChartsSeries(r,a),l=function(){var t,e,i;for(i=[],t=0,e=_.length;e>t;t++)h=_[t],i.push(""+(""+h));return i}(),v=l.length,o.call(s.series,"ideal")>=0){for(f=0;0>T[f].name.indexOf("Ideal");)f++;for(g=T[f].data,m=i.functions.$max(g),y=m/(v-1),f=b=0,V=v-2;V>=0?V>=b:b>=V;f=V>=0?++b:--b)g[f]=(v-1-f)*y;g[v-1]=0}return{categories:l,series:T}},s.burnCalculator=e}).call(this);
-</script> 
-                
-        <script type="text/javascript">
+(function(){function t(t,e,i){return t&e|~t&i}function e(t,e,i){return t&i|e&~i}function i(t,e,i){return t^e^i}function s(t,e,i){return e^(t|~i)}function r(t){return String.fromCharCode(255&t)+String.fromCharCode(255&t>>>8)+String.fromCharCode(255&t>>>16)+String.fromCharCode(255&t>>>24)}function n(t){for(;0>t;)t+=4294967296;for(;t>4294967295;)t-=4294967296;return t}function o(t,e,i,s,r){var o,a,l,u,c,p,d,f,g;o=s[0],a=s[1],l=s[2],u=s[3],c=r[0],p=r[1],d=r[2],g=i(e[a],e[l],e[u]),f=e[o]+g+t[c]+h[d],f=n(f),f=f<<p|f>>>32-p,f+=e[a],e[o]=n(f)}function a(t){var e,i,s,a,l,h,u,c,p,d,g,y,_;if(s=Array(1732584193,4023233417,2562383102,271733878),l=t.length,h=63&l,u=56>h?56-h:120-h,u>0)for(t+="",d=0;u-1>d;d++)t+="\0";for(t+=r(8*l),t+=r(0),l+=u+8,e=Array(0,1,2,3),i=Array(16),a=Array(4),y=0;l>y;y+=64){for(d=0,g=y;16>d;d++,g+=4)i[d]=t.charCodeAt(g)|t.charCodeAt(g+1)<<8|t.charCodeAt(g+2)<<16|t.charCodeAt(g+3)<<24;for(d=0;4>d;d++)a[d]=s[d];for(d=0;4>d;d++)for(c=f[d][0],p=f[d][1],g=0;16>g;g++)o(i,a,c,e,p[g]),_=e[0],e[0]=e[3],e[3]=e[2],e[2]=e[1],e[1]=_;for(d=0;4>d;d++)s[d]+=a[d],s[d]=n(s[d])}return r(s[0])+r(s[1])+r(s[2])+r(s[3])}function l(t){var e,i,s,r;for(r=a(t),i="",e=0;16>e;e++)s=r.charCodeAt(e),i+="0123456789abcdef".charAt(15&s>>4),i+="0123456789abcdef".charAt(15&s);return i}var h=Array(0,3614090360,3905402710,606105819,3250441966,4118548399,1200080426,2821735955,4249261313,1770035416,2336552879,4294925233,2304563134,1804603682,4254626195,2792965006,1236535329,4129170786,3225465664,643717713,3921069994,3593408605,38016083,3634488961,3889429448,568446438,3275163606,4107603335,1163531501,2850285829,4243563512,1735328473,2368359562,4294588738,2272392833,1839030562,4259657740,2763975236,1272893353,4139469664,3200236656,681279174,3936430074,3572445317,76029189,3654602809,3873151461,530742520,3299628645,4096336452,1126891415,2878612391,4237533241,1700485571,2399980690,4293915773,2240044497,1873313359,4264355552,2734768916,1309151649,4149444226,3174756917,718787259,3951481745),u=Array(Array(0,7,1),Array(1,12,2),Array(2,17,3),Array(3,22,4),Array(4,7,5),Array(5,12,6),Array(6,17,7),Array(7,22,8),Array(8,7,9),Array(9,12,10),Array(10,17,11),Array(11,22,12),Array(12,7,13),Array(13,12,14),Array(14,17,15),Array(15,22,16)),c=Array(Array(1,5,17),Array(6,9,18),Array(11,14,19),Array(0,20,20),Array(5,5,21),Array(10,9,22),Array(15,14,23),Array(4,20,24),Array(9,5,25),Array(14,9,26),Array(3,14,27),Array(8,20,28),Array(13,5,29),Array(2,9,30),Array(7,14,31),Array(12,20,32)),p=Array(Array(5,4,33),Array(8,11,34),Array(11,16,35),Array(14,23,36),Array(1,4,37),Array(4,11,38),Array(7,16,39),Array(10,23,40),Array(13,4,41),Array(0,11,42),Array(3,16,43),Array(6,23,44),Array(9,4,45),Array(12,11,46),Array(15,16,47),Array(2,23,48)),d=Array(Array(0,6,49),Array(7,10,50),Array(14,15,51),Array(5,21,52),Array(12,6,53),Array(3,10,54),Array(10,15,55),Array(1,21,56),Array(8,6,57),Array(15,10,58),Array(6,15,59),Array(13,21,60),Array(4,6,61),Array(11,10,62),Array(2,15,63),Array(9,21,64)),f=Array(Array(t,u),Array(e,c),Array(i,p),Array(s,d));this.md5=l}).call(this);
+</script>
         
-            var lumenize = require('/lumenize');
-            
-            $(document).ready(function() {
-                            
-                // Let's say you have this data. I've put it in this CSV-style format for easy entry and comprehension.
-                resultsCSVStyle = [
-                    ["ObjectID", "_ValidFrom",           "_ValidTo",             "ScheduleState"  , "PlanEstimate", "TaskRemainingTotal", "TaskEstimateTotal"],
-                                                                        
-                    [1,          "2010-10-10T15:00:00Z", "2011-01-02T13:00:00Z", "Ready to pull", 5            , 15                     , 15],  // Shouldn't show up, 2010 before start
-                    
-                    [1,          "2011-01-02T13:00:00Z", "2011-01-02T15:10:00Z", "Ready to pull", 5            , 15                     , 15],  // !TODO: Should get the same results even without this line
-                    [1,          "2011-01-02T15:10:00Z", "2011-01-04T15:00:00Z", "In progress"  , 5            , 20                     , 15],  // Testing it starting at one state and switching later to another
-                    [2,          "2011-01-02T15:00:00Z", "2011-01-03T15:00:00Z", "Ready to pull", 3            , 5                      , 5],                
-                    [3,          "2011-01-02T15:00:00Z", "2011-01-03T15:00:00Z", "Ready to pull", 5            , 12                     , 12], 
-                    
-                    [2,          "2011-01-03T15:00:00Z", "2011-01-04T15:00:00Z", "In progress"  , 3            , 5                      , 5], 
-                    [3,          "2011-01-03T15:00:00Z", "2011-01-04T15:00:00Z", "Ready to pull", 5            , 12                     , 12], 
-                    [4,          "2011-01-03T15:00:00Z", "2011-01-04T15:00:00Z", "Ready to pull", 5            , 15                     , 15], 
-                    [1,          "2011-01-03T15:10:00Z", "2011-01-04T15:00:00Z", "In progress"  , 5            , 12                     , 15],  // Testing later change
-                    
-                    [1,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "Accepted"     , 5            , 0                      , 15], 
-                    [2,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "In test"      , 3            , 1                      , 5], 
-                    [3,          "2011-01-04T15:00:00Z", "2011-01-05T15:00:00Z", "In progress"  , 5            , 10                     , 12], 
-                    [4,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "Ready to pull", 5            , 15                     , 15], 
-                    [5,          "2011-01-04T15:00:00Z", "2011-01-06T15:00:00Z", "Ready to pull", 2            , 4                      , 4], 
-                    
-                    [3,          "2011-01-05T15:00:00Z", "2011-01-07T15:00:00Z", "In test"      , 5            , 5                      , 12],
-                    
-                    [1,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "Released"     , 5            , 0                      , 15], 
-                    [2,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "Accepted"     , 3            , 0                      , 5], 
-                    [4,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "In progress"  , 5            , 7                      , 15], 
-                    [5,          "2011-01-06T15:00:00Z", "2011-01-07T15:00:00Z", "Ready to pull", 2            , 4                      , 4], 
-                    
-                    [1,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "Released"     , 5            , 0                      , 15], 
-                    [2,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "Released"     , 3            , 0                      , 5], 
-                    [3,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "Accepted"     , 5            , 0                      , 12], 
-                    [4,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "In test"      , 5            , 3                      , 15], 
-                    [5,          "2011-01-07T15:00:00Z", "9999-01-01T00:00:00Z", "In progress"  , 2            , 4                      , 4]
-                ];
+        <!-- my visualizer for this chart (optional) -->
+        
+<script type="text/javascript">
+(function(){var t,e,i,r,s,n;r=function(t){return unescape(encodeURIComponent(t))},i=function(t){return decodeURIComponent(escape(t))},n=function(t){var e,i,s,n,o,a,l;for(t=r(t),n={},s=(t+"").split(""),a=[],i=void 0,l=s[0],e=256,o=1;s.length>o;)i=s[o],null!=n[l+i]?l+=i:(a.push(l.length>1?n[l]:l.charCodeAt(0)),n[l+i]=e,e++,l=i),o++;for(a.push(l.length>1?n[l]:l.charCodeAt(0)),o=0;a.length>o;)a[o]=String.fromCharCode(a[o]),o++;return a.join("")},s=function(t){var e,r,s,n,o,a,l,h,u,c;for(o={},n=(t+"").split(""),r=n[0],l=r,h=[r],e=256,c=void 0,a=1;n.length>a;)s=n[a].charCodeAt(0),c=256>s?n[a]:o[s]?o[s]:l+r,h.push(c),r=c.charAt(0),o[e]=l+r,e++,l=c,a++;return u=h.join(""),i(u)},t=function(){function t(){}var e,i,r,s,n,o,a,l,h,u,c,p,f,d,g,y,_;return i="object array date function".split(" "),a="_CRYO_REF_",n="_CRYO_INFINITY_",s="_CRYO_FUNCTION_",l="_CRYO_UNDEFINED_",r="_CRYO_DATE_",o="_CRYO_OBJECT_",e="_CRYO_ARRAY_",f=function(t){return"object"==typeof t?null===t?"null":t&&1===t.nodeType?"dom":t instanceof Array?"array":t instanceof Date?"date":"object":typeof t},h=function(t,e,r){var s,n,o,l;if(r=r||[],l=f(t),-1!==i.indexOf(l)){if(o=r.indexOf(t),-1===o){s={};for(n in t)t.hasOwnProperty(n)&&(s[n]=h(t[n],e,r));o=e.push({contents:s,value:_(t)})-1,r[o]=t}return a+o}return y(t)},c=function(t,e,i){var r,s,n,o,l;if(i=i||[],p(t,a)){if(l=parseInt(t.slice(a.length),10),!i.hasOwnProperty(l)){o=e[l],r=g(o.value),s=o.contents;for(n in s)r[n]=c(s[n],e,i);i[l]=r}return i[l]}return d(t)},y=function(t){var e;return e=f(t),"undefined"===e?l:"function"===e?s+(""+t):"date"===e?r+t.getTime():1/0===t?n:"dom"===e?void 0:t},_=function(t){var i;return i=f(t),"function"===i||"date"===i?y(t):"object"===i?o:"array"===i?e:t},g=function(t){var i,a,h,u,c,d,g,y;if("string"===f(t)){if(t===l)return void 0;if(p(t,s))return y=t.slice(s.length),a=y.indexOf("(")+1,i=y.indexOf(")",a),h=y.slice(a,i),d=y.indexOf("{")+1,c=y.lastIndexOf("}")-1,u=y.slice(d,c),Function(h,u);if(p(t,r))return g=parseInt(t.slice(r.length),10),new Date(g);if(p(t,o))return{};if(p(t,e))return[];if(t===n)return 1/0}return t},d=function(t){var e,i,o,a,h,u,c,d;if("string"===f(t)){if(t===l)return void 0;if(p(t,s))return d=t.slice(s.length),i=d.indexOf("(")+1,e=d.indexOf(")",i),o=d.slice(i,e),u=d.indexOf("{")+1,h=d.lastIndexOf("}")-1,a=d.slice(u,h),Function(o,a);if(p(t,r))return c=parseInt(t.slice(r.length),10),new Date(c);if(t===n)return 1/0}return t},p=function(t,e){return"string"===f(t)&&t.slice(0,e.length)===e},u=function(t){return!isNaN(parseFloat(t))&&isFinite(t)},t.stringify=function(t){var e,i;return e=[],i=h(t,e),JSON.stringify({root:i,references:e})},t.parse=function(t){var e;return e=JSON.parse(t),c(e.root,e.references)},t}(),e=function(){function e(t,i,r,s){var n,o;if(this.directoryForNodeJSCache=null!=t?t:"./local-storage-cache",this.quotaForNodeJSCache=null!=i?i:5242880,this.keyForMetaData=null!=r?r:"local-storage-cache-key-for-meta-data",null!=s)null!=s.setItem&&null!=s.getItem&&null!=s.removeItem?(e.localStorage=s,null!=s.location&&(this.directoryForNodeJSCache=s.location),null!=s.quota&&(this.quotaForNodeJSCache=s.quota)):e.localStorage=null;else if("undefined"!=typeof localStorage&&null!==localStorage)e.localStorage=localStorage;else try{n=require("node-localstorage").LocalStorage,e.localStorage=new n(this.directoryForNodeJSCache,this.quotaForNodeJSCache)}catch(a){e.localStorage=null}null==e.meta&&(o=e.localStorage.getItem(this.keyForMetaData),e.meta=null!=o?JSON.parse(o):{})}return e.meta=null,e.localStorage=null,e.prototype.setItem=function(i,r){var s,o;if(null!=e.localStorage){if(o=n(t.stringify(r)),o.length>2097152)return;for(;;)try{e.localStorage.setItem(i,o);break}catch(a){this._removeOldestItem()}s={},s.lastUpdated=(new Date).getTime(),e.meta[i]=s,this._updateMeta()}return this},e.prototype.getItem=function(i){var r,n;if(null==e.localStorage)return void 0;if(n=e.localStorage.getItem(i),null==n)return void 0;try{return r=t.parse(s(n))}catch(o){throw o}},e.prototype.removeItem=function(t){return null!=e.localStorage&&(e.localStorage.removeItem(t),delete e.meta[t],this._updateMeta()),this},e.prototype._removeOldestItem=function(){var t,i,r,s,n,o;n=(new Date).getTime(),s=null,t=0,o=e.meta;for(i in o)r=o[i],t++,n>r.lastUpdated&&(s=i,n=r.lastUpdated);return 0===t&&(e.localStorage.clear(),this.clear()),this.removeItem(s)},e.prototype._updateMeta=function(){var t;for(t=[];;)try{e.localStorage.setItem(this.keyForMetaData,JSON.stringify(e.meta));break}catch(i){t.push(this._removeOldestItem())}return t},e.prototype.clear=function(){var t,i,r;if(null!=e.localStorage){r=e.meta;for(t in r)i=r[t],e.localStorage.removeItem(t);e.meta={},this._updateMeta()}return this},e}(),"undefined"!=typeof exports&&this.exports!==exports?(exports.LocalCache=e,exports.lzwDecode=s,exports.lzwEncode=n):(this.LocalCache=e,this.lzwDecode=s,this.lzwEncode=n)}).call(this);
+</script> 
+        
+<script type="text/javascript">
+(function(){var t,e,i,s,r=function(t,e){return function(){return t.apply(e,arguments)}},n=[].slice;i="undefined"!=typeof exports&&null!==exports?require("../lib/Lumenize"):require("/lumenize"),s=i.utils,t=i.Time,e=function(){function e(t,e,i){this.visualizations=t,this.userConfig=e,this.createVisualizationCB=i,this.onSnapshotsReceieved=r(this.onSnapshotsReceieved,this),this.config=s.clone(this.userConfig),this.config.trace&&console.log("in VisualizerBase.constructor"),this.cache=new LocalCache,null==this.config.debug&&(this.config.debug=!1),this.getProjectAndWorkspaceScope()}return e.prototype.getProjectAndWorkspaceScope=function(){var t,e,i,s,r,n,o,a=this;return this.config.trace&&console.log("in VisualizerBase.getProjectAndWorkspaceScope"),top===self?(n=41529001,s=!1,i=!0,t=81147451,e=[t]):(n=__WORKSPACE_OID__,s=__PROJECT_SCOPING_UP__,i=__PROJECT_SCOPING_DOWN__,t=__PROJECT_OID__,e=[__PROJECT_OIDS_IN_SCOPE__]),r={workspaceOID:n,projectScopingUp:s,projectScopingDown:i,projectOID:t,projectOIDsInScope:e},o=function(t){return a.projectAndWorkspaceScope=t,a.getWorkspaceConfiguration()},o(r)},e.prototype.getWorkspaceConfiguration=function(){var t,e,i=this;return this.config.trace&&console.log("in VisualizerBase.getWorkspaceConfiguration"),t={DateFormat:"MM/dd/yyyy",DateTimeFormat:"MM/dd/yyyy hh:mm:ss a",IterationEstimateUnitName:"Points",ReleaseEstimateUnitName:"Points",TaskUnitName:"Hours",TimeTrackerEnabled:!0,TimeZone:"America/Denver",WorkDays:"Monday,Tuesday,Wednesday,Thursday,Friday"},e=function(t){return i.workspaceConfiguration=t,i.initialize(),i.onConfigOrScopeUpdated()},e(t)},e.prototype.onConfigOrScopeUpdated=function(){var t;return this.config.trace&&console.log("in VisualizerBase.onConfigOrScopeUpdated"),t=this.cache.getItem(this.getHashForCache()),null!=t?(this.config.debug&&(console.log("Found a saved state in cache. Restoring from savedState. Size:",JSON.stringify(t).length),console.log(t)),this.lumenizeCalculator=this.LumenizeCalculatorClass.newFromSavedState(t),this.upToDateISOString=this.lumenizeCalculator.upToDateISOString):(this.config.debug&&console.log("Did not find a saved state in cache. Calculating from scratch."),this.lumenizeCalculator=new this.LumenizeCalculatorClass(this.config.lumenizeCalculatorConfig),this.upToDateISOString=null),this.fetchPending=!0,this.createVisualization(),this.dirty=!1,this.onNewDataAvailable()},e.prototype.getAsOfISOString=function(){return this.asOfISOString=null!=this.config.asOf?new t(this.config.asOf,"millisecond").getISOStringInTZ(this.config.lumenizeCalculatorConfig.tz):t.getISOStringFromJSDate()},e.prototype.onSnapshotsReceieved=function(e,i,s,r){var n;return null==r&&(r=null),this.config.trace&&console.log("in VisualizerBase.onSnapshotsReceieved"),this.dirty=e.length>0&&new t(s).getJSDate("GMT").getTime()-new t(i).getJSDate("GMT").getTime()>3e5?!0:!1,this.upToDateISOString=s,this.deriveFieldsOnSnapshots(e),n=this.getAsOfISOString(),s>n&&(s=n),this.updateCalculator(e,i,s),this.fetchPending=null!=this.config.asOf&&this.upToDateISOString<this.config.asOf?!1:this.analyticsQuery.hasMorePages()?!0:!1,this.updateVisualization(),null!=this.config.asOf&&this.upToDateISOString<this.config.asOf?void 0:this.analyticsQuery.hasMorePages()?this.onNewDataAvailable():this.newDataExpected(void 0,this.config.refreshIntervalMilliseconds)},e.prototype.newDataExpected=function(t,e){var i;return null==t&&(t=3e4),null==e&&(e=18e5),this.config.trace&&console.log("in VisualizerBase.newDataExpected"),i=e+t,null!=this.timeoutHandle&&clearTimeout(this.timeoutHandle),this.timeoutHandle=setTimeout(this.onNewDataAvailable,i)},e.prototype.removeFromCacheAndRecalculate=function(){return this.config.trace&&console.log("in VisualizerBase.removeFromCacheAndRecalculate"),this.upToDateISOString=null,this.cache.removeItem(this.getHashForCache()),this.onConfigOrScopeUpdated()},e.prototype.updateCalculator=function(){var t,e,i,s,r,o;return s=arguments[0],r=arguments[1],t=arguments[2],e=arguments.length>=4?n.call(arguments,3):[],this.config.trace&&console.log("in VisualizerBase.updateCalculator"),(o=this.lumenizeCalculator).addSnapshots.apply(o,[s,r,t].concat(n.call(e))),i=this.lumenizeCalculator.getStateForSaving(),this.cache.setItem(this.getHashForCache(),i)},e.prototype.initialize=function(){return this.dirty=!0,this.virgin=!0,this.config.trace&&console.log("in VisualizerBase.initialize"),null==this.config.lumenizeCalculatorConfig&&(this.config.lumenizeCalculatorConfig={}),this.config.lumenizeCalculatorConfig.workDays=this.workspaceConfiguration.WorkDays,null!=this.userConfig.tz?this.config.lumenizeCalculatorConfig.tz=this.userConfig.tz:(this.config.tz=this.workspaceConfiguration.TimeZone,this.config.lumenizeCalculatorConfig.tz=this.workspaceConfiguration.TimeZone)},e.prototype.deriveFieldsOnSnapshots=function(t){return this.config.trace&&console.log("in VisualizerBase.deriveFieldsOnSnapshots"),null!=this.config.deriveFieldsOnSnapshotsConfig?Lumenize.deriveFields(t,this.config.deriveFieldsOnSnapshotsConfig):void 0},e.prototype.createVisualization=function(){return this.config.trace&&console.log("in VisualizerBase.createVisualization. @dirty: ",this.dirty),this.updateVisualizationData(),this.createVisualizationCB(this.visualizationData)},e.prototype.updateVisualization=function(){return this.config.trace&&console.log("in VisualizerBase.updateVisualization. @dirty: ",this.dirty),this.updateVisualizationData(),this.dirty||this.virgin?(this.dirty=!1,this.virgin=!1,this.createVisualizationCB(this.visualizationData)):void 0},e.prototype.onNewDataAvailable=function(){return this.config.trace&&console.log("in VisualizerBase.onNewDataAvailable"),this.fetchPending=!0,this.analyticsQuery.getPage(this.onSnapshotsReceieved)},e.prototype.updateVisualizationData=function(){return this.config.trace?console.log("in VisualizerBase.updateVisualizationData"):void 0},e.prototype.getHashForCache=function(){return this.config.trace?console.log("in VisualizerBase.getHashForCache"):void 0},e}(),this.VisualizerBase=e}).call(this);
+</script> 
+        
+<script type="text/javascript">
+(function(){var t,e,i,r,s=function(t,e){return function(){return t.apply(e,arguments)}},n={}.hasOwnProperty,o=function(t,e){function i(){this.constructor=t}for(var r in e)n.call(e,r)&&(t[r]=e[r]);return i.prototype=e.prototype,t.prototype=new i,t.__super__=e.prototype,t};i="undefined"!=typeof exports&&null!==exports?require("../lib/lumenize"):require("/lumenize"),r=i.utils,e=i.Time,t=function(t){function n(){return this.onNewDataAvailable=s(this.onNewDataAvailable,this),n.__super__.constructor.apply(this,arguments)}return o(n,t),n.prototype.initialize=function(){return this.config.trace&&console.log("in BurnVisualizer.initialize"),n.__super__.initialize.call(this),null!=("undefined"!=typeof Rally&&null!==Rally?Rally.environment:void 0)?Rally.environment.getMessageBus().subscribe("timeBoxScopeChange",function(t){var e,i;return i=t.getRecord(),e=i.data,console.log("in BurnVisualizer.initialize",e.StartDate,e.EndDate,e.Name)}):console.log("in BurnVisualizer.initialize cannot find Rally.environment"),this.config.lumenizeCalculatorConfig.granularity=null!=this.config.granularity?this.config.granularity:i.Time.DAY,this.config.lumenizeCalculatorConfig.workDayStartOn=this.config.workDayStartOn,this.config.lumenizeCalculatorConfig.workDayEndBefore=this.config.workDayEndBefore,this.config.lumenizeCalculatorConfig.holidays=this.config.holidays,this.config.lumenizeCalculatorConfig.workDays=this.config.workDays,this.config.lumenizeCalculatorConfig.startOn=new e(this.userConfig.scopeData.StartDate).getISOStringInTZ(this.config.lumenizeCalculatorConfig.tz),this.config.lumenizeCalculatorConfig.endBefore=new e(this.userConfig.scopeData.EndDate).addInPlace(1,e.DAY).getISOStringInTZ(this.config.lumenizeCalculatorConfig.tz),this.config.lumenizeCalculatorConfig.deriveFieldsOnInput=[{field:"AcceptedStoryCount",f:function(t){var e;return"Accepted"===(e=t.ScheduleState)||"Released"===e?1:0}},{field:"AcceptedStoryPoints",f:function(t){var e;return"Accepted"===(e=t.ScheduleState)||"Released"===e?t.PlanEstimate:0}}],this.config.lumenizeCalculatorConfig.metrics=[{as:"StoryUnitScope",field:"PlanEstimate",f:"sum"},{as:"StoryCountScope",f:"count"},{as:"StoryCountBurnUp",field:"AcceptedStoryCount",f:"sum"},{as:"StoryUnitBurnUp",field:"AcceptedStoryPoints",f:"sum"},{as:"TaskUnitBurnDown",field:"TaskRemainingTotal",f:"sum"},{as:"TaskUnitScope",field:"TaskEstimateTotal",f:"sum"}],this.config.lumenizeCalculatorConfig.summaryMetricsConfig=[{field:"TaskUnitScope",f:"max"},{field:"TaskUnitBurnDown",f:"max"},{as:"TaskUnitBurnDown_max_index",f:function(t,e){var i,r,s,n;for(i=s=0,n=t.length;n>s;i=++s)if(r=t[i],r.TaskUnitBurnDown===e.TaskUnitBurnDown_max)return i}}],this.config.lumenizeCalculatorConfig.deriveFieldsAfterSummary=[{as:"Ideal",f:function(t,e,i,r){var s,n,o;return o=i.TaskUnitScope_max,n=r.length-1,s=o/n,Math.floor(100*(o-e*s))/100}},{as:"Ideal2",f:function(t,e,i,r){var s,n,o;return i.TaskUnitBurnDown_max_index>e?null:(o=i.TaskUnitBurnDown_max,n=r.length-1-i.TaskUnitBurnDown_max_index,s=o/n,Math.floor(100*(o-(e-i.TaskUnitBurnDown_max_index)*s))/100)}}],this.LumenizeCalculatorClass=i.TimeSeriesCalculator},n.prototype.onNewDataAvailable=function(){var t,e;return this.config.trace&&console.log("in BurnVisualizer.onNewDataAvailable"),e={"X-RallyIntegrationName":"Burn Chart (prototype)","X-RallyIntegrationVendor":"Rally Red Pill","X-RallyIntegrationVersion":"0.2.0",workspaceOID:this.projectAndWorkspaceScope.workspaceOID},null==this.upToDateISOString&&(this.upToDateISOString="2011-12-01T00:00:00.000Z"),this.analyticsQuery=new GuidedAnalyticsQuery(e,this.upToDateISOString),this.analyticsQuery.scope(this.config.scopeField,this.config.scopeValue),t=["ObjectID","_ValidFrom","_ValidTo","ScheduleState","PlanEstimate","TaskRemainingTotal","TaskEstimateTotal"],this.analyticsQuery.leafOnly().fields(t).hydrate(["ScheduleState"]),null!=this.config.asOf&&this.analyticsQuery.additionalCriteria({_ValidFrom:{$lt:this.getAsOfISOString()}}),this.config.debug&&(this.analyticsQuery.debug(),console.log("Requesting data...")),this.fetchPending=!0,this.analyticsQuery.getPage(this.onSnapshotsReceieved)},n.prototype.getHashForCache=function(){var t,e,i,s,n;return this.config.trace&&console.log("in BurnVisualizer.getHashForCache"),t={},n=r.clone(this.userConfig),delete n.debug,delete n.trace,t.userConfig=n,t.projectAndWorkspaceScope=this.projectAndWorkspaceScope,t.workspaceConfiguration=this.workspaceConfiguration,s="Burn v0.2.7",s=""+Math.random(),e=JSON.stringify(t),i=md5(e+s)},n.prototype.updateVisualizationData=function(){var t,e,r,s,n,o,a,l;if(this.config.trace&&console.log("in BurnVisualizer.updateVisualizationData"),t=this.lumenizeCalculator.getResults(),0===t.length){if(this.config.debug&&console.log("No calculatorResults."),this.fetchPending)return this.config.debug&&console.log("fetchPending is true so returning with visualizationData = null."),this.visualizationData=null,void 0;n=[],this.config.debug&&console.log("fetchPending is false so filling in with blanks")}else this.virgin=!1;for(o=t.seriesData,n=i.aggregationAtArray_To_HighChartsSeries(o,this.config.chartSeries),a=0,l=n.length;l>a;a++)s=n[a],null!=s.displayName&&(s.name=s.displayName);return e=function(){var t,e,i;for(i=[],t=0,e=o.length;e>t;t++)r=o[t],i.push(r.label);return i}(),this.visualizationData={series:n,categories:e}},n.prototype.updateVisualization=function(){var t,e,i,r,s,n,o;for(this.updateVisualizationData(),t=this.visualizations.chart,r=t.series,o=this.visualizationData.series,e=s=0,n=o.length;n>s;e=++s)i=o[e],r[e].setData(i.data,!1);return t.xAxis[0].setCategories(this.visualizationData.categories,!1),t.redraw()},n}(VisualizerBase),this.BurnVisualizer=t}).call(this);
+</script>
+        
+        <script type="text/javascript">
+            (function() {
+
+                var charts = {};
+                var visualizer;
+                var nameToDisplayNameMap;
                 
-                // The CSV-style table is not what it would look like from the Rally Analytics API so let's fix that.
-                var results = lumenize.csvStyleArray_To_ArrayOfMaps(resultsCSVStyle);
-                
-                // Replace above code with call to LookbackAPI
-                // For PI/Story burn chart, {_ItemHiearchy: 123456L} where 123456L is the ObjectID of the PI or Story
-                
-                var workspaceConfiguration = {  // Need to grab from Rally for this user
-                  DateFormat: 'MM/dd/yyyy',
-                  DateTimeFormat: 'MM/dd/yyyy hh:mm:ss a',
-                  IterationEstimateUnitName: 'Points',  // !TODO: Should we use this?
-                  ReleaseEstimateUnitName: 'Points',
-                  TaskUnitName: 'Hours',
-                  TimeTrackerEnabled: true,
-                  TimeZone: 'America/Denver',
-                  WorkDays: 'Sunday,Monday,Tuesday,Wednesday,Thursday,Friday' // They work on Sundays
-                };
-                
-                var config = {
-                  workspaceConfiguration: workspaceConfiguration,
-                  upSeriesType: 'Story Count', // 'Points' or 'Story Count'
-                  series: [
-                    'down',
-                    'up',
+                createVisualization = function(visualizationData) {
+                  
+                  if (typeof visualizationData !== "undefined" && visualizationData !== null) {
+                    categories = visualizationData.categories;
+                    series = visualizationData.series;
+
+                    charts.chart = new Highcharts.Chart({
+                      chart: {
+                         renderTo: 'chart-container',
+                         defaultSeriesType: 'column',
+                         zoomType: 'x'
+                      },
+                      legend: {
+                         enabled: true
+                      },
+                      credits: {
+                         enabled: false
+                      },
+                      title: {
+                         text: userConfig.title
+                      },
+                      subtitle: {
+                         text: userConfig.scopeData.Name
+                      },
+                      xAxis: {
+                         categories: categories,
+                         tickmarkPlacement: 'on',
+                         tickInterval: Math.floor(categories.length / 24) + 1,
+                         title: {
+                             text: userConfig.granularity.slice(0, 1).toUpperCase() + userConfig.granularity.slice(1) + 's'
+                         }
+                      },
+                      yAxis: [
+                         {
+                             title: {
+                                 text: 'Task To Do (Hours)'  // !TODO: Look up units in WorkspaceConfig
+                             },
+                             min: 0
+                         },
+                         {
+                             title: {
+                                 text: 'Accepted (Points)'  // !TODO: Vary with count/units and look up units in WorkspaceConfig
+                             },
+                             opposite: true,
+                             min: 0
+                         }                      
+                      ],
+                      tooltip: {
+                         formatter: function() {
+                             point = this.point
+                             s = point.series.name + ': <b>' + point.y + '</b><br \>';
+                             if (point.x == point.series.data.length - 1) {
+                                 s += point.category.slice(0, point.category.length - 1) + ' to-date';
+                             } else {
+                                 s += point.category;
+                             }
+                             return s;
+                         }
+                      },                    
+                      series: series
+                    });  // end of chart
+                    
+                  } else {
+                    // Put a spinner in the chart containers until first fetch returns
+                    $('#chart-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
 /*
-                    'projectionToCurrentScope',
-                    'projectionToProjectedScope',
+                    $('#summary-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
 */
-                    'ideal',
-                    'scope'
-                  ],
-                  acceptedStates: ['Accepted', 'Released'],
-                  start: "2011-01-03T13:00:00Z",  // Calculated either by inspecting results or via configuration. pastEnd is automatically the last date in results
-                  holidays: [
-                    {month: 12, day: 25}, // Notice how the year can be omitted
-                    {year: 2011, month: 11, day: 26},
-                    {year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
-                  ]
-                };
-                                
-                var tscResults = burnCalculator(results, config);
+                  };  // end of if visualizationData?
                 
-                var categories = tscResults.categories;
-                var series = tscResults.series;
-                
-                chart = new Highcharts.Chart({
-                    chart: {
-                        renderTo: 'container',
-                        defaultSeriesType: 'column'
-                    },
-                    credits: {
-                        enabled: false
-                    },
-                    title: {
-                        text: 'Burn Chart'
-                    },
-                    subtitle: {
-                        text: ''
-                    },
-                    xAxis: {
-                        categories: categories,
-                        tickmarkPlacement: 'on',
-                        tickInterval: Math.floor(categories.length / 13) + 1,
-                        title: {
-                            enabled: false
-                        }
-                    },
-                    yAxis: [
-                        {
-                            title: {
-                                text: 'Hours'
-                            },
-                            labels: {
-                                formatter: function() {
-                                    return this.value / 1;
-                                }
-                            },
-                            min: 0
-                        },
-                        {
-                            title: {
-                                text: config.upSeriesType
-                            },
-                            opposite: true,
-                            labels: {
-                                formatter: function() {
-                                    return this.value / 1;
-                                }
-                            },
-                            min: 0
-                        }                        
-                    ],
-                    tooltip: {
-                        formatter: function() {
-                            return ''+ this.x + '<br />' + this.series.name + ': ' + this.y;
-                        }
-                    },
-                    plotOptions: {
-                        column: {
-                            stacking: null,
-                            lineColor: '#666666',
-                            lineWidth: 1,
-                            marker: {
-                                lineWidth: 1,
-                                lineColor: '#666666'
-                            }
-                        },
-/*
-                        series: {
-                            allowPointSelect: true,
-                            point: {
-                                events: {
-                                    select: function(event) {
-                                        // Use this to highlight the rows in a table
-                                        alert('ObjectIDs: ' +
-                                            JSON.stringify(cfdCalculation.drillDownObjectIDs[this.series.name][this.x]));
-                                    },
-                                    unselect: function(event) {
-                                        alert('Unselect rows')
-                                    }
-                                }
-                            }
-                        }
-*/
-                    },
-                    series: series
+                };  // end of createVisualization  
+                  
+    
+                $(document).ready(function() {
+                  visualizer = new BurnVisualizer(charts, userConfig, createVisualization);
                 });
-                      
-                                  
-                
-            });
+            
+            })();
+            
                 
         </script>
+
         
     </head>
     <body>
         
-        <!-- 3. Add the container -->
-        <div id="container" style="width: 75%; height: 75%; margin: 0 auto"></div>
-        
+        <!-- 3. Add the containers -->
+        <table cellpading="0px" cellspacing="0px" width="98%" height="98%">
+          <tr>
+            <td width="100%"><div id="chart-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+            <td width="0%"><div id="summary-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+          </tr>
+        </table>
+                
     </body>
 </html>
+
+

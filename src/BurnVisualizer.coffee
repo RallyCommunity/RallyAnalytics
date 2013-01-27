@@ -14,6 +14,15 @@ class BurnVisualizer extends VisualizerBase
       console.log('in BurnVisualizer.initialize')
     super()  # sets lumenizeCalculatorConfig.tz
 
+    if Rally?.environment?
+      Rally.environment.getMessageBus().subscribe("timeBoxScopeChange", (a) ->
+        record = a.getRecord()
+        data = record.data
+        console.log('in BurnVisualizer.initialize', data.StartDate, data.EndDate, data.Name)
+      )
+    else
+      console.log('in BurnVisualizer.initialize cannot find Rally.environment')
+
     if @config.granularity?
       @config.lumenizeCalculatorConfig.granularity = @config.granularity
     else
@@ -104,7 +113,7 @@ class BurnVisualizer extends VisualizerBase
       .leafOnly()
       .fields(fields)
       .hydrate(['ScheduleState'])
-      .pagesize(100)  # For debugging incremental update
+#      .pagesize(100)  # For debugging incremental update
 
     if @config.asOf?
       @analyticsQuery.additionalCriteria({_ValidFrom:{$lt:@getAsOfISOString()}})
