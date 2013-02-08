@@ -57,7 +57,12 @@ class ThroughputVisualizer extends VisualizerBase
     @analyticsQuery.type(@config.type)
     @analyticsQueryToSubtract.type(@config.type)
 
-#    @analyticsQuery.leafOnly()
+    if @config.fieldsToSum?
+      @analyticsQuery.fields(@config.fieldsToSum)
+      @analyticsQueryToSubtract.fields(@config.fieldsToSum)
+
+    if @config.leafOnly
+      @analyticsQuery.leafOnly()
 
 #    @analyticsQuery.pagesize(30)  # For debugging incremental update
 
@@ -136,7 +141,7 @@ class ThroughputVisualizer extends VisualizerBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'Throughput v0.2.79'
+    salt = 'Throughput v0.2.80'
 #    salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)

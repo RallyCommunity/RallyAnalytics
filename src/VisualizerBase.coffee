@@ -211,10 +211,13 @@ class VisualizerBase  # maybe extends Observable
   onSnapshotsReceieved: (snapshots, startOn, endBefore, queryInstance = null) =>
     if @config.trace
       console.log('in VisualizerBase.onSnapshotsReceieved')
-    if snapshots.length > 0 and (new Time(endBefore).getJSDate('GMT').getTime() - new Time(startOn).getJSDate('GMT').getTime()) > 5 * 60 * 1000
+
+    if snapshots.length > 0 and (new Time(endBefore, Time.MILLISECOND, @config.tz).getJSDate('GMT').getTime() -
+                                 new Time(startOn, Time.MILLISECOND, @config.tz).getJSDate('GMT').getTime()) > 5 * 60 * 1000
       @dirty = true
     else
       @dirty = false
+
     # @lastQueryReceivedMilliseconds = new Date().getTime()
     @upToDateISOString = endBefore
     @deriveFieldsOnSnapshots(snapshots)

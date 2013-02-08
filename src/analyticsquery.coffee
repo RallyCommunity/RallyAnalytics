@@ -608,7 +608,10 @@ class AtAnalyticsQuery extends GuidedAnalyticsQuery
     super(config, upToDate)
     unless zuluDateString?
       throw new Error('Must provide a zuluDateString when instantiating an AtAnalyticsQuery.')
-    @_additionalCriteria.push({__At: zuluDateString})
+    o = {}
+    key = String.fromCharCode(95) + "_At"
+    o[key] = zuluDateString
+    @_additionalCriteria.push(o)  # Had to do it this way because Rally yellow screens with the double underscore
 
 class BetweenAnalyticsQuery extends GuidedAnalyticsQuery
   ###
@@ -692,7 +695,7 @@ class TransitionsAnalyticsQuery extends GuidedAnalyticsQuery
   
   There is a good reason that Throughput and Velocity are defined with two predicates rather than just specifying the line to the left
   of "Accepted". Let's say, work is not really "Accepted" until the Ready flag is checked. You could write that query like so:
-  
+
   !TODO: Indent below to make sure it works and add example
   query = new rally_analytics.TransitionsAnalyticsQuery(config,
     {$or: [{KanbanState: {$lt: 'Accepted'}}, {KanbanState: 'Accepted', Ready: false}]}, 

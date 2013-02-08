@@ -18,12 +18,20 @@
                   Name: "My iteration"
                 },
 */
+                scopeValue: 10281134783,  // !TODO: Also supports "scope" which would get it from the dashboard
+                scopeData: {
+                  StartDate: new Date("2013-01-29T07:00:00.000Z"),  // Ignored if scopeValue = "scope"
+                  EndDate: new Date("2013-02-12T06:59:59.000Z"),  // Ignored if scopeValue = "scope"
+                  Name: "My iteration"
+                },
+/*
                 scopeValue: 9723347171,  // !TODO: Also supports "scope" which would get it from the dashboard
                 scopeData: {
                   StartDate: new Date("2013-01-15T07:00:00.000Z"),  // Ignored if scopeValue = "scope"
                   EndDate: new Date("2013-01-29T06:59:59.000Z"),  // Ignored if scopeValue = "scope"
                   Name: "My iteration"
                 },
+*/
                 chartSeries: [  // Note, we cannot do Task count because this design queries stories and defects only
                   {displayName: 'Task To Do (Hours)', name: 'TaskUnitBurnDown', color:'#5C9ACB'}, // !TODO: Pull units (Hours) from WorkspaceConfig
                   {displayName: 'Task Scope (Hours)', name: 'TaskUnitScope', type: 'line', color:'#5C9ACB', visible: false}, // !TODO: Pull units (Hours) from WorkspaceConfig
@@ -33,6 +41,14 @@
 /*                   {displayName: 'Accepted (Count)', name: 'StoryCountBurnUp', yAxis: 1, color:'#6AB17D'},  */
                   {displayName: 'Ideal', name: 'Ideal', type: 'line', color:'#777777', visible: false},
                   {displayName: 'Ideal (alternate)', name: 'Ideal2', type: 'line', color:'#777777'},
+                ],
+                holidays: [
+                  "2012-12-25",
+                  "2012-12-26",
+                  "2012-12-27",
+                  "2012-12-28",
+                  "2012-12-31",
+                  {month: 1, day: 1}
                 ]
             }
             
@@ -50,7 +66,7 @@
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.5.7/deploy/Lumenize-min.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.6.3/deploy/Lumenize-min.js"></script>
         
         <!-- rally_analytics -->
         <script type="text/javascript" src="../lib/analyticsquery.js"></script>

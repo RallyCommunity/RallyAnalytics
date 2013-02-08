@@ -3,6 +3,7 @@
 <html>
     <head>
         <script type="text/javascript"">
+/*
             var userConfig = {
                 subTitle: 'Features moving out of "In Dev"',
                 // debug: true,
@@ -18,7 +19,23 @@
                 seriesNames: ['Features'],
                 fieldNames: ['count']
             }
-            
+*/
+            var userConfig = {
+                subTitle: 'Stories moving out of "In Progress"',
+                debug: true,
+                trace: true,
+                // asOf: "2012-11-01",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
+                granularity: 'week',
+                numberOfPeriodsToShow: 13,
+                fieldsToSum: ['PlanEstimate'],
+                transitionsPredicate: {"ScheduleState":{$gt:"In-Progress"},"_PreviousValues.ScheduleState":{$lte:"In-Progress",$exists:true}},
+                transitionsToSubtractPredicate: {"_PreviousValues.ScheduleState":{$gt:"In-Progress"},"ScheduleState":{$lte:"In-Progress",$exists:true}},
+                type: 'HierarchicalRequirement',
+                leafOnly: true,
+                // deriveFieldsOnSnapshotsConfig:
+                seriesNames: ['Stories', 'Story Points'],
+                fieldNames: ['count', 'PlanEstimate']
+            }            
         </script>
         
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -96,6 +113,7 @@
                          }
                       
                       ],
+/*
                       tooltip: {
                          formatter: function() {
                              point = this.point
@@ -111,7 +129,8 @@
                              }
                              return s;
                          }
-                      },                    
+                      },  
+*/                  
                       series: series
                     });  // end of chart
                     
