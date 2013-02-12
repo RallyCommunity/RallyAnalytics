@@ -137,8 +137,9 @@ class VisualizerBase  # maybe extends Observable
       workspaceOID = 41529001
       projectScopingUp = false
       projectScopingDown = true
-#      projectOID = 279050021  # A-Team
-      projectOID = 81147451  # RallyDev
+#      projectOID = 7427420584  # Red Pill Doable
+      projectOID = 279050021  # A-Team
+#      projectOID = 81147451  # RallyDev
 #      projectOID = 2883988702  # Pain In The Arch
 #      projectOID = 6895507658  # Crazy Train
 #      projectOID = 7689966656  # Apps
@@ -183,7 +184,8 @@ class VisualizerBase  # maybe extends Observable
   onConfigOrScopeUpdated: () ->  # register this as the callback for events where the configuration changes
     if @config.trace
       console.log('in VisualizerBase.onConfigOrScopeUpdated')
-    savedState = @cache.getItem(@getHashForCache())
+#    savedState = @cache.getItem(@getHashForCache())  # Incremental calculations broken so removing for now
+    savedState = undefined  # Incremental calculations broken so removing for now
     if savedState?
       if @config.debug
         console.log('Found a saved state in cache. Restoring from savedState. Size:', JSON.stringify(savedState).length)
@@ -248,7 +250,8 @@ class VisualizerBase  # maybe extends Observable
     delay = etlDelay + paddingDelay
     if @timeoutHandle?
       clearTimeout(@timeoutHandle)
-    @timeoutHandle = setTimeout(@onNewDataAvailable, delay)
+#    @timeoutHandle = setTimeout(@onNewDataAvailable, delay)  # Incremental calculations adding double so removing for now.
+    @timeoutHandle = setTimeout(@onConfigOrScopeUpdated, delay)
 
   removeFromCacheAndRecalculate: () ->
     if @config.trace

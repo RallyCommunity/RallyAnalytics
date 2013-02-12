@@ -3,23 +3,22 @@
 <html>
     <head>
         <script type="text/javascript"">
-/*
             var userConfig = {
                 subTitle: 'Features moving out of "In Dev"',
-                // debug: true,
-                // trace: true,
+                debug: true,
+                trace: true,
                 // asOf: "2012-11-01",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
                 granularity: 'month',
                 numberOfPeriodsToShow: 13,
                 // fieldsToSum: ['LeafStoryCount']  // Not supported yet. Defaults to count.
                 transitionsPredicate: {"State":{$gt:"In Dev"},"_PreviousValues.State":{$lte:"In Dev",$exists:true}},
                 transitionsToSubtractPredicate: {"_PreviousValues.State":{$gt:"In Dev"},"State":{$lte:"In Dev",$exists:true}},
-                type: 'PortfolioItem/Feature',
+                type: 'Feature',
                 // deriveFieldsOnSnapshotsConfig:
                 seriesNames: ['Features'],
                 fieldNames: ['count']
             }
-*/
+/*
             var userConfig = {
                 subTitle: 'Stories moving out of "In Progress"',
                 debug: true,
@@ -35,7 +34,8 @@
                 // deriveFieldsOnSnapshotsConfig:
                 seriesNames: ['Stories', 'Story Points'],
                 fieldNames: ['count', 'PlanEstimate']
-            }            
+            }  
+*/          
         </script>
         
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -50,7 +50,7 @@
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.5.5/deploy/Lumenize-min.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.6.6/deploy/Lumenize-min.js"></script>
         
         <!-- rally_analytics -->
         <script type="text/javascript" src="../lib/analyticsquery.js"></script>

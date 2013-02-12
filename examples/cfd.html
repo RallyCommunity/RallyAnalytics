@@ -1,23 +1,68 @@
-﻿<!DOCTYPE HTML>
-
-<!--
-The general structure of the visualization examples in this repository follows these steps:
-
-1. Gather the parameters you'll need to specify the visualization
-   a. Gather some info from Rally's standard WSAPI
-   b. Gather some info from the user.
-   
-2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
-
-3. Perform some calculation/manipulation/aggregation of the snapshot data
-
-4. Render the data as a chart using some library like HighCharts
--->
+<!DOCTYPE HTML>
 
 <html>
     <head>
+        <script type="text/javascript"">
+            var userConfig = {
+                title: 'Cumulative Flow Diagram',
+                debug: false,
+                trace: false,
+                // asOf: "2012-11-01",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
+                granularity: 'day',
+
+                scopeField: "_ProjectHierarchy",  // Supports Iteration, Release, Tags, Project, _ProjectHierarchy, _ItemHierarchy
+                scopeValue: 'scope',
+                scopeData: {
+                  StartDate: new Date(new Date().getTime() - 180 * 24 * 60 * 60 * 1000),
+                  EndDate: new Date(new Date()),
+                  Name: ""
+                },
+/*
+                scopeField: "Iteration",  // Supports Iteration, Release, Tags, Project, _ProjectHierarchy, _ItemHierarchy
+                scopeValue: 10281134783,  // !TODO: Also supports "scope" which would get it from the dashboard
+                scopeData: {
+                  StartDate: new Date("2013-01-29T07:00:00.000Z"),  
+                  EndDate: new Date("2013-02-12T06:59:59.000Z"),  
+                  Name: "My iteration"
+                },
+*/
+                kanbanStateField: 'ScheduleState',
+                chartSeries: [
+                  {name: 'Idea', color:'#5C9ACB'},
+                  {name: 'Defined'},
+                  {name: 'In-Progress'},
+                  {name: 'Completed'},
+                  {name: 'Accepted'},
+                  {name: 'Released'}
+                ],
+                
+/*
+                kanbanStateField: 'c_KanbanState',
+                chartSeries: [
+                  {name: 'Initial AC'},
+                  {name: 'Ranked'},
+                  {name: 'In Dev'},
+                  {name: 'In Test'},
+                  {name: 'Accepted'},
+                  {name: 'Merged'},
+                  {name: 'Released'}
+                ],
+*/
+                
+                holidays: [
+                  "2012-12-25",
+                  "2012-12-26",
+                  "2012-12-27",
+                  "2012-12-28",
+                  "2012-12-31",
+                  {month: 1, day: 1}
+                ]
+            }
+            
+        </script>
+        
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <title>Rally Cumulative Flow Example</title>
+        <title>CFD</title>
         
         <!-- HighCharts -->
         <script type="text/javascript" src="../lib/jquery.min.js" deploy_src="https://people.rallydev.com/js/jquery.min.js"></script>
@@ -28,295 +73,154 @@ The general structure of the visualization examples in this repository follows t
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.5.5/deploy/Lumenize-min.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.6.6/deploy/Lumenize-min.js"></script>
         
-        <!-- analyticsquery -->
-        <script type="text/javascript" src="../lib/analyticsquery.js"></script> 
-        
-        <!-- rallyquery -->
-        <script type="text/javascript" src="../lib/rallyquery.js"></script> 
+        <!-- rally_analytics -->
+        <script type="text/javascript" src="../lib/analyticsquery.js"></script>
 
-        <!-- my calculator for this chart -->
-        <script type="text/javascript" src="../lib/cfdcalculator.js"></script> 
+        <!-- md5 -->
+        <script type="text/javascript" src="../lib/md5.js"></script>
+        
+        <!-- my visualizer for this chart (optional) -->
+        <script type="text/javascript" src="../lib/localcache/LocalCache.js"></script> 
+        <script type="text/javascript" src="../lib/VisualizerBase.js"></script> 
+        <script type="text/javascript" src="../lib/CFDVisualizer.js"></script>
         
         <script type="text/javascript">
-        
-            if (top == self) {
-              var workspaceOID = 41529001;
-              var projectScopingUp = false;
-              var projectScopingDown = true;
-              var projectOID = 279050021;
-              //var projectOID = 1194243695; // "Services Team" project
-            } else {                
-              var workspaceOID = __WORKSPACE_OID__;
-              var projectScopingUp = __PROJECT_SCOPING_UP__;
-              var projectScopingDown = __PROJECT_SCOPING_DOWN__;
-              var projectOID = __PROJECT_OID__;                
-            };
-            
-            var kanbanStateValues = [];
-            
-            var rawKanbanStateFieldName = '';
-            
-            var maxDaysBack = 120;
-            
-            $(document).ready(function() {
-            
-                var lumenize = require('/lumenize');
+            (function() {
+
+                var charts = {};
+                var visualizer;
+                var nameToDisplayNameMap;
                 
-                // Step 1. Gather the parameters you'll need to specify the visualization
-                // Step 1a. Gather some info from Rally's standard WSAPI
-
-                // !TODO: replace this with the appropriate call using the App SDK 2.0
-                preferencesQuery = 'https://rally1.rallydev.com/slm/webservice/1.31/preference.js?query=((Project.ObjectID = ' + projectOID +
-                ') and (Name contains "/Kanban/WipSettings"))&fetch=true&start=1&pagesize=1&order=CreationDate desc';
-                
-                var config = {
-                  'X-RallyIntegrationName': 'CFD Prototype',
-                  'X-RallyIntegrationVendor': 'Rally The A-Team',
-                  'X-RallyIntegrationVersion': '0.1.0'
-                };
-                
-                var rallyQuery = new RallyQuery(config);
-
-                rallyQuery.query('((Project.ObjectID = ' + projectOID + ') and (Name contains "/Kanban/WipSettings"))');
-                
-                rallyQuery.order('CreationDate desc');
-                
-/*                 console.log(rallyQuery.getURL()); */
-                
-                rallyQuery.getAll(gotPreferencesResponse);          
-                
-            });
-            
-            // Step 1b. Gather some info from the user.
-
-            gotPreferencesResponse = function () {
-                var defaultField = loadFieldSelectOptions(this.allResults)
-                loadWithKanbanField( defaultField )
-            };
-
-            var kanbanFieldOptions = {} // Collects the various named results of the KanbanField property query (name/object dictionary)
-
-            loadFieldSelectOptions = function (results) {
-                var fieldControl = $("#kanbanStateField")
-
-                $.each( results, function() {
-                  addOption( fieldControl, JSON.parse(stripInfinity( this.Value ) ) )
-                })
-
-                fieldControl.change(updateKanbanState)
-
-                return fieldControl.val()
-            }
-
-            stripInfinity = function (str) {
-                var strOut = str;
-                while (strOut.indexOf('Infinity') >= 0) {
-                   strOut = strOut.replace('Infinity', -1);
-                };
-                return strOut;
-            }
-
-            addOption = function (control, result) {
-                if (kanbanFieldOptions[result.kanbanField]) return; // Prevent duplicates in drop-down. Why are there duplicates?
-                kanbanFieldOptions[result.kanbanField] = result
-                control.append($("<option />").val(result.kanbanField).text(result.kanbanField))
-            }
-
-            updateKanbanState = function () {
-                loadWithKanbanField( $("#kanbanStateField").val() )
-            }
-
-            loadWithKanbanField = function (fieldName) {
-                var kanbanDefinition = kanbanFieldOptions[fieldName]
-
-                var fieldInfos = kanbanDefinition.fieldInfos;
-
-                kanbanStateValues = []
-
-                var key, value;
-                
-                /* console.log */('kanbanDefinition: ' + JSON.stringify(kanbanDefinition, undefined, 2));
-                
-                for (key in fieldInfos) {
-                    kanbanDefinition = fieldInfos[key];
-                    if (kanbanDefinition.displayField == true) {
-                        kanbanStateValues.push(key); // WARN: Why is this global?
-                    };
-                }
-
-                runAnalyticsQuery(fieldName);
-            }
-            
-            // Step 2. Query Rally's analytics API (code named Lookback API) for the relevant "snapshots"
-
-            runAnalyticsQuery = function (kanbanStateFieldName) {
-                rawKanbanStateFieldName = kanbanStateFieldName;
-                if (kanbanStateFieldName != 'ScheduleState') {
-                    kanbanStateFieldName = "c_" + kanbanStateFieldName;
-                }
-                
-                var config = {
-                    'X-RallyIntegrationName': 'CFD Prototype',
-                    'X-RallyIntegrationVendor': 'Rally The A-Team',
-                    'X-RallyIntegrationVersion': '0.1.0',
-                    workspaceOID: workspaceOID
-                };
-
-                var query = new GuidedAnalyticsQuery(config);
-
-                query
-                // .scope('Tags', 3256952173)
-                  .scope('_ProjectHierarchy', projectOID)
-                  .type('HierarchicalRequirement')
-                  .leafOnly();
-
-                query.fields(['ObjectID', '_ValidFrom', '_ValidTo', kanbanStateFieldName, 'PlanEstimate']);
-                
-                query.hydrate([kanbanStateFieldName]);
-
-                // TODO: Should we filter on presence of fieldName as a property? Not everything has a Kanban state set.
-
-                query.find() // Only called here to set _find for debugging
-                console.log('Query: ' + JSON.stringify(query._find, undefined, 2));
-                console.log('Requesting data...');
-
-                query.getAll(function () { callback(this, kanbanStateFieldName) })
-            };
-
-            callback = function (rallyQuery, kanbanStateFieldName) {
-
-                console.log('Got data. Received ' + rallyQuery.allResults.length + ' snapshots.');
-                console.log('Calculating CFD...');
-
-                results = rallyQuery.allResults;
-
-                // Step 3. Perform some calculation/manipulation/aggregation of the snapshot data
-                //         We are using an external javascript (compiled from CoffeeScript) cfd calculation in this example
-                //         but we could just as easily have done the calculations here in this javascript.
-
-                var config = {
-                    groupByField: kanbanStateFieldName,
-                    groupByFieldValues: kanbanStateValues,
-                    useAllGroupByFieldValues: false,  // Extras are added to end. Setting to 'false' will just use the ones in groupByFieldValues. 
-                    maxDaysBack: maxDaysBack,
-                    startTrackingGroupByFieldValue: results[results.length - 1][kanbanStateFieldName],
-                    // aggregationField: "PlanEstimate",
-                    // aggregationFunction: "$sum",
-                    // aggregationLabel: 'Sum of Plan Estimate',
-                    aggregationField: "ObjectID",
-                    aggregationFunction: "$count",
-                    aggregationLabel: 'Count of Stories',
-                    workDays: 'Monday, Tuesday, Wednesday, Thursday, Friday',
-                    timezone: 'America/New_York',
-                    holidays: [
-                      { month: 12, day: 25 },
-                      { year: 2011, month: 11, day: 26 },
-                      { year: 2011, month: 1, day: 5}  // Made up holiday to demo holiday knockout
-                    ]
-                };
-
-                var cfdCalculation = cfdCalculator(results, config);
-                
-                // Step 4. Render the data as a chart using some library like HighCharts
-
-                chart = new Highcharts.Chart({
-                    chart: {
-                        renderTo: 'container',
-                        defaultSeriesType: 'area',
-                        zoomType: 'xy'
-                    },
-                    credits: {
-                        enabled: false
-                    },
-                    title: {
-                        text: 'Cumulative Flow Diagram'
-                    },
-                    subtitle: {
-                        text: 'State field: ' + rawKanbanStateFieldName
-                    },
-                    xAxis: {
-                        categories: cfdCalculation.categories,
-                        tickmarkPlacement: 'on',
-                        tickInterval: Math.floor(cfdCalculation.categories.length / 8), // set as a function of the length of categories
-                        title: {
-                            enabled: false
-                        }
-                        // set dateTimeLabelFormats
-                    },
-                    yAxis: {
-                        title: {
-                            text: config.aggregationLabel
-                        },
-                        labels: {
-                            formatter: function () {
-                                return this.value / 1;
-                            }
-                        },
-                        min: cfdCalculation.lowestValueInLastState
-                    },
-                    tooltip: {
-                        formatter: function () {
-                            return '' + this.x + '<br />' + this.series.name + ': ' + this.y;
-                        }
-                    },
-                    plotOptions: {
-                        area: {
-                            stacking: 'normal',
-                            lineColor: '#666666',
-                            lineWidth: 1,
-                            marker: {
-                                lineWidth: 1,
-                                lineColor: '#666666'
-                            }
-                        },
-                        series: {
+                createVisualization = function(visualizationData) {
+                  
+                  if (typeof visualizationData !== "undefined" && visualizationData !== null) {
+                    categories = visualizationData.categories;
+                    series = visualizationData.series;
+                    charts.lowestValueInLastState = visualizationData.lowestValueInLastState;
+                    
+                    charts.chart = new Highcharts.Chart({
+                      chart: {
+                         renderTo: 'chart-container',
+                         defaultSeriesType: 'area',
+                         zoomType: 'xy'
+                      },
+                      legend: {
+                         enabled: true
+                      },
+                      credits: {
+                         enabled: false
+                      },
+                      title: {
+                         text: userConfig.title
+                      },
+                      subtitle: {
+                         text: userConfig.scopeData.Name
+                      },
+                      xAxis: {
+                         categories: categories,
+                         tickmarkPlacement: 'on',
+                         tickInterval: Math.floor(categories.length / 12) + 1,
+                         title: {
+                             text: userConfig.granularity.slice(0, 1).toUpperCase() + userConfig.granularity.slice(1) + 's'
+                         }
+                      },
+                      yAxis: [
+                         {
+                             title: {
+                                 text: 'Count',
+                             },
+                             min: charts.lowestValueInLastState
+                         }                    
+                      ],
+                      tooltip: {
+                         formatter: function() {
+                             point = this.point
+                             s = point.series.name + ': <b>' + point.y + '</b><br \>';
+                             if (point.x == point.series.data.length - 1) {
+                                 s += point.category.slice(0, point.category.length - 1) + ' to-date';
+                             } else {
+                                 s += point.category;
+                             }
+                             return s;
+                         }
+                      },
+                      plotOptions: {
+                          area: {
+                              stacking: 'normal'
+                          },
+                          series: {
+/*
                             allowPointSelect: true,
-                            point: {
-                                events: {
-                                    select: function (event) {
-                                        // Use this to highlight the rows in a table
-                                        alert('ObjectIDs: ' +
-                                            JSON.stringify(cfdCalculation.drillDownObjectIDs[this.series.name][this.x]));
-                                    },
-                                    unselect: function (event) {
-                                        alert('Unselect rows')
-                                    }                                    
-                                }
-                            },
-                            events: {
-                                legendItemClick: function(event) {
-                                    if (this.chart.series.length == this.index + 1) {
-                                        if (!this.visible) {
-                                           this.chart.yAxis[0].setExtremes(cfdCalculation.lowestValueInLastState);
-                                        } else {
-                                           this.chart.yAxis[0].setExtremes(0);
-                                        };
-                                    };
-                                    return true;
-                                }
-                            }                          
-                        }
-                    },
-                    series: cfdCalculation.series
+                              point: {
+                                  events: {
+                                      select: function (event) {
+                                          // Use this to highlight the rows in a table
+                                          alert('ObjectIDs: ' +
+                                              JSON.stringify(cfdCalculation.drillDownObjectIDs[this.series.name][this.x]));
+                                      },
+                                      unselect: function (event) {
+                                          alert('Unselect rows')
+                                      }                                    
+                                  }
+                              },
+*/
+                              events: {
+                                  legendItemClick: function(event) {
+                                      if (this.chart.series.length == this.index + 1) {
+                                          if (!this.visible) {
+                                             this.chart.yAxis[0].setExtremes(charts.lowestValueInLastState);
+                                          } else {
+                                             this.chart.yAxis[0].setExtremes(0);
+                                          };
+                                      };
+                                      return true;
+                                  }
+                              }                          
+                          }
+                      },    
+                                      
+                      series: series
+                    });  // end of chart
+                    
+                  } else {
+                    // Put a spinner in the chart containers until first fetch returns
+                    $('#chart-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
+/*
+                    $('#summary-container')
+                      .html('<img height="20px" src="https://rally1.rallydev.com/slm/js-lib/ext/2.2/resources/images/default/grid/loading.gif"></img>')
+                      .attr("style", "text-align:center");
+*/
+                  };  // end of if visualizationData?
+                
+                };  // end of createVisualization  
+                  
+    
+                $(document).ready(function() {
+                  visualizer = new CFDVisualizer(charts, userConfig, createVisualization);
                 });
-
-
-            };
+            
+            })();
+            
                 
         </script>
+
         
     </head>
     <body>
-        <div id="stateSelector" >
-            Change kanban field: 
-            <select id="kanbanStateField" >
-            </select>
-        </div>
-        <!-- 3. Add the container -->
-        <div id="container" style="width: 800px; height: 400px; margin: 0 auto"></div>
         
+        <!-- 3. Add the containers -->
+        <table cellpading="0px" cellspacing="0px" width="98%" height="98%">
+          <tr>
+            <td width="100%"><div id="chart-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+            <td width="0%"><div id="summary-container" style="width: 100%; height: 100%; margin: 0 auto"></div></td>
+          </tr>
+        </table>
                 
     </body>
 </html>
+
+

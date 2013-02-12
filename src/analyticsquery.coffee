@@ -15,6 +15,17 @@ else
   lumenize = require('/lumenize')  # in the browser
 
 {utils, Time} = lumenize
+unless utils?.type?
+  utils = {}
+  utils.type = do ->  # from http://arcturo.github.com/library/coffeescript/07_the_bad_parts.html
+    classToType = {}
+    for name in "Boolean Number String Function Array Date RegExp Undefined Null".split(" ")
+      classToType["[object " + name + "]"] = name.toLowerCase()
+
+    (obj) ->
+      strType = Object::toString.call(obj)
+      classToType[strType] or "object"
+
 
 root = this
 
@@ -556,7 +567,10 @@ class GuidedAnalyticsQuery extends AnalyticsQuery
     @_type = null
   
   type: (type) ->
-    @_type = {'_TypeHierarchy': type}
+    if utils.type(type) is 'array'
+      @_type = {'_TypeHierarchy': {'$in': type}}
+    else
+      @_type = {'_TypeHierarchy': type}
     return this
 
   resetAdditionalCriteria: () ->

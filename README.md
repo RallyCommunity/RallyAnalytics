@@ -11,23 +11,20 @@ On Windows
 
 `%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe --disable-web-security --allow-file-access-from-files --allow-cross-origin-auth-prompt`
 
-This project makes it easier to get data from Rally's Analytics web services endpoints. Due to the magic of server/desktop-side 
-JavaScript provided by Node.js, it serves as both a REST Toolkit for script-based access, as well as a data access library for 
-running inside of a browser.
+This project makes it easier to get data from Rally's Lookback API endpoints. It serves as both a REST Toolkit for node.js access, 
+as well as a data access library for running inside of a browser. However, the preferred way to access it in the browser is
+to use Rally's App SDK 2.0.
 
 Useful links:
 
-* [Getting Started Guide for Lookback API users](http://rally.lumenize.com/rally_analytics/Analytics2.0LookbackAPIGettingStartedGuide.html)
-* [API Documentation for this data access library/REST toolkit](http://rally.lumenize.com/rally_analytics/docs/index.html)
 * [GitHub repository](https://github.com/RallyCommunity/rally_analytics)
-* [Full user documentation for the Analytics API](http://rally.lumenize.com/rally_analytics/Analytics2.0LookbackAPIUserManual.html)
-* [Slide deck summary showed at RallyON hack-a-thon](http://rally.lumenize.com/rally_analytics/Analytics_API_code_named_Lookback_RallyON.pdf)
+* [Full user documentation for Rally's Lookback API](https://rally1.rallydev.com/analytics/doc/)
 
 ## Concepts ##
 
-In order for you to be productive using the Rally Analytics API, there are two things you'll need to wrap your head around:
+In order for you to be productive using the Rally Lookback API, there are two things you'll need to wrap your head around:
 
-1. The MVCC-like snapshot data model
+1. The temporal snapshot data model
 2. The MongoDB-like query language
 
 **Snapshot Data Model**
@@ -190,8 +187,3 @@ follow the process above, except that you should rename the repository after you
 you could add the data access code from this repository to a larger project repository and go from there.
 In either case, send us an email at [app-submission@rallydev.com](mailto:app-submission@rallydev.com)
 telling us about your new App.
-
-A detailed description of this process along with simplified git tools and instructions can be found here:
-
-* [Mac](http://rally.lumenize.com/rally_analytics/UsingGitHubforRallyAppsMacversion.pdf)
-* [Windows](http://rally.lumenize.com/rally_analytics/UsingGitHubforRallyAppsWindowsversion.pdf)

@@ -5,7 +5,7 @@ else
 
 {utils, Time} = lumenize
 
-class BurnVisualizer extends VisualizerBase
+class CFDVisualizer extends VisualizerBase
   ###
   ###
 
@@ -26,7 +26,7 @@ class BurnVisualizer extends VisualizerBase
 
   initialize: () ->
     if @config.trace
-      console.log('in BurnVisualizer.initialize')
+      console.log('in CFDVisualizer.initialize')
     super()  # sets lumenizeCalculatorConfig.tz
 
 #    if parent?.Rally?.environment?
@@ -52,61 +52,10 @@ class BurnVisualizer extends VisualizerBase
       .addInPlace(1, @config.lumenizeCalculatorConfig.granularity)  # !TODO: This might not be sufficient. I might need to move along the timeline.
       .getISOStringInTZ('GMT')
 
-
-#    @config.lumenizeCalculatorConfig.deriveFieldsOnInput = [
-#      {field: 'AcceptedStoryCount', f: (row) ->
-#        if row.ScheduleState in ['Accepted', 'Released']
-#          return 1
-#        else
-#          return 0
-#      },
-#      {field: 'AcceptedStoryPoints', f: (row) ->
-#        if row.ScheduleState in ['Accepted', 'Released']  # !TODO: Need to use correct value for "Released" for their Workspace
-#          return row.PlanEstimate
-#        else
-#          return 0
-#      }
-#    ]
-
-    @config.acceptedStates = ['Accepted', 'Released']  # !TODO: Push this into the HTML
+    allowedValues = (cs.name for cs in @config.chartSeries)
 
     @config.lumenizeCalculatorConfig.metrics = [
-      {as: 'StoryCountBurnUp', f: 'filteredCount', filterField: 'ScheduleState', filterValues: @config.acceptedStates},
-      {as: 'StoryUnitBurnUp', field: 'PlanEstimate', f: 'filteredSum', filterField: 'ScheduleState', filterValues: @config.acceptedStates},
-      {as: 'StoryUnitScope', field: 'PlanEstimate', f: 'sum'},
-      {as: 'StoryCountScope', f: 'count'},
-#      {as: 'StoryCountBurnUp', field: 'AcceptedStoryCount', f: 'sum'},
-#      {as: 'StoryUnitBurnUp', field: 'AcceptedStoryPoints', f: 'sum'},
-      {as: 'TaskUnitBurnDown', field: 'TaskRemainingTotal', f: 'sum'},
-      {as: 'TaskUnitScope', field: 'TaskEstimateTotal', f: 'sum'}  # Note, we don't have the task count denormalized in stories so we can't have TaskCountScope nor TaskUnitBurnDown
-    ]
-
-    @config.lumenizeCalculatorConfig.summaryMetricsConfig = [
-      {field: 'TaskUnitScope', f: 'max'},
-      {field: 'TaskUnitBurnDown', f: 'max'},
-      {as: 'TaskUnitBurnDown_max_index', f: (seriesData, summaryMetrics) ->
-        for row, index in seriesData
-          if row.TaskUnitBurnDown is summaryMetrics.TaskUnitBurnDown_max
-            return index
-      }
-    ]
-
-    @config.lumenizeCalculatorConfig.deriveFieldsAfterSummary = [
-      {as: 'Ideal', f: (row, index, summaryMetrics, seriesData) ->
-        max = summaryMetrics.TaskUnitScope_max
-        increments = seriesData.length - 1
-        incrementAmount = max / increments
-        return Math.floor(100 * (max - index * incrementAmount)) / 100
-      },
-      {as: 'Ideal2', f: (row, index, summaryMetrics, seriesData) ->
-        if index < summaryMetrics.TaskUnitBurnDown_max_index
-          return null
-        else
-          max = summaryMetrics.TaskUnitBurnDown_max
-          increments = seriesData.length - 1 - summaryMetrics.TaskUnitBurnDown_max_index
-          incrementAmount = max / increments
-          return Math.floor(100 * (max - (index - summaryMetrics.TaskUnitBurnDown_max_index) * incrementAmount)) / 100
-      }
+      {f: 'groupByCount', groupByField: @config.kanbanStateField, allowedValues: allowedValues}
     ]
 
     @LumenizeCalculatorClass = lumenize.TimeSeriesCalculator
@@ -114,7 +63,7 @@ class BurnVisualizer extends VisualizerBase
   onNewDataAvailable: () =>
 
     if @config.trace
-      console.log('in BurnVisualizer.onNewDataAvailable')
+      console.log('in CFDVisualizer.onNewDataAvailable')
     queryConfig = {
       'X-RallyIntegrationName': 'Burn Chart (prototype)',
       'X-RallyIntegrationVendor': 'Rally Red Pill',
@@ -126,18 +75,33 @@ class BurnVisualizer extends VisualizerBase
 
     @analyticsQuery = new GuidedAnalyticsQuery(queryConfig, @upToDateISOString)
 
-    if @config.scopeData.ObjectID?
+    if @config.scopeValue is 'scope'
+      if @projectAndWorkspaceScope.projectScopingUp
+        if @config.debug
+          console.log('Project scoping up. OIDs in scope: ', @projectAndWorkspaceScope.projectOIDsInScope)
+        @analyticsQuery.scope('Project', @projectAndWorkspaceScope.projectOIDsInScope)
+      else if @projectAndWorkspaceScope.projectScopingDown
+        if @config.debug
+          console.log('Project scoping down. Setting _ProjectHierarchy to: ', @projectAndWorkspaceScope.projectOID)
+        @analyticsQuery.scope('_ProjectHierarchy', @projectAndWorkspaceScope.projectOID)
+      else
+        if @config.debug
+          console.log('Project with no up or down scoping. Setting Project to: ', @projectAndWorkspaceScope.projectOID)
+        @analyticsQuery.scope('Project', @projectAndWorkspaceScope.projectOID)
+    else if @config.scopeData.ObjectID?
       scopeValue = @config.scopeData.ObjectID
+      @analyticsQuery.scope(@config.scopeField, scopeValue)
     else
       scopeValue = @config.scopeValue
-    @analyticsQuery.scope(@config.scopeField, scopeValue)
+      @analyticsQuery.scope(@config.scopeField, scopeValue)
 
-    fields = ["ObjectID", "_ValidFrom", "_ValidTo", "ScheduleState", "PlanEstimate", "TaskRemainingTotal", "TaskEstimateTotal"]
+    fields = ["ObjectID", "_ValidFrom", "_ValidTo", "PlanEstimate"]
+    fields.push(@config.kanbanStateField)
     @analyticsQuery
       .type(['HierarchicalRequirement','Defect','TestCase','DefectSuite'])
       .leafOnly()
       .fields(fields)
-      .hydrate(['ScheduleState'])
+      .hydrate([@config.kanbanStateField])
 #      .pagesize(100)  # For debugging incremental update
 
     if @config.asOf?
@@ -153,7 +117,7 @@ class BurnVisualizer extends VisualizerBase
 
   getHashForCache: () ->
     if @config.trace
-      console.log('in BurnVisualizer.getHashForCache')
+      console.log('in CFDVisualizer.getHashForCache')
     hashObject = {}
     userConfig = utils.clone(@userConfig)
     delete userConfig.debug
@@ -161,7 +125,7 @@ class BurnVisualizer extends VisualizerBase
     hashObject.userConfig = userConfig
     hashObject.projectAndWorkspaceScope = @projectAndWorkspaceScope
     hashObject.workspaceConfiguration = @workspaceConfiguration
-    salt = 'Burn v0.2.11'
+    salt = 'CFD v0.2.11'
     salt = Math.random().toString()
     hashString = JSON.stringify(hashObject)
     out = md5(hashString + salt)
@@ -173,7 +137,7 @@ class BurnVisualizer extends VisualizerBase
     # Store your calculations into @visualizationData, which will be sent to the visualization create and update callbacks.
     # Try to fully populate the x-axis based upon today even if you have no data for later dates yet.
     if @config.trace
-      console.log('in BurnVisualizer.updateVisualizationData')
+      console.log('in CFDVisualizer.updateVisualizationData')
 
     calculatorResults = @lumenizeCalculator.getResults()
 
@@ -201,18 +165,23 @@ class BurnVisualizer extends VisualizerBase
 
     categories = (row.label for row in seriesData)
 
-    @visualizationData = {series, categories}
+    lowestValueInLastState = lumenize.functions.min(series[series.length-1].data)
+
+    @visualizationData = {series, categories, lowestValueInLastState}
 
   updateVisualization: () ->
     # most likely override. The default here is to just recreate it again but you should try to update the HighCharts
     # Objects in @visualizations.
     @updateVisualizationData()
+
+    @visualizations.lowestValueInLastState = @visualizationData.lowestValueInLastState
     chart = @visualizations.chart
+    chart.yAxis[0].setExtremes(@visualizationData.lowestValueInLastState)
     series = chart.series
     for s, index in @visualizationData.series
       series[index].setData(s.data, false)
     chart.xAxis[0].setCategories(@visualizationData.categories, false)
     chart.redraw()
   
-this.BurnVisualizer = BurnVisualizer
+this.CFDVisualizer = CFDVisualizer
   
