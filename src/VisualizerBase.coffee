@@ -202,7 +202,72 @@ class VisualizerBase  # maybe extends Observable
 
     @createVisualization()
     @dirty = false
-    @onNewDataAvailable()
+    @getCurrentState()
+
+  getCurrentState: () ->
+    if @config.trace
+      console.log('in VisualizerBase.getCurrentState')
+
+    _callback = (queryHandle) =>
+      console.log(queryHandle)
+      @currentState = queryHandle.allResults
+      @currentObjectIDs = (r.ObjectID for r in @currentState)
+      @onNewDataAvailable()
+
+    queryConfig = {
+      'X-RallyIntegrationName': 'Burn Chart (prototype)',
+      'X-RallyIntegrationVendor': 'Rally Red Pill',
+      'X-RallyIntegrationVersion': '0.2.0',
+      workspaceOID: @projectAndWorkspaceScope.workspaceOID
+    }
+
+    @analyticsQuery = new GuidedAnalyticsQuery(queryConfig)
+
+    if @config.scopeValue is 'scope'
+      if @projectAndWorkspaceScope.projectScopingUp
+        if @config.debug
+          console.log('Project scoping up. OIDs in scope: ', @projectAndWorkspaceScope.projectOIDsInScope)
+        @analyticsQuery.scope('Project', @projectAndWorkspaceScope.projectOIDsInScope)
+      else if @projectAndWorkspaceScope.projectScopingDown
+        if @config.debug
+          console.log('Project scoping down. Setting _ProjectHierarchy to: ', @projectAndWorkspaceScope.projectOID)
+        @analyticsQuery.scope('_ProjectHierarchy', @projectAndWorkspaceScope.projectOID)
+      else
+        if @config.debug
+          console.log('Project with no up or down scoping. Setting Project to: ', @projectAndWorkspaceScope.projectOID)
+        @analyticsQuery.scope('Project', @projectAndWorkspaceScope.projectOID)
+    else if @config.scopeData?.ObjectID?
+      scopeValue = @config.scopeData.ObjectID
+      @analyticsQuery.scope(@config.scopeField, scopeValue)
+    else
+      scopeValue = @config.scopeValue
+      @analyticsQuery.scope(@config.scopeField, scopeValue)
+
+    fields = ["ObjectID"]
+
+    @analyticsQuery
+      .fields(fields)
+    #      .pagesize(100)  # For debugging incremental update
+
+    if @config.leafOnly
+      @analyticsQuery.leafOnly()
+
+    if @config.type?
+      @analyticsQuery.type(@config.type)
+
+    @analyticsQuery.additionalCriteria({__At:"current"})
+
+    if @config.debug
+      @analyticsQuery.debug()
+      console.log('Requesting data...')
+
+    @analyticsQuery.getAll(_callback)
+
+#    currentState = [
+#      {ObjectID: 1234}
+#    ]
+#
+#    _callback(currentState)
 
   getAsOfISOString: () ->
     if @config.asOf?

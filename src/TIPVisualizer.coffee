@@ -108,6 +108,12 @@ class TIPVisualizer extends VisualizerBase
 
     calculatorResults = @lumenizeCalculator.getResults()
 
+    if @config.debug
+      console.log('length of calculatorResults before @currentObjectID filtering: ', calculatorResults.length)
+    calculatorResults = (r for r in calculatorResults when r.ObjectID in @currentObjectIDs)
+    if @config.debug
+      console.log('length of calculatorResults after @currentObjectID filtering: ', calculatorResults.length)
+
     if calculatorResults.length == 0
       if @config.debug
         console.log('No calculatorResults.')
@@ -125,13 +131,13 @@ class TIPVisualizer extends VisualizerBase
       inProcessItems = []
       notInProcessItems = []
       if @config.asOf?
-        asOfMilliseconds = new lumenize.Time(@config.asOf, 'millisecond').getJSDate(@config.lumenizeCalculatorConfig.tz).getTime()
+        asOfMilliseconds = new lumenize.Time(@config.asOf, 'millisecond', @config.lumenizeCalculatorConfig.tz).getJSDate(@config.lumenizeCalculatorConfig.tz).getTime()
       else
         asOfMilliseconds = new Date().getTime()
       millisecondsToShow = @userConfig.daysToShow * 1000 * 60 * 60 * 24
       startMilliseconds = asOfMilliseconds - millisecondsToShow
       for row in calculatorResults
-        jsDateMilliseconds = new lumenize.Time(row._ValidTo_lastValue, 'millisecond').getJSDate(@config.lumenizeCalculatorConfig.tz).getTime()
+        jsDateMilliseconds = new lumenize.Time(row._ValidTo_lastValue, 'millisecond', @config.lumenizeCalculatorConfig.tz).getJSDate(@config.lumenizeCalculatorConfig.tz).getTime()
         if jsDateMilliseconds > asOfMilliseconds
           row.x = asOfMilliseconds
         else

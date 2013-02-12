@@ -287,7 +287,7 @@ class AnalyticsQuery
     if @hasMorePages()
       @getPage(@getAll)
     else
-      @allCallback.call(this)
+      @allCallback(this)
 
   hasMorePages: () ->
     return @_hasMorePages

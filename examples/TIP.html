@@ -9,7 +9,12 @@
                 trace: true,
                 daysToShow: 120,
                 // asOf: "2012-10-15",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
+                
+                scopeField: "_ProjectHierarchy",  // Supports Iteration, Release, Tags, Project, _ProjectHierarchy, _ItemHierarchy
+                scopeValue: 'scope',
+                
                 statePredicate: {ScheduleState:{$lt:"Accepted", $gte:"In-Progress"}},
+                currentStatePredicate: {ScheduleState:{$gte:"Accepted"}},
                 type: 'HierarchicalRequirement',
                 leafOnly: true,
                 showTheseFieldsInToolTip: [ // Will automatically show ObjectID and Work Days In State
@@ -35,6 +40,7 @@
             userConfig.subTitle = 'Features In Dev and less than 100% done'
             userConfig.daysToShow = 365
             userConfig.statePredicate = {"State":"In Dev", "PercentDoneByStoryCount":{$lt:1,$gt:0}}
+            userConfig.currentStatePredicate = {ScheduleState:{$gt:"In Dev"}}
             userConfig.type = 'PortfolioItem/Feature'
             userConfig.leafOnly = false
             userConfig.showTheseFieldsInToolTip = [
@@ -64,7 +70,7 @@
         -->
         
         <!-- Lumenize -->
-        <script type="text/javascript" src="https://raw.github.com/lmaccherone/Lumenize/v0.5.5/deploy/Lumenize-min.js"></script>
+        <script type="text/javascript" src="../lib/Lumenize/deploy/Lumenize.js" deploy_src="https://raw.github.com/lmaccherone/Lumenize/v0.6.6/deploy/Lumenize-min.js"></script>
         
         <!-- rally_analytics -->
         <script type="text/javascript" src="../lib/analyticsquery.js"></script>
