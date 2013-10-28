@@ -4,51 +4,42 @@
     <head>
         <script type="text/javascript"">
             var userConfig = {
-                title: 'Cumulative Flow Diagram',
+                title: 'Burn',
                 debug: true,
-                trace: false,
+                trace: true,
                 // asOf: "2012-11-01",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
                 granularity: 'day',
+                scopeField: "Iteration",  // Supports Iteration, Release, Tags, Project, _ProjectHierarchy, _ItemHierarchy
 
-                scopeField: "_ProjectHierarchy",  // Supports Iteration, Release, Tags, Project, _ProjectHierarchy, _ItemHierarchy
-                scopeValue: 'scope',
+                scopeValue: 9693020302,  // !TODO: Also supports "scope" which would get it from the dashboard
                 scopeData: {
-                  StartDate: new Date(new Date().getTime() - 180 * 24 * 60 * 60 * 1000),
-                  EndDate: new Date(new Date()),
-                  Name: ""
+                  StartDate: new Date("2012-12-17T07:00:00.000Z"),  // Ignored if scopeValue = "scope"
+                  EndDate: new Date("2013-01-15T06:59:59.000Z"),  // Ignored if scopeValue = "scope"
+                  Name: "Iteration: 2012-12-17 to 2013-01-15"
                 },
 /*
-                scopeField: "Iteration",  // Supports Iteration, Release, Tags, Project, _ProjectHierarchy, _ItemHierarchy
                 scopeValue: 10281134783,  // !TODO: Also supports "scope" which would get it from the dashboard
                 scopeData: {
-                  StartDate: new Date("2013-01-29T07:00:00.000Z"),  
-                  EndDate: new Date("2013-02-12T06:59:59.000Z"),  
+                  StartDate: new Date("2013-01-29T07:00:00.000Z"),  // Ignored if scopeValue = "scope"
+                  EndDate: new Date("2013-02-12T06:59:59.000Z"),  // Ignored if scopeValue = "scope"
                   Name: "My iteration"
                 },
 */
-                kanbanStateField: 'ScheduleState',
-                chartSeries: [
-                  {name: 'Idea', color:'#5C9ACB'},
-                  {name: 'Defined'},
-                  {name: 'In-Progress'},
-                  {name: 'Completed'},
-                  {name: 'Accepted'},
-                  {name: 'Released'}
-                ],
-                
 /*
-                kanbanStateField: 'c_KanbanState',
-                chartSeries: [
-                  {name: 'Initial AC'},
-                  {name: 'Ranked'},
-                  {name: 'In Dev'},
-                  {name: 'In Test'},
-                  {name: 'Accepted'},
-                  {name: 'Merged'},
-                  {name: 'Released'}
-                ],
+                scopeValue: 9723347171,  // !TODO: Also supports "scope" which would get it from the dashboard
+                scopeData: {
+                  StartDate: new Date("2013-01-15T07:00:00.000Z"),  // Ignored if scopeValue = "scope"
+                  EndDate: new Date("2013-01-29T06:59:59.000Z"),  // Ignored if scopeValue = "scope"
+                  Name: "My iteration"
+                },
 */
-                
+                chartSeries: [  // Note, we cannot do Task count because this design queries stories and defects only
+/*                   {displayName: 'Story Scope (Points)', name: 'StoryUnitScope', type: 'line', color:'#9AE1AD', visible: false}, // !TODO: Pull units (Points) from WorkspaceConfig */
+                  {displayName: 'Story Burndown (Points)', name: 'StoryUnitBurnDown', type: 'line', color:'#6AB17D', visible: true}, // !TODO: Pull units (Points) from WorkspaceConfig
+                  {displayName: 'Story Burndown Ideal (Points)', name: 'StoryUnitIdeal', type: 'line', color:'#777777', visible: true}, // !TODO: Pull units (Points) from WorkspaceConfig
+/*                   {displayName: 'Accepeted (Points)', name: 'StoryUnitBurnUp', color:'#6AB17D'}, // !TODO: Pull units (Points) from WorkspaceConfig */
+/*                   {displayName: 'Accepted (Count)', name: 'StoryCountBurnUp', color:'#6AB17D'},  */
+                ],
                 holidays: [
                   "2012-12-25",
                   "2012-12-26",
@@ -62,7 +53,7 @@
         </script>
         
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <title>CFD</title>
+        <title>Burn</title>
         
         <!-- HighCharts -->
         <script type="text/javascript" src="../lib/jquery.min.js" deploy_src="https://people.rallydev.com/js/jquery.min.js"></script>
@@ -84,7 +75,7 @@
         <!-- my visualizer for this chart (optional) -->
         <script type="text/javascript" src="../lib/localcache/LocalCache.js"></script> 
         <script type="text/javascript" src="../lib/VisualizerBase.js"></script> 
-        <script type="text/javascript" src="../lib/CFDVisualizer.js"></script>
+        <script type="text/javascript" src="../lib/BurnVisualizer.js"></script>
         
         <script type="text/javascript">
             (function() {
@@ -98,13 +89,12 @@
                   if (typeof visualizationData !== "undefined" && visualizationData !== null) {
                     categories = visualizationData.categories;
                     series = visualizationData.series;
-                    charts.lowestValueInLastState = visualizationData.lowestValueInLastState;
-                    
+
                     charts.chart = new Highcharts.Chart({
                       chart: {
                          renderTo: 'chart-container',
-                         defaultSeriesType: 'area',
-                         zoomType: 'xy'
+                         defaultSeriesType: 'column',
+                         zoomType: 'x'
                       },
                       legend: {
                          enabled: true
@@ -121,7 +111,7 @@
                       xAxis: {
                          categories: categories,
                          tickmarkPlacement: 'on',
-                         tickInterval: Math.floor(categories.length / 12) + 1,
+                         tickInterval: Math.floor(categories.length / 24) + 1,
                          title: {
                              text: userConfig.granularity.slice(0, 1).toUpperCase() + userConfig.granularity.slice(1) + 's'
                          }
@@ -129,10 +119,10 @@
                       yAxis: [
                          {
                              title: {
-                                 text: 'Count',
+                                 text: 'Story Points'  // !TODO: Vary with count/units and look up units in WorkspaceConfig
                              },
-                             min: charts.lowestValueInLastState
-                         }                    
+                             min: 0
+                         }                      
                       ],
                       tooltip: {
                          formatter: function() {
@@ -145,42 +135,7 @@
                              }
                              return s;
                          }
-                      },
-                      plotOptions: {
-                          area: {
-                              stacking: 'normal'
-                          },
-                          series: {
-/*
-                            allowPointSelect: true,
-                              point: {
-                                  events: {
-                                      select: function (event) {
-                                          // Use this to highlight the rows in a table
-                                          alert('ObjectIDs: ' +
-                                              JSON.stringify(cfdCalculation.drillDownObjectIDs[this.series.name][this.x]));
-                                      },
-                                      unselect: function (event) {
-                                          alert('Unselect rows')
-                                      }                                    
-                                  }
-                              },
-*/
-                              events: {
-                                  legendItemClick: function(event) {
-                                      if (this.chart.series.length == this.index + 1) {
-                                          if (!this.visible) {
-                                             this.chart.yAxis[0].setExtremes(charts.lowestValueInLastState);
-                                          } else {
-                                             this.chart.yAxis[0].setExtremes(0);
-                                          };
-                                      };
-                                      return true;
-                                  }
-                              }                          
-                          }
-                      },    
-                                      
+                      },                    
                       series: series
                     });  // end of chart
                     
@@ -200,7 +155,7 @@
                   
     
                 $(document).ready(function() {
-                  visualizer = new CFDVisualizer(charts, userConfig, createVisualization);
+                  visualizer = new BurnVisualizer(charts, userConfig, createVisualization);
                 });
             
             })();

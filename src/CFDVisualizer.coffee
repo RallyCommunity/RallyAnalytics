@@ -54,8 +54,12 @@ class CFDVisualizer extends VisualizerBase
 
     allowedValues = (cs.name for cs in @config.chartSeries)
 
+#    @config.lumenizeCalculatorConfig.metrics = [
+#      {f: 'groupByCount', groupByField: @config.kanbanStateField, allowedValues: allowedValues}
+#    ]
+
     @config.lumenizeCalculatorConfig.metrics = [
-      {f: 'groupByCount', groupByField: @config.kanbanStateField, allowedValues: allowedValues}
+      {f: 'groupBySum', field: 'PlanEstimate', groupByField: @config.kanbanStateField, allowedValues: allowedValues}
     ]
 
     @LumenizeCalculatorClass = lumenize.TimeSeriesCalculator

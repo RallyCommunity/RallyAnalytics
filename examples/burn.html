@@ -5,25 +5,26 @@
         <script type="text/javascript"">
             var userConfig = {
                 title: 'Burn',
-                debug: false,
-                trace: false,
+                debug: true,
+                trace: true,
                 // asOf: "2012-11-01",  // Optional. Only supply if want a specific time frame. Do not send in new Date().toISOString().
                 granularity: 'day',
                 scopeField: "Iteration",  // Supports Iteration, Release, Tags, Project, _ProjectHierarchy, _ItemHierarchy
-/*
+
                 scopeValue: 9693020302,  // !TODO: Also supports "scope" which would get it from the dashboard
                 scopeData: {
-                  StartDate: new Date("2012-12-17T07:00:00.000Z"),  // Ignored if scopeValue = "scope"
+                  StartDate: new Date("2012-12-24T07:00:00.000Z"),  // Ignored if scopeValue = "scope"
                   EndDate: new Date("2013-01-15T06:59:59.000Z"),  // Ignored if scopeValue = "scope"
                   Name: "My iteration"
                 },
-*/
+/*
                 scopeValue: 10281134783,  // !TODO: Also supports "scope" which would get it from the dashboard
                 scopeData: {
                   StartDate: new Date("2013-01-29T07:00:00.000Z"),  // Ignored if scopeValue = "scope"
                   EndDate: new Date("2013-02-12T06:59:59.000Z"),  // Ignored if scopeValue = "scope"
                   Name: "My iteration"
                 },
+*/
 /*
                 scopeValue: 9723347171,  // !TODO: Also supports "scope" which would get it from the dashboard
                 scopeData: {
@@ -35,7 +36,9 @@
                 chartSeries: [  // Note, we cannot do Task count because this design queries stories and defects only
                   {displayName: 'Task To Do (Hours)', name: 'TaskUnitBurnDown', color:'#5C9ACB'}, // !TODO: Pull units (Hours) from WorkspaceConfig
                   {displayName: 'Task Scope (Hours)', name: 'TaskUnitScope', type: 'line', color:'#5C9ACB', visible: false}, // !TODO: Pull units (Hours) from WorkspaceConfig
-                  {displayName: 'Story Scope (Points)', name: 'StoryUnitScope', yAxis: 1, type: 'line', color:'#6AB17D', visible: false}, // !TODO: Pull units (Points) from WorkspaceConfig
+                  {displayName: 'Story Scope (Points)', name: 'StoryUnitScope', yAxis: 1, type: 'line', color:'#9AE1AD', visible: false}, // !TODO: Pull units (Points) from WorkspaceConfig
+/*                   {displayName: 'Story Burndown (Points)', name: 'StoryUnitBurnDown', yAxis: 1, type: 'line', color:'#6AB17D', visible: true}, // !TODO: Pull units (Points) from WorkspaceConfig */
+/*                   {displayName: 'Story Burndown Ideal (Points)', name: 'StoryUnitIdeal', yAxis: 1, type: 'line', color:'#777777', visible: true}, // !TODO: Pull units (Points) from WorkspaceConfig */
 /*                   {displayName: 'Story Scope (Count)', name: 'StoryCountScope', yAxis: 1, color:'#6AB17D', visible: false},  */ 
                   {displayName: 'Accepeted (Points)', name: 'StoryUnitBurnUp', yAxis: 1, color:'#6AB17D'}, // !TODO: Pull units (Points) from WorkspaceConfig
 /*                   {displayName: 'Accepted (Count)', name: 'StoryCountBurnUp', yAxis: 1, color:'#6AB17D'},  */

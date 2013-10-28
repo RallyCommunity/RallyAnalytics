@@ -108,11 +108,11 @@ class TIPVisualizer extends VisualizerBase
 
     calculatorResults = @lumenizeCalculator.getResults()
 
-    if @config.debug
-      console.log('length of calculatorResults before @currentObjectID filtering: ', calculatorResults.length)
-    calculatorResults = (r for r in calculatorResults when r.ObjectID in @currentObjectIDs)
-    if @config.debug
-      console.log('length of calculatorResults after @currentObjectID filtering: ', calculatorResults.length)
+#    if @config.debug
+#      console.log('length of calculatorResults before @currentObjectID filtering: ', calculatorResults.length)
+#    calculatorResults = (r for r in calculatorResults when r.ObjectID in @currentObjectIDs)
+#    if @config.debug
+#      console.log('length of calculatorResults after @currentObjectID filtering: ', calculatorResults.length)
 
     if calculatorResults.length == 0
       if @config.debug

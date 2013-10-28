@@ -138,8 +138,8 @@ class VisualizerBase  # maybe extends Observable
       projectScopingUp = false
       projectScopingDown = true
 #      projectOID = 7427420584  # Red Pill Doable
-      projectOID = 279050021  # A-Team
-#      projectOID = 81147451  # RallyDev
+#       projectOID = 279050021  # A-Team
+      projectOID = 81147451  # RallyDev
 #      projectOID = 2883988702  # Pain In The Arch
 #      projectOID = 6895507658  # Crazy Train
 #      projectOID = 7689966656  # Apps
@@ -202,7 +202,8 @@ class VisualizerBase  # maybe extends Observable
 
     @createVisualization()
     @dirty = false
-    @getCurrentState()
+#    @getCurrentState()
+    @onNewDataAvailable()
 
   getCurrentState: () ->
     if @config.trace
@@ -247,7 +248,6 @@ class VisualizerBase  # maybe extends Observable
 
     @analyticsQuery
       .fields(fields)
-    #      .pagesize(100)  # For debugging incremental update
 
     if @config.leafOnly
       @analyticsQuery.leafOnly()
@@ -255,19 +255,14 @@ class VisualizerBase  # maybe extends Observable
     if @config.type?
       @analyticsQuery.type(@config.type)
 
+    @analyticsQuery.additionalCriteria(@config.currentStatePredicate)
     @analyticsQuery.additionalCriteria({__At:"current"})
 
     if @config.debug
       @analyticsQuery.debug()
-      console.log('Requesting data...')
+      console.log('Requesting current state data ...')
 
     @analyticsQuery.getAll(_callback)
-
-#    currentState = [
-#      {ObjectID: 1234}
-#    ]
-#
-#    _callback(currentState)
 
   getAsOfISOString: () ->
     if @config.asOf?

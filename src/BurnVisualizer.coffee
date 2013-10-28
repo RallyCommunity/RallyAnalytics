@@ -84,6 +84,7 @@ class BurnVisualizer extends VisualizerBase
     @config.lumenizeCalculatorConfig.summaryMetricsConfig = [
       {field: 'TaskUnitScope', f: 'max'},
       {field: 'TaskUnitBurnDown', f: 'max'},
+      {field: 'StoryUnitScope', f: 'max'},
       {as: 'TaskUnitBurnDown_max_index', f: (seriesData, summaryMetrics) ->
         for row, index in seriesData
           if row.TaskUnitBurnDown is summaryMetrics.TaskUnitBurnDown_max
@@ -106,6 +107,24 @@ class BurnVisualizer extends VisualizerBase
           increments = seriesData.length - 1 - summaryMetrics.TaskUnitBurnDown_max_index
           incrementAmount = max / increments
           return Math.floor(100 * (max - (index - summaryMetrics.TaskUnitBurnDown_max_index) * incrementAmount)) / 100
+      },
+      {as: 'StoryUnitBurnDown', f: (row, index, summaryMetrics, seriesData) ->
+        return row.StoryUnitScope - row.StoryUnitBurnUp
+      },
+# This version of the ideal line starts the StoryUnitScope_max
+#      {as: 'StoryUnitIdeal', f: (row, index, summaryMetrics, seriesData) ->
+#        max = summaryMetrics.StoryUnitScope_max
+#        increments = seriesData.length - 1
+#        incrementAmount = max / increments
+#        return Math.floor(100 * (max - (index * incrementAmount))) / 100
+#      }
+
+# This version of the ideal line starts the first point on the StoryUnitBurnDown series
+      {as: 'StoryUnitIdeal', f: (row, index, summaryMetrics, seriesData) ->
+        max = seriesData[0].StoryUnitBurnDown
+        increments = seriesData.length - 1
+        incrementAmount = max / increments
+        return Math.floor(100 * (max - (index * incrementAmount))) / 100
       }
     ]
 
