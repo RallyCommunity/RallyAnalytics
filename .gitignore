@@ -3,3 +3,12 @@ coffeedoctest_temp
 play
 .idea
 node_modules
+lib/rallyquery.js
+lib/rally_analytics.js
+lib/cfdcalculator.js
+lib/analyticsquery.js
+lib/VisualizerBase.js
+lib/ThroughputVisualizer.js
+lib/TIPVisualizer.js
+lib/CFDVisualizer.js
+lib/BurnVisualizer.js

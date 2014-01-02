@@ -124,7 +124,7 @@ class VisualizerBase  # maybe extends Observable
     @config = utils.clone(@userConfig)
     if @config.trace
       console.log('in VisualizerBase.constructor')
-    @cache = new LocalCache()
+#    @cache = new LocalCache()
     unless @config.debug?
       @config.debug = false
 
@@ -334,7 +334,7 @@ class VisualizerBase  # maybe extends Observable
       console.log('in VisualizerBase.updateCalculator')
     @lumenizeCalculator.addSnapshots(snapshots, startOn, endBefore, rest...)
     savedState = @lumenizeCalculator.getStateForSaving()
-    @cache.setItem(@getHashForCache(), savedState)
+#    @cache.setItem(@getHashForCache(), savedState)
 
   # You may want to override the following methods
 
