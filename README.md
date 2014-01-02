@@ -150,22 +150,41 @@ To use the test and build tools for this library, you are going to need a few th
 1. [Install Node.js](http://nodejs.org/#download). Contrary to popular impression, Node.js is not only a server 
    technology. We use it to run JavaScript/CoffeeScript on the desktop just like you can run Ruby or Java
    on the desktop.
-2. Once Node.js is installed, you should be able to run a few node package manager (npm) commands.
+2. Once Node.js is installed, you should be able to run a few node package manager (npm) commands to install necessary
+   dependant modules.
         
+        npm install
+
+   Will install the package dependencies listed in package.json, locally.
+
         sudo npm -g install coffee-script
         sudo npm -g install coffeedoc-lm
         sudo npm -g install coffeedoctest
         sudo npm -g install nodeunit
         sudo npm -g install jitter (optional if you want auto compilation)
+        sudo npm -g install uglify-js
+        sudo npm -g install browserify
+        sudo npm -g install xmlhttprequest
+
+   Will install them globally.  You can choose to do either.
         
 3. Add the following to your ~/.profile (or equivalent) file. Note, nodeunit will not work without the NODE_PATH.
         
-        NODE_PATH=/usr/local/lib/node_modules; export NODE_PATH
         RALLY_SERVER=rally1.rallydev.com; export RALLY_SERVER
         RALLY_USER=mylogin@mycompany.com; export RALLY_USER
         RALLY_PASSWORD=xxxxx; export RALLY_PASSWORD
         RALLY_WORKSPACE=12345; export RALLY_WORKSPACE
         RALLY_PROJECT=67890; export RALLY_PROJECT
+
+   Also, if you've installed package dependences locally, add the following:
+
+        NODE_PATH=./node_modules; export NODE_PATH
+        PATH=./node_modules/.bin:./bin:$PATH
+
+   And if globally:
+
+        NODE_PATH=/usr/local/lib/node_modules; export NODE_PATH
+        PATH=/usr/local/lib/node_modules/.bin:./bin:$PATH
         
    After edit, restart your session or use command `source ~/.profile` to activate the changes immediately.
 

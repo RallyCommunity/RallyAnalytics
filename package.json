@@ -32,9 +32,9 @@
   },
   "preferGlobal": false,
   "dependencies": {
-    "coffee-script": "~1.6.1"
   },
   "devDependencies": {
+    "coffee-script": "~1.6.1",
     "coffeedoctest": "0.5.x",
     "nodeunit": "~0.7.4",
     "uglify-js": "2.2.1",
