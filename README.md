@@ -1,5 +1,9 @@
 # Rally Analytics #
 
+Some of the examples in the https://github.com/RallyCommunity/RallyAnalytics require JQuery and Highcharts libraries to function correctly.  As of June 1, 2016, these dependencies will no longer by hosted / provided by CA Technologies.  
+
+Potential options include hosting these libraries yourself or using community hosted versions (ex. https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js, http://code.highcharts.com/2.1.6/modules/exporting.js).
+
 Note, to run the examples in here, you'll need to launch Chrome with the following:
 
 On Mac
